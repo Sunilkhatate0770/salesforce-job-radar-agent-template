@@ -252,3 +252,4 @@ export async function sendEmailMessage({ subject, text, html, attachments = [] }
 
   return false;
 }
+
