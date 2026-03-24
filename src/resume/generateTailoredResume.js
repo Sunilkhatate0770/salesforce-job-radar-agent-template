@@ -1,6 +1,8 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { mdToPdf } from "md-to-pdf";
+import { createZipArchive } from "../utils/zip.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +11,7 @@ const OUTPUT_DIR = path.resolve(__dirname, "../../.cache/tailored-resumes");
 const APPLY_PACK_OUTPUT_DIR = path.resolve(__dirname, "../../.cache/apply-packs");
 const DEFAULT_BASE_RESUME_PDF = path.resolve(
   __dirname,
-  "../../assets/resume/base/your_resume.pdf"
+  "../../assets/resume/base/base-resume.pdf"
 );
 
 function normalize(value) {
@@ -55,6 +57,20 @@ function truncate(value, maxLength = 1200) {
   const text = String(value || "").trim();
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
+}
+
+async function convertMarkdownToPdf(inputPath, outputPath) {
+  if (!isTruthy(process.env.RESUME_PDF_ENABLED || "true")) {
+    return null;
+  }
+
+  try {
+    await mdToPdf({ path: inputPath }, { dest: outputPath });
+    return outputPath;
+  } catch (error) {
+    console.log(`⚠️ PDF conversion failed for ${inputPath}: ${error.message}`);
+    return null;
+  }
 }
 
 function getCandidateProfile() {
@@ -353,6 +369,37 @@ function buildBasicApplyPack(job) {
   return lines.join("\n");
 }
 
+async function buildApplyEmailDraft(job) {
+  const profile = getCandidateProfile();
+  const subject = `Application for ${normalize(job.title) || "Salesforce Developer"}`;
+  const intro = `Hello Hiring Team,\n\nI am applying for the ${normalize(job.title)} role at ${normalize(job.company)}. I have strong experience with Salesforce platform development, and I believe my background aligns well with the role requirements. Please find my resume and apply bundle attached.`;
+  const body = `${intro}\n\nBest regards,\n${profile.name || "Candidate"}\n${profile.email || ""}${profile.phone ? ` | ${profile.phone}` : ""}`;
+
+  return { subject, body };
+}
+
+async function writeApplyEmailDraft(job, index) {
+  const draft = await buildApplyEmailDraft(job);
+  const slug = sanitizeFilePart(job.title || `job-${index + 1}`) || `job-${index + 1}`;
+  const score = Number.isFinite(Number(job.match_score))
+    ? `${Number(job.match_score)}`
+    : "na";
+  const filename = `apply-email-${index + 1}-${slug}-score-${score}.txt`;
+  const dir = path.resolve(__dirname, "../../.cache/apply-bundles");
+  await fs.mkdir(dir, { recursive: true });
+  const filePath = path.join(dir, filename);
+
+  const content = `Subject: ${draft.subject}\n\n${draft.body}`;
+  await fs.writeFile(filePath, content, "utf8");
+
+  return {
+    filename,
+    path: filePath,
+    contentType: "text/plain",
+    caption: `Email draft: ${job.title || "Salesforce role"}`
+  };
+}
+
 async function buildAiApplyPack(job, basicApplyPackText) {
   if (!isTruthy(process.env.APPLY_PACK_AI_ENABLED || "true")) {
     return basicApplyPackText;
@@ -454,12 +501,28 @@ async function writeTailoredResume(job, index) {
   const basicContent = buildBasicTailoredResume(job);
   const content = await buildAiTailoredResume(job, basicContent);
   await fs.writeFile(filePath, content, "utf8");
-  return {
-    filename,
-    path: filePath,
-    contentType: "text/markdown",
-    caption: `Tailored resume: ${job.title || "Salesforce role"}`
-  };
+
+  const attachments = [
+    {
+      filename,
+      path: filePath,
+      contentType: "text/markdown",
+      caption: `Tailored resume: ${job.title || "Salesforce role"}`
+    }
+  ];
+
+  const pdfPath = filePath.replace(/\.md$/i, ".pdf");
+  const generatedPdf = await convertMarkdownToPdf(filePath, pdfPath);
+  if (generatedPdf) {
+    attachments.push({
+      filename: filename.replace(/\.md$/i, ".pdf"),
+      path: pdfPath,
+      contentType: "application/pdf",
+      caption: `Tailored resume: ${job.title || "Salesforce role"}`
+    });
+  }
+
+  return attachments;
 }
 
 async function writeApplyPack(job, index) {
@@ -478,12 +541,28 @@ async function writeApplyPack(job, index) {
     : `${header}${aiContent}`;
 
   await fs.writeFile(filePath, finalContent, "utf8");
-  return {
-    filename,
-    path: filePath,
-    contentType: "text/markdown",
-    caption: `Apply pack: ${job.title || "Salesforce role"}`
-  };
+
+  const attachments = [
+    {
+      filename,
+      path: filePath,
+      contentType: "text/markdown",
+      caption: `Apply pack: ${job.title || "Salesforce role"}`
+    }
+  ];
+
+  const pdfPath = filePath.replace(/\.md$/i, ".pdf");
+  const generatedPdf = await convertMarkdownToPdf(filePath, pdfPath);
+  if (generatedPdf) {
+    attachments.push({
+      filename: filename.replace(/\.md$/i, ".pdf"),
+      path: pdfPath,
+      contentType: "application/pdf",
+      caption: `Apply pack: ${job.title || "Salesforce role"}`
+    });
+  }
+
+  return attachments;
 }
 
 async function getBaseResumeAttachment() {
@@ -511,6 +590,43 @@ async function getBaseResumeAttachment() {
   }
 }
 
+async function createApplyBundle(job, index, fileAttachments = []) {
+  if (!isTruthy(process.env.APPLY_BUNDLE_ENABLED || "true")) {
+    return null;
+  }
+
+  const bundleDir = path.resolve(__dirname, "../../.cache/apply-bundles");
+  await fs.mkdir(bundleDir, { recursive: true });
+
+  const slug = sanitizeFilePart(job.title || `job-${index + 1}`) || `job-${index + 1}`;
+  const score = Number.isFinite(Number(job.match_score))
+    ? `${Number(job.match_score)}`
+    : "na";
+  const filename = `apply-bundle-${index + 1}-${slug}-score-${score}.zip`;
+  const bundlePath = path.join(bundleDir, filename);
+
+  const filePaths = (Array.isArray(fileAttachments) ? fileAttachments : [])
+    .map(att => String(att.path || "").trim())
+    .filter(Boolean);
+
+  if (filePaths.length === 0) {
+    return null;
+  }
+
+  try {
+    await createZipArchive(bundlePath, filePaths);
+    return {
+      filename,
+      path: bundlePath,
+      contentType: "application/zip",
+      caption: `Apply bundle (resume + apply pack) for ${job.title || "Salesforce role"}`
+    };
+  } catch (error) {
+    console.log(`⚠️ Apply bundle zip failed: ${error.message}`);
+    return null;
+  }
+}
+
 export async function createResumeAttachments(jobs) {
   const list = Array.isArray(jobs) ? jobs : [];
   if (list.length === 0) return [];
@@ -533,14 +649,33 @@ export async function createResumeAttachments(jobs) {
 
   const attachments = [];
   for (let i = 0; i < ordered.length && i < maxTailoredFiles; i += 1) {
-    const file = await writeTailoredResume(ordered[i], i);
-    attachments.push(file);
+    const result = await writeTailoredResume(ordered[i], i);
+    if (Array.isArray(result)) {
+      attachments.push(...result);
+    } else if (result) {
+      attachments.push(result);
+    }
   }
 
   if (applyPackEnabled && maxApplyPackFiles > 0) {
     for (let i = 0; i < ordered.length && i < maxApplyPackFiles; i += 1) {
-      const file = await writeApplyPack(ordered[i], i);
-      attachments.push(file);
+      const result = await writeApplyPack(ordered[i], i);
+      if (Array.isArray(result)) {
+        attachments.push(...result);
+      } else if (result) {
+        attachments.push(result);
+      }
+
+      // also create an email draft for the job
+      const draft = await writeApplyEmailDraft(ordered[i], i);
+      if (draft) attachments.push(draft);
+
+      // create a bundle zip containing resume/apply pack/email draft for this job
+      const bundle = await createApplyBundle(ordered[i], i, [
+        ...(Array.isArray(result) ? result : [result]).map(r => ({ path: r.path })),
+        draft
+      ]);
+      if (bundle) attachments.push(bundle);
     }
   }
 
@@ -551,3 +686,4 @@ export async function createResumeAttachments(jobs) {
 
   return attachments;
 }
+

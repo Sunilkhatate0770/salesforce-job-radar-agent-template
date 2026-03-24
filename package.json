@@ -7,11 +7,22 @@
   "scripts": {
     "start": "node src/run.js",
     "doctor": "node src/tools/doctor.js",
+    "doctor:cloud": "node src/tools/cloudDoctor.js",
+    "cloud:sync": "node scripts/render-cloud-env.js sync-examples",
     "tracker": "node src/tools/tracker.js",
     "tracker:summary": "node src/tools/tracker.js summary",
     "tracker:list": "node src/tools/tracker.js list",
     "tracker:set": "node src/tools/tracker.js set",
-    "tracker:note": "node src/tools/tracker.js note"
+    "tracker:note": "node src/tools/tracker.js note",
+    "scheduler:install": "zsh scripts/install-launchd.sh",
+    "scheduler:uninstall": "zsh scripts/uninstall-launchd.sh",
+    "scheduler:sync": "zsh scripts/sync-launchd-runtime.sh",
+    "scheduler:status": "zsh -lc 'launchctl print gui/$(id -u)/com.salesforce-job-radar-agent'",
+    "scheduler:run:fallback": "node src/tools/fallbackScheduler.js",
+    "scheduler:install:windows": "powershell -ExecutionPolicy Bypass -File scripts/install-task-scheduler.ps1",
+    "scheduler:uninstall:windows": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-task-scheduler.ps1",
+    "test:failover": "node --test test/failover.test.js",
+    "dispatch:test": "zsh scripts/test-workflow-dispatch.sh"
   },
   "keywords": [
     "naukri",
@@ -25,6 +36,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
     "dotenv": "^17.3.1",
+    "archiver": "^5.3.1",
+    "md-to-pdf": "^5.2.5",
     "node-fetch": "^3.3.2",
     "nodemailer": "^8.0.1"
   }

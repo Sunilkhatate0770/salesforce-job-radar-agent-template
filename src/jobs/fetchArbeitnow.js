@@ -103,6 +103,7 @@ export async function fetchArbeitnowJobs({
 
   const unique = new Map();
   let hasNext = true;
+  let lastError = null;
 
   for (let pageNo = 1; pageNo <= maxPages; pageNo += 1) {
     if (!hasNext || unique.size >= maxUniqueResults) break;
@@ -124,12 +125,16 @@ export async function fetchArbeitnowJobs({
         if (unique.size >= maxUniqueResults) break;
       }
     } catch (error) {
+      lastError = error;
       console.log(`⚠️ Arbeitnow fetch failed on page ${pageNo}: ${error.message}`);
       break;
     }
   }
 
   const jobs = [...unique.values()];
+  if (jobs.length === 0 && lastError) {
+    throw lastError;
+  }
   console.log(`✅ Arbeitnow provider collected: ${jobs.length} unique job(s)`);
   return jobs;
 }

@@ -3,3 +3,10 @@ node_modules/
 .DS_Store
 .cache/
 package.json.save
+
+# Salesforce DX local state
+.sfdx/
+.sf/
+
+# Temp files created during automation
+test-create.txt

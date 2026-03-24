@@ -1,19 +1,27 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "./stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const QUEUE_PATH = path.resolve(__dirname, "../../.cache/pending-alerts.json");
+const QUEUE_PATH = new URL("../../.cache/pending-alerts.json", import.meta.url);
+const STATE_KEY = "pending_alerts";
+
+function normalizeJobs(parsed) {
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.jobs)) return parsed.jobs;
+  return [];
+}
 
 async function readQueue() {
-  try {
-    const raw = await fs.readFile(QUEUE_PATH, "utf8");
-    const parsed = JSON.parse(raw);
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+    return normalizeJobs(payload);
+  }
 
-    if (Array.isArray(parsed)) return parsed;
-    if (Array.isArray(parsed.jobs)) return parsed.jobs;
-    return [];
+  try {
+    return normalizeJobs(await readJsonFile(QUEUE_PATH));
   } catch (error) {
     if (error.code === "ENOENT") return [];
     console.log("⚠️ Pending alert queue read failed:", error.message);
@@ -27,8 +35,12 @@ async function writeQueue(jobs) {
     updated_at: new Date().toISOString()
   };
 
-  await fs.mkdir(path.dirname(QUEUE_PATH), { recursive: true });
-  await fs.writeFile(QUEUE_PATH, JSON.stringify(payload, null, 2), "utf8");
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(QUEUE_PATH, payload);
 }
 
 export async function enqueuePendingAlerts(jobs) {
@@ -81,4 +93,3 @@ export async function getPendingAlertCount() {
   const queue = await readQueue();
   return queue.length;
 }
-

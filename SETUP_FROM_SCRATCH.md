@@ -12,6 +12,9 @@ It sends alerts to:
 - Email
 
 It runs about every 10 minutes in GitHub Actions.
+For accurate 10-minute execution:
+- on macOS: use the included local `launchd` scheduler
+- in the cloud: use an external HTTP scheduler that dispatches the GitHub workflow
 
 ---
 
@@ -175,9 +178,9 @@ APPLY_PACK_MAX_FILES=3
 APPLY_PACK_AI_ENABLED=true
 APPLY_PACK_AI_MODEL=gpt-4.1-mini
 
-RESUME_BASE_PDF_PATH=assets/resume/base/your_resume.pdf
+RESUME_BASE_PDF_PATH=assets/resume/base/base-resume.pdf
 RESUME_ATTACHMENT_MAX_FILES=3
-RESUME_ATTACH_BASE_PDF=false
+RESUME_ATTACH_BASE_PDF=true
 TELEGRAM_MAX_DOCS_PER_RUN=7
 
 PRECISION_PROFILE=balanced
@@ -206,7 +209,7 @@ DAILY_SUMMARY_HOUR=21
 - number (example `20`) => send only that many
 
 Base resume file in repo:
-- add your own PDF at `assets/resume/base/your_resume.pdf`
+- `assets/resume/base/base-resume.pdf`
 
 Then test locally:
 
@@ -264,13 +267,47 @@ Workflow file:
 - [.github/workflows/salesforce-job-radar-agent.yml](.github/workflows/salesforce-job-radar-agent.yml)
 
 Current schedule:
-- Primary trigger: every 10 minutes
-- Backup trigger: 5 minutes later if the primary trigger was missed
-- Schedule gate avoids duplicate backup run (minimum gap: 7 minutes)
+- Trigger poll: every 5 minutes
+- Schedule gate keeps the effective cadence near 10 minutes
+- Schedule gate now checks the last real `run-agent` execution, not skipped backup runs
 
-Public template note:
-- The public template keeps GitHub Actions on `workflow_dispatch` only by default.
-- After you add your own secrets and validate one manual run, uncomment the schedule lines in the workflow file.
+Accurate 10-minute option on macOS:
+- GitHub Actions cron is best-effort, not exact
+- Use local `launchd` to run the agent every 600 seconds on your Mac
+- Keep GitHub Actions as backup/secondary runner
+- The installer runs a synced runtime copy from `~/Library/Application Support/SalesforceJobRadarAgent`
+- This avoids macOS background-access issues with repos stored inside `Documents`
+
+Install local scheduler:
+
+```bash
+npm run scheduler:install
+```
+
+After repo code changes, resync the runtime copy:
+
+```bash
+npm run scheduler:sync
+launchctl kickstart -k gui/$(id -u)/com.salesforce-job-radar-agent
+```
+
+Check status:
+
+```bash
+launchctl print gui/$(id -u)/com.salesforce-job-radar-agent
+tail -f "$HOME/Library/Application Support/SalesforceJobRadarAgent/local-scheduler.log"
+```
+
+Remove local scheduler:
+
+```bash
+npm run scheduler:uninstall
+```
+
+Accurate cloud-only option:
+- use an external scheduler such as `cron-job.org`
+- trigger GitHub workflow dispatch every 10 minutes
+- setup guide: [CLOUD_AUTOMATION_SETUP.md](./CLOUD_AUTOMATION_SETUP.md)
 
 Current behavior:
 - Sends normal alert when new jobs are found
@@ -286,7 +323,7 @@ Current behavior:
 - Sends downloadable resume files:
   - Tailored resume markdown file (generated per top match)
   - AI apply-pack markdown (cover letter + interview Q&A + apply checklist)
-  - Base resume PDF attachment, only after you add your own PDF and turn `RESUME_ATTACH_BASE_PDF=true`
+  - Base resume PDF attachment
 
 ---
 
@@ -373,3 +410,4 @@ After this setup, your agent is fully automatic:
 - fetches from Naukri + LinkedIn + fallback providers
 - dedupes old jobs
 - sends alerts to Telegram and Email
+

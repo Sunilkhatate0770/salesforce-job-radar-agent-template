@@ -83,6 +83,7 @@ export async function fetchAdzunaJobs({
   );
 
   const unique = new Map();
+  let lastError = null;
 
   for (const country of countries) {
     if (unique.size >= maxUniqueResults) break;
@@ -112,7 +113,10 @@ export async function fetchAdzunaJobs({
 
           if (!res.ok) {
             const body = await res.text();
-            console.log(`⚠️ Adzuna error (${country}, page ${page}): ${res.status} ${body.slice(0, 120)}`);
+            lastError = new Error(
+              `Adzuna error (${country}, page ${page}): ${res.status} ${body.slice(0, 120)}`
+            );
+            console.log(`⚠️ ${lastError.message}`);
             break;
           }
 
@@ -128,6 +132,7 @@ export async function fetchAdzunaJobs({
             if (unique.size >= maxUniqueResults) break;
           }
         } catch (error) {
+          lastError = error;
           console.log(`⚠️ Adzuna fetch failed (${country}, page ${page}): ${error.message}`);
           break;
         }
@@ -136,6 +141,9 @@ export async function fetchAdzunaJobs({
   }
 
   const jobs = [...unique.values()];
+  if (jobs.length === 0 && lastError) {
+    throw lastError;
+  }
   console.log(`✅ Adzuna provider collected: ${jobs.length} unique job(s)`);
   return jobs;
 }

@@ -1,10 +1,12 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "../db/stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const STATE_PATH = path.resolve(__dirname, "../../.cache/daily-summary-state.json");
+const STATE_PATH = new URL("../../.cache/daily-summary-state.json", import.meta.url);
+const STATE_KEY = "daily_summary_state";
 
 function isTruthy(value) {
   return ["1", "true", "yes", "on"].includes(
@@ -36,13 +38,20 @@ function getLocalDateParts(timezone) {
   };
 }
 
+function normalizeState(parsed) {
+  return {
+    last_sent_date: String(parsed?.last_sent_date || "")
+  };
+}
+
 async function readState() {
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+    return normalizeState(payload);
+  }
+
   try {
-    const raw = await fs.readFile(STATE_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-    return {
-      last_sent_date: String(parsed?.last_sent_date || "")
-    };
+    return normalizeState(await readJsonFile(STATE_PATH));
   } catch (error) {
     if (error.code === "ENOENT") {
       return { last_sent_date: "" };
@@ -54,11 +63,16 @@ async function readState() {
 
 async function writeState(state) {
   const payload = {
-    ...state,
+    ...normalizeState(state),
     updated_at: new Date().toISOString()
   };
-  await fs.mkdir(path.dirname(STATE_PATH), { recursive: true });
-  await fs.writeFile(STATE_PATH, JSON.stringify(payload, null, 2), "utf8");
+
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(STATE_PATH, payload);
 }
 
 export async function shouldSendDailySummary() {

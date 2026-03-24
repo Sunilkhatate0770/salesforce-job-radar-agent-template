@@ -13,18 +13,26 @@ function hasAll(keys) {
 }
 
 function hasResendConfig() {
-  return hasAll(["RESEND_API_KEY", "RESEND_FROM", "EMAIL_TO"]);
+  const recipient =
+    String(process.env.RESEND_TO || "").trim() ||
+    String(process.env.EMAIL_TO || "").trim();
+
+  return hasAll(["RESEND_API_KEY", "RESEND_FROM"]) && Boolean(recipient);
 }
 
 async function checkSupabase() {
   const url = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
-  const key = String(process.env.SUPABASE_SERVICE_KEY || "").trim();
+  const key = String(
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    ""
+  ).trim();
 
   if (!url || !key) {
     return {
       ok: false,
       label: "Supabase",
-      message: "SUPABASE_URL or SUPABASE_SERVICE_KEY is missing"
+      message: "SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY / SUPABASE_SERVICE_KEY is missing"
     };
   }
 
@@ -178,10 +186,16 @@ async function checkEmailResend() {
     };
   }
 
+  const recipient =
+    String(process.env.RESEND_TO || "").trim() ||
+    String(process.env.EMAIL_TO || "").trim();
+
   return {
     ok: true,
     label: "Resend",
-    message: `Fallback configured with sender ${mask(process.env.RESEND_FROM)}`
+    message:
+      `Fallback configured with sender ${mask(process.env.RESEND_FROM)} ` +
+      `and recipient ${mask(recipient)}`
   };
 }
 

@@ -1,25 +1,33 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "./stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const STORE_PATH = path.resolve(__dirname, "../../.cache/job-hashes.json");
+const STORE_PATH = new URL("../../.cache/job-hashes.json", import.meta.url);
+const STATE_KEY = "job_hashes";
+
+function normalizeHashes(parsed) {
+  if (Array.isArray(parsed)) {
+    return new Set(parsed);
+  }
+
+  if (Array.isArray(parsed?.hashes)) {
+    return new Set(parsed.hashes);
+  }
+
+  return new Set();
+}
 
 async function readStore() {
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+    return normalizeHashes(payload);
+  }
+
   try {
-    const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(raw);
-
-    if (Array.isArray(parsed)) {
-      return new Set(parsed);
-    }
-
-    if (Array.isArray(parsed.hashes)) {
-      return new Set(parsed.hashes);
-    }
-
-    return new Set();
+    return normalizeHashes(await readJsonFile(STORE_PATH));
   } catch (error) {
     if (error.code === "ENOENT") {
       return new Set();
@@ -36,8 +44,12 @@ async function writeStore(hashes) {
     updated_at: new Date().toISOString()
   };
 
-  await fs.mkdir(path.dirname(STORE_PATH), { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify(payload, null, 2), "utf8");
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(STORE_PATH, payload);
 }
 
 export async function hasLocalHash(jobHash) {

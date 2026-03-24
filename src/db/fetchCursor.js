@@ -1,15 +1,21 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "./stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const CURSOR_PATH = path.resolve(__dirname, "../../.cache/fetch-cursor.json");
+const CURSOR_PATH = new URL("../../.cache/fetch-cursor.json", import.meta.url);
+const STATE_KEY = "fetch_cursor";
 
 async function readCursor() {
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+    return Number(payload?.plan_index || 0) || 0;
+  }
+
   try {
-    const raw = await fs.readFile(CURSOR_PATH, "utf8");
-    const parsed = JSON.parse(raw);
+    const parsed = await readJsonFile(CURSOR_PATH);
     return Number(parsed.plan_index || 0) || 0;
   } catch (error) {
     if (error.code === "ENOENT") return 0;
@@ -24,8 +30,12 @@ async function writeCursor(planIndex) {
     updated_at: new Date().toISOString()
   };
 
-  await fs.mkdir(path.dirname(CURSOR_PATH), { recursive: true });
-  await fs.writeFile(CURSOR_PATH, JSON.stringify(payload, null, 2), "utf8");
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(CURSOR_PATH, payload);
 }
 
 export async function getNextPlanStartIndex(planCount) {

@@ -1,5 +1,11 @@
 import "dotenv/config";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { fetchNaukriJobs, getLastNaukriFetchReport } from "./jobs/fetchNaukri.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { applyPrecisionFilters } from "./jobs/precisionFilters.js";
 import { filterSalesforceJobs } from "./jobs/filterSalesforceJobs.js";
 import { sendTelegramMessage } from "./notify/telegram.js";
@@ -22,6 +28,9 @@ import {
   getPendingAlertCount,
   peekPendingAlerts
 } from "./db/pendingAlertQueue.js";
+import { acquireRunLease } from "./db/runLease.js";
+import { startRunHistory } from "./db/runHistory.js";
+import { getStateBackend } from "./db/stateStore.js";
 
 const AGENT_NAME = String(process.env.AGENT_NAME || "Salesforce Job Radar Agent").trim();
 
@@ -51,6 +60,19 @@ function isTruthy(value) {
   return ["1", "true", "yes", "on"].includes(
     String(value || "").trim().toLowerCase()
   );
+}
+
+function areCloudAttachmentsEnabled() {
+  const configured = String(process.env.CLOUD_ATTACHMENTS_ENABLED || "").trim();
+  if (configured) {
+    return isTruthy(configured);
+  }
+
+  const runtimeTarget = String(process.env.AGENT_RUNTIME_TARGET || "")
+    .trim()
+    .toLowerCase();
+
+  return runtimeTarget !== "supabase_edge" && !isTruthy(process.env.SUPABASE_CLOUD_MODE);
 }
 
 function inferJobSource(job) {
@@ -397,10 +419,37 @@ function renderEmailPanel({ title, chips = [], body = "" }) {
   );
 }
 
+function renderEmailSummaryCard({ newJobsCount, sourceSummary, bestJob }) {
+  const bestJobTitle = escapeHtml(bestJob?.title || "Best match job");
+  const bestJobCompany = escapeHtml(bestJob?.company || "");
+  const bestJobUrl = escapeHtml(getJobApplyUrl(bestJob) || "");
+  const bestJobScore = escapeHtml(getJobResumeMatchValue(bestJob));
+
+  return (
+    `<div style="margin:20px 0;padding:20px;border-radius:18px;background:#1f2937;color:#f8fafc;">` +
+    `<div style="font-size:20px;font-weight:800;margin-bottom:8px;">${escapeHtml(AGENT_NAME)} — New jobs</div>` +
+    `<div style="font-size:14px;line-height:1.6;margin-bottom:12px;">` +
+    `<strong>${newJobsCount}</strong> new jobs detected. Source mix: <strong>${escapeHtml(sourceSummary || "N/A")}</strong>` +
+    `</div>` +
+    `<div style="padding:16px;border-radius:14px;background:#0f172a;">` +
+    `<div style="font-size:16px;font-weight:700;margin-bottom:4px;">Top match: ${bestJobTitle}</div>` +
+    `<div style="font-size:13px;color:#cbd5e1;margin-bottom:10px;">${bestJobCompany} • Score: ${bestJobScore}</div>` +
+    (bestJobUrl
+      ? `<a href="${bestJobUrl}" style="display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:#2563eb;color:#fff;text-decoration:none;font-weight:700;">` +
+        `Apply now →` +
+        `</a>`
+      : `<span style="color:#94a3b8;">Apply link not available</span>`) +
+    `</div>` +
+    `</div>`
+  );
+}
+
 function summarizeProviderStatuses(providers) {
   const summary = {
     working: 0,
+    recovered: 0,
     failed: 0,
+    paused: 0,
     skipped: 0
   };
 
@@ -408,8 +457,13 @@ function summarizeProviderStatuses(providers) {
     const status = String(provider?.status || "").toLowerCase();
     if (status === "failed") {
       summary.failed += 1;
+    } else if (status === "paused") {
+      summary.paused += 1;
     } else if (status === "skipped") {
       summary.skipped += 1;
+    } else if (status === "recovered") {
+      summary.recovered += 1;
+      summary.working += 1;
     } else {
       summary.working += 1;
     }
@@ -461,11 +515,15 @@ function buildProviderHealthBlocks(fetchReport) {
     const error = String(provider?.error || "").trim();
     const marker = status === "failed"
       ? "❌"
-      : status === "skipped"
-        ? "⏭"
-        : contributedCount > 0
-          ? "✅"
-          : "⚪";
+      : status === "paused"
+        ? "⏸"
+        : status === "skipped"
+          ? "⏭"
+          : status === "recovered"
+            ? "♻️"
+            : contributedCount > 0
+              ? "✅"
+              : "⚪";
     const detail = error || reason;
 
     return (
@@ -488,9 +546,13 @@ function buildProviderHealthBlocks(fetchReport) {
       const detail = error || reason;
       const statusTone = status === "failed"
         ? "urgency"
-        : status === "skipped"
-          ? "age"
-          : "score";
+        : status === "paused"
+          ? "urgency"
+          : status === "skipped"
+            ? "age"
+            : status === "recovered"
+              ? "source"
+              : "score";
 
       return (
         `<div style="margin:0 0 12px 0;padding:14px 16px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;">` +
@@ -506,31 +568,35 @@ function buildProviderHealthBlocks(fetchReport) {
     .join("");
 
   return {
-    compactText: `providers ok=${statusSummary.working} failed=${statusSummary.failed} skipped=${statusSummary.skipped}`,
+    compactText:
+      `providers ok=${statusSummary.working} recovered=${statusSummary.recovered} ` +
+      `paused=${statusSummary.paused} failed=${statusSummary.failed} skipped=${statusSummary.skipped}`,
     telegramBlock:
       `🧪 <b>Provider Health</b>\n` +
-      `working ${statusSummary.working} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n` +
+      `working ${statusSummary.working} | recovered ${statusSummary.recovered} | paused ${statusSummary.paused} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n` +
       `${telegramLines.join("\n")}\n\n`,
     emailTextBlock:
       `Provider Health\n` +
-      `Working: ${statusSummary.working} | Failed: ${statusSummary.failed} | Skipped: ${statusSummary.skipped}\n` +
+      `Working: ${statusSummary.working} | Recovered: ${statusSummary.recovered} | Paused: ${statusSummary.paused} | Failed: ${statusSummary.failed} | Skipped: ${statusSummary.skipped}\n` +
       `${plainLines.join("\n")}\n\n`,
     emailHtmlBlock:
       renderEmailPanel({
         title: "Provider Health",
         chips: [
           renderEmailChip(`Working ${statusSummary.working}`, "score"),
+          renderEmailChip(`Recovered ${statusSummary.recovered}`, statusSummary.recovered > 0 ? "source" : "neutral"),
+          renderEmailChip(`Paused ${statusSummary.paused}`, statusSummary.paused > 0 ? "urgency" : "neutral"),
           renderEmailChip(`Failed ${statusSummary.failed}`, statusSummary.failed > 0 ? "urgency" : "neutral"),
           renderEmailChip(`Skipped ${statusSummary.skipped}`, "age")
         ],
         body: emailHtmlList
       }),
     heartbeatTelegramBlock:
-      `• Providers: working ${statusSummary.working} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n`,
+      `• Providers: working ${statusSummary.working} | recovered ${statusSummary.recovered} | paused ${statusSummary.paused} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n`,
     heartbeatTextBlock:
-      `- Providers: working ${statusSummary.working} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n`,
+      `- Providers: working ${statusSummary.working} | recovered ${statusSummary.recovered} | paused ${statusSummary.paused} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}\n`,
     heartbeatHtmlBlock:
-      `<div><strong>Providers:</strong> working ${statusSummary.working} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}</div>`
+      `<div><strong>Providers:</strong> working ${statusSummary.working} | recovered ${statusSummary.recovered} | paused ${statusSummary.paused} | failed ${statusSummary.failed} | skipped ${statusSummary.skipped}</div>`
   };
 }
 
@@ -1098,6 +1164,7 @@ function buildPrioritySections(jobs) {
 }
 
 function buildTelegramJobLine(job, options = {}) {
+  const verbose = isTruthy(process.env.TELEGRAM_VERBOSE || "false");
   const indexLabel = Number.isFinite(options.index) ? `${options.index}. ` : "";
   const source = getJobSourceLabel(job, options.source);
   const title = escapeTelegramHtml(job?.title || "Untitled role");
@@ -1108,6 +1175,28 @@ function buildTelegramJobLine(job, options = {}) {
   const resumeMatch = escapeTelegramHtml(getJobResumeMatchValue(job));
   const posted = escapeTelegramHtml(formatPostedAge(job));
   const countdown = escapeTelegramHtml(getUrgencyCountdown(job));
+  const applyPriority = escapeTelegramHtml(getJobPriorityLabel(job));
+  const applyUrl = getJobApplyUrl(job);
+  const applyLine = applyUrl
+    ? `🔗 <a href="${escapeHtml(applyUrl)}">Open job</a>`
+    : `🔗 N/A`;
+
+  const trackerCommands = verbose ? buildTrackerCommands(job) : null;
+
+  const baseLines = [
+    `<b>${indexLabel}${title}</b>`,
+    `📊 Match: <b>${resumeMatch}</b> | ⚡ ${applyPriority}`,
+    `${countdown ? `⏳ ${countdown}` : ""}`,
+    `🏢 ${company}`,
+    `${applyLine}`
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  if (!verbose) {
+    return baseLines;
+  }
+
   const matchedSkills = escapeTelegramHtml(
     formatListValue(getJobMatchedSkills(job), 5, "None")
   );
@@ -1121,35 +1210,23 @@ function buildTelegramJobLine(job, options = {}) {
   const bulletSuggestions = getJobResumeBulletSuggestions(job)
     .map(item => `• ${escapeTelegramHtml(item)}`)
     .join("\n");
-  const applyPriority = escapeTelegramHtml(getJobPriorityLabel(job));
-  const applyUrl = getJobApplyUrl(job);
-  const trackerCommands = buildTrackerCommands(job);
-  const applyLine = applyUrl
-    ? `🔗 <a href="${escapeHtml(applyUrl)}">Open job</a>`
-    : `🔗 N/A`;
 
   return (
-    `<b>${indexLabel}${title}</b>\n` +
-    `${escapeHtml(relevance)}\n` +
-    `📊 Resume Match Score: <b>${resumeMatch}</b>\n` +
-    `⚡ Apply Priority: <b>${applyPriority}</b>\n` +
-    `${countdown ? `⏳ ${countdown}\n` : ""}` +
-    `🔎 Source: ${escapeTelegramHtml(source)} | ⏱ Posted: ${posted}\n` +
-    `🏢 ${company}\n` +
-    `📍 ${location} | 💼 ${experience}\n` +
-    `🧠 Matched Skills: ${matchedSkills}\n` +
-    `✅ Why this matched: ${whyMatched}\n` +
-    `🧩 Top missing keywords: ${missing}\n` +
-    `✍️ Suggested resume bullets:\n${bulletSuggestions}\n` +
-    `📝 Resume fix: ${resumeAction}\n` +
+    baseLines +
+    `\n🔎 Source: ${escapeTelegramHtml(source)} | ⏱ Posted: ${posted}` +
+    `\n📍 ${location} | 💼 ${experience}` +
+    `\n🧠 Matched Skills: ${matchedSkills}` +
+    `\n✅ Why this matched: ${whyMatched}` +
+    `\n🧩 Top missing keywords: ${missing}` +
+    `\n✍️ Suggested resume bullets:\n${bulletSuggestions}` +
+    `\n📝 Resume fix: ${resumeAction}` +
     `${trackerCommands
-      ? `🗂 Tracker: <code>${escapeTelegramHtml(trackerCommands.key)}</code>\n` +
+      ? `\n🗂 Tracker: <code>${escapeTelegramHtml(trackerCommands.key)}</code>\n` +
         `• Apply: <code>${escapeTelegramHtml(trackerCommands.apply)}</code>\n` +
         `• Save: <code>${escapeTelegramHtml(trackerCommands.save)}</code>\n` +
         `• Ignore: <code>${escapeTelegramHtml(trackerCommands.ignore)}</code>\n` +
         `• Note: <code>${escapeTelegramHtml(trackerCommands.note)}</code>\n`
-      : ""}` +
-    `${applyLine}`
+      : ""}`
   );
 }
 
@@ -1238,7 +1315,41 @@ function buildEmailHtmlJobLine(job, options = {}) {
   );
 }
 
+const ALERT_REPORT_DIR = path.resolve(__dirname, "../..", ".cache/alert-reports");
+
+async function writeAlertReport(jobs, options = {}) {
+  const dir = ALERT_REPORT_DIR;
+  await fs.mkdir(dir, { recursive: true });
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const name = String(options.name || "job-alert-report").replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+  const filename = `${name}-${timestamp}.html`;
+  const filePath = path.join(dir, filename);
+
+  const html = `<!doctype html>` +
+    `<html><head><meta charset="utf-8"><title>Job Alert Report</title></head><body style="font-family:Arial,sans-serif;color:#111827;">` +
+    `<h1 style="margin-bottom:0.5rem;">${escapeHtml(AGENT_NAME)} - Full Job Alert Report</h1>` +
+    `<p>Generated: ${new Date().toLocaleString()}</p>` +
+    `<div style="margin-top:20px;">` +
+    jobs.map((job, idx) =>
+      `<div style="margin-bottom:18px;padding:16px;border:1px solid #dbe3ea;border-radius:12px;background:#ffffff;">` +
+      `<h2 style="margin:0 0 8px 0;font-size:18px;">${idx + 1}. ${escapeHtml(normalizeInlineText(job?.title, "Untitled role"))}</h2>` +
+      buildEmailHtmlJobLine(job, { index: idx + 1, source: getJobSourceLabel(job) }) +
+      `</div>`
+    ).join("") +
+    `</div></body></html>`;
+
+  await fs.writeFile(filePath, html, "utf8");
+
+  return {
+    filename,
+    path: filePath,
+    contentType: "text/html",
+    caption: "Full job alert report"
+  };
+}
+
 function buildJobMessages(newJobs, options = {}) {
+  const compact = options.compact ?? isTruthy(process.env.ALERT_COMPACT || "true");
   const sourceOrder = ["Naukri", "LinkedIn", "Arbeitnow", "Adzuna", "Other"];
   const groups = buildSourceGroups(newJobs);
   const sourceSummary = buildSourceSummary(newJobs);
@@ -1346,6 +1457,11 @@ function buildJobMessages(newJobs, options = {}) {
     )
     : "";
 
+  const reportAttachment = options.reportAttachment;
+  const compactNotice = reportAttachment
+    ? `\n📄 Full report attached: ${escapeTelegramHtml(reportAttachment.filename)}`
+    : "";
+
   const telegramBody =
     `🔥 <b>${escapeTelegramHtml(AGENT_NAME)}</b>\n` +
     `🆕 <b>${newJobs.length} new Salesforce jobs</b>\n` +
@@ -1356,19 +1472,25 @@ function buildJobMessages(newJobs, options = {}) {
     topPicksTelegram +
     mustApplyTelegram +
     prioritySections.telegram +
-    orderedSources
-      .filter(source => groups.has(source) && groups.get(source).length > 0)
-      .map(source => {
-        const sourceJobs = sortJobsByMatch(groups.get(source));
-        return (
-          `📌 <b>${escapeTelegramHtml(source)} Jobs (${sourceJobs.length})</b>\n\n` +
-          sourceJobs.map((job, idx) => buildTelegramJobLine(job, {
-            index: idx + 1,
-            source
-          })).join("\n\n")
-        );
-      })
-      .join("\n\n");
+    (compact
+      ? compactNotice
+      : orderedSources
+          .filter(source => groups.has(source) && groups.get(source).length > 0)
+          .map(source => {
+            const sourceJobs = sortJobsByMatch(groups.get(source));
+            return (
+              `📌 <b>${escapeTelegramHtml(source)} Jobs (${sourceJobs.length})</b>\n\n` +
+              sourceJobs.map((job, idx) => buildTelegramJobLine(job, {
+                index: idx + 1,
+                source
+              })).join("\n\n")
+            );
+          })
+          .join("\n\n"));
+
+  const reportTextNotice = reportAttachment
+    ? `\nFull report attached: ${reportAttachment.filename}\n`
+    : "";
 
   const emailText =
     `${AGENT_NAME}\n` +
@@ -1380,19 +1502,28 @@ function buildJobMessages(newJobs, options = {}) {
     topPicksEmailText +
     mustApplyEmailText +
     prioritySections.emailText +
-    orderedSources
-      .filter(source => groups.has(source) && groups.get(source).length > 0)
-      .map(source => {
-        const sourceJobs = sortJobsByMatch(groups.get(source));
-        return (
-          `${source} Jobs (${sourceJobs.length})\n\n` +
-          sourceJobs.map((job, idx) => buildEmailTextJobLine(job, {
-            index: idx + 1,
-            source
-          })).join("\n\n")
-        );
-      })
-      .join("\n\n");
+    (compact
+      ? reportTextNotice
+      : orderedSources
+          .filter(source => groups.has(source) && groups.get(source).length > 0)
+          .map(source => {
+            const sourceJobs = sortJobsByMatch(groups.get(source));
+            return (
+              `${source} Jobs (${sourceJobs.length})\n\n` +
+              sourceJobs.map((job, idx) => buildEmailTextJobLine(job, {
+                index: idx + 1,
+                source
+              })).join("\n\n")
+            );
+          })
+          .join("\n\n"));
+
+  const bestJob = topPicks[0] || (newJobs[0] || null);
+  const summaryCardHtml = renderEmailSummaryCard({
+    newJobsCount: newJobs.length,
+    sourceSummary,
+    bestJob
+  });
 
   const emailHtml =
     `<!doctype html>` +
@@ -1406,27 +1537,33 @@ function buildJobMessages(newJobs, options = {}) {
     `<div><strong>Source mix:</strong> ${escapeHtml(sourceSummary)}</div>` +
     `</div>` +
     `</div>` +
+    summaryCardHtml +
     `<div style="padding:20px 0 0 0;">` +
     messageBlocks.emailHtmlBlock +
     sourceHighlights.emailHtml +
     topPicksEmailHtml +
     mustApplyEmailHtml +
     prioritySections.emailHtml +
-    orderedSources
-      .filter(source => groups.has(source) && groups.get(source).length > 0)
-      .map(source => {
-        const sourceJobs = sortJobsByMatch(groups.get(source));
-        return (
-          `<h3 style="margin:24px 0 12px 0;color:#0f172a;">${escapeHtml(source)} Jobs (${sourceJobs.length})</h3>` +
-          sourceJobs
-            .map((job, idx) => buildEmailHtmlJobLine(job, {
-              index: idx + 1,
-              source
-            }))
-            .join("")
-        );
-      })
-      .join("") +
+    (compact
+      ? reportAttachment
+        ? `<div style="margin:24px 0;padding:16px;border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;">` +
+          `<strong>Full report attached:</strong> ${escapeHtml(reportAttachment.filename)}</div>`
+        : ""
+      : orderedSources
+          .filter(source => groups.has(source) && groups.get(source).length > 0)
+          .map(source => {
+            const sourceJobs = sortJobsByMatch(groups.get(source));
+            return (
+              `<h3 style="margin:24px 0 12px 0;color:#0f172a;">${escapeHtml(source)} Jobs (${sourceJobs.length})</h3>` +
+              sourceJobs
+                .map((job, idx) => buildEmailHtmlJobLine(job, {
+                  index: idx + 1,
+                  source
+                }))
+                .join("")
+            );
+          })
+          .join("")) +
     `</div>` +
     `</div>` +
     `</body></html>`;
@@ -1783,18 +1920,40 @@ async function processPendingAlerts(alertBatchLimit, options = {}) {
     baseMessageBlocks,
     trackerBlocks
   );
+
+  const compact = isTruthy(process.env.ALERT_COMPACT || "true");
+  const attachmentsEnabled = areCloudAttachmentsEnabled();
+  const reportAttachment = compact
+    && attachmentsEnabled
+    ? await writeAlertReport(jobsToAlert, { name: "job-alert" })
+    : null;
+
   const { telegramBody, emailText, emailHtml } = buildJobMessages(
     jobsToAlert,
     {
-      messageBlocks
+      messageBlocks,
+      compact,
+      reportAttachment
     }
   );
-  const attachments = await createResumeAttachments(jobsToAlert);
+
+  const attachments = attachmentsEnabled
+    ? await createResumeAttachments(jobsToAlert)
+    : [];
+  if (reportAttachment) {
+    attachments.push(reportAttachment);
+  }
+
+  if (!attachmentsEnabled) {
+    console.log("ℹ️ Cloud attachment generation disabled for this runtime");
+  }
+
   if (attachments.length > 0) {
     console.log(
       `📎 Resume attachment prepared (${attachments.length} file${attachments.length > 1 ? "s" : ""})`
     );
   }
+
   const notifyResult = await notifyAll({
     telegramText: telegramBody,
     emailSubject: `${AGENT_NAME}: ${jobsToAlert.length} new jobs | ${buildSourceSummary(jobsToAlert)}`,
@@ -1839,6 +1998,11 @@ async function processPendingAlerts(alertBatchLimit, options = {}) {
 async function run() {
   console.log(`🚀 ${AGENT_NAME} started`);
   console.log("🔍 Fetching Salesforce jobs from Naukri...");
+  const runSource = String(
+    process.env.AGENT_RUN_SOURCE ||
+      process.env.GITHUB_EVENT_NAME ||
+      "agent"
+  ).trim();
   const alertBatchLimit = getAlertBatchLimit();
   const alertBatchLabel = Number.isFinite(alertBatchLimit)
     ? String(alertBatchLimit)
@@ -1853,11 +2017,49 @@ async function run() {
     0,
     Number(process.env.NAUKRI_MIN_REQUIRED_PER_RUN || 1)
   );
+  const attachmentsEnabled = areCloudAttachmentsEnabled();
   console.log(
-    `🎚 Alert settings: min_match_score=${getMinMatchScore()} | max_items=${alertBatchLabel}`
+    `Alert settings: min_match_score=${getMinMatchScore()} | max_items=${alertBatchLabel}`
   );
 
+  let releaseRunLease = async () => {};
+  let runStatus = "succeeded";
+  let runNote = "Agent run completed";
+  let runErrorMessage = "";
+  let runSourceSummary = "";
+  let runFetchedCount = 0;
+  let runSalesforceCount = 0;
+  let runNewJobsCount = 0;
+  let runPendingCount = 0;
+  let runAlertsSentCount = 0;
+  const runDetails = {
+    agentName: AGENT_NAME,
+    runSource,
+    schedulerMode: String(process.env.SCHEDULER_MODE || "").trim() || "default",
+    stateBackend: getStateBackend(),
+    notifyEveryRun,
+    alertBatchLimit: alertBatchLabel,
+    attachmentsEnabled
+  };
+  const runHistory = await startRunHistory({
+    source: runSource,
+    note: AGENT_NAME,
+    details: runDetails
+  });
   try {
+    const lease = await acquireRunLease({
+      source: runSource,
+      note: AGENT_NAME
+    });
+    if (!lease.acquired) {
+      console.log(`Run skipped by shared lease: ${lease.reason}`);
+      runStatus = "skipped";
+      runNote = `Skipped by shared lease: ${lease.reason}`;
+      return;
+    }
+    releaseRunLease = lease.release || (async () => {});
+    console.log(`🔐 Run lease: ${lease.reason}`);
+
     const trackerAutoResult = await autoPromoteFollowUpJobs();
     if (trackerAutoResult.changed > 0) {
       console.log(
@@ -1870,6 +2072,9 @@ async function run() {
     const fetchReport = getLastNaukriFetchReport();
     const providerHealthBlocks = buildProviderHealthBlocks(fetchReport);
     const baseMessageBlocks = mergeMessageBlocks(providerHealthBlocks);
+    runFetchedCount = Array.isArray(jobs) ? jobs.length : 0;
+    runDetails.fetchReport = fetchReport || null;
+    runDetails.providerHealth = providerHealthBlocks.compactText || "";
 
     if (providerHealthBlocks.compactText) {
       console.log(`🧪 Provider health: ${providerHealthBlocks.compactText}`);
@@ -1920,6 +2125,10 @@ async function run() {
         sourceSummary: "",
         messageBlocks: summaryMessageBlocks
       });
+      runNote = "No jobs fetched in this run.";
+      runPendingCount = pendingResult.pendingCount;
+      runAlertsSentCount = pendingResult.alertedCount;
+      runDetails.summaryReason = "no_jobs_fetched";
       return;
     }
 
@@ -1937,6 +2146,10 @@ async function run() {
       precisionBlocks
     );
     const sourceSummary = buildSourceSummary(salesforceJobs);
+    runSourceSummary = sourceSummary;
+    runSalesforceCount = salesforceJobs.length;
+    runDetails.precisionReport = precisionReport;
+    runDetails.guardSourceSummary = guardSourceSummary;
 
     console.log(
       `🎯 Salesforce jobs found (before precision): ${salesforceJobsRaw.length}`
@@ -2022,12 +2235,17 @@ async function run() {
         sourceSummary,
         messageBlocks: summaryMessageBlocks
       });
-      console.log("🎯 Agent run completed");
+      runNote = "No Salesforce developer jobs matched.";
+      runPendingCount = pendingResult.pendingCount;
+      runAlertsSentCount = pendingResult.alertedCount;
+      runDetails.summaryReason = "no_salesforce_matches";
+      console.log("Agent run completed");
       return;
     }
 
     const newJobs = await getNewJobs(salesforceJobs);
-    console.log(`🆕 Newly discovered jobs this run: ${newJobs.length}`);
+    runNewJobsCount = newJobs.length;
+    console.log(`Newly discovered jobs this run: ${newJobs.length}`);
     let alertableJobsCount = 0;
     let scoredNewJobs = [];
 
@@ -2065,6 +2283,8 @@ async function run() {
     const pendingResult = await processPendingAlerts(alertBatchLimit, {
       messageBlocks: runMessageBlocks
     });
+    runPendingCount = pendingResult.pendingCount;
+    runAlertsSentCount = pendingResult.alertedCount;
 
     const trackerBlocks = buildTrackerSummaryBlocks(
       await getApplicationTrackerSummary({ limit: 3 })
@@ -2083,6 +2303,10 @@ async function run() {
       }
 
       if (note) {
+        runNote = note;
+        runDetails.summaryReason = newJobs.length === 0
+          ? "no_new_jobs_after_dedupe"
+          : "below_min_match_score";
         await sendRunSummary({
           fetchedCount: jobs.length,
           salesforceCount: salesforceJobs.length,
@@ -2103,17 +2327,50 @@ async function run() {
       messageBlocks: summaryMessageBlocks
     });
 
-    console.log("🎯 Agent run completed");
+    if (pendingResult.notified) {
+      runNote = `Alerted ${pendingResult.alertedCount} queued job(s).`;
+      runDetails.summaryReason = "alerts_sent";
+    } else if (runNote === "Agent run completed" && newJobs.length > 0) {
+      runNote = "Run completed without sending new alerts.";
+      runDetails.summaryReason = "completed_without_alerts";
+    }
+
+    console.log("Agent run completed");
   } catch (error) {
-    console.error("❌ Agent failed:", error.message);
+    runStatus = "failed";
+    runErrorMessage = String(error?.message || error || "unknown error");
+    runNote = `Failed: ${runErrorMessage}`;
+    runDetails.failureName = String(error?.name || "Error");
+    process.exitCode = 1;
+    console.error("Agent failed:", runErrorMessage);
 
     await notifyAll({
       telegramText:
-        `❌ ${AGENT_NAME} failed after retries.\n\nError:\n${error.message}`,
+        `Agent failed after retries.
+
+Error:
+${runErrorMessage}`,
       emailSubject: `${AGENT_NAME} failed`,
-      emailText: `${AGENT_NAME} failed after retries.\n\nError:\n${error.message}`,
-      emailHtml: `<p>${AGENT_NAME} failed after retries.</p><pre>${error.message}</pre>`
+      emailText: `${AGENT_NAME} failed after retries.
+
+Error:
+${runErrorMessage}`,
+      emailHtml: `<p>${AGENT_NAME} failed after retries.</p><pre>${runErrorMessage}</pre>`
     });
+  } finally {
+    await runHistory.finish({
+      status: runStatus,
+      note: runNote,
+      sourceSummary: runSourceSummary,
+      fetchedCount: runFetchedCount,
+      salesforceCount: runSalesforceCount,
+      newJobsCount: runNewJobsCount,
+      pendingCount: runPendingCount,
+      alertsSentCount: runAlertsSentCount,
+      errorMessage: runErrorMessage,
+      details: runDetails
+    });
+    await releaseRunLease();
   }
 }
 

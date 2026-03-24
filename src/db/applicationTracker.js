@@ -1,11 +1,13 @@
-import crypto from "crypto";
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import crypto from "node:crypto";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "./stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const TRACKER_PATH = path.resolve(__dirname, "../../.cache/application-tracker.json");
+const TRACKER_PATH = new URL("../../.cache/application-tracker.json", import.meta.url);
+const STATE_KEY = "application_tracker";
 
 const STATUS_ORDER = [
   "new",
@@ -86,9 +88,20 @@ function normalizeStatus(value, fallback = "new") {
 }
 
 async function readTrackerState() {
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+
+    if (Array.isArray(payload)) {
+      return { records: payload };
+    }
+    if (Array.isArray(payload?.records)) {
+      return { records: payload.records };
+    }
+    return { records: [] };
+  }
+
   try {
-    const raw = await fs.readFile(TRACKER_PATH, "utf8");
-    const parsed = JSON.parse(raw);
+    const parsed = await readJsonFile(TRACKER_PATH);
 
     if (Array.isArray(parsed)) {
       return { records: parsed };
@@ -111,8 +124,13 @@ async function writeTrackerState(state) {
     records: Array.isArray(state?.records) ? state.records : [],
     updated_at: nowIso()
   };
-  await fs.mkdir(path.dirname(TRACKER_PATH), { recursive: true });
-  await fs.writeFile(TRACKER_PATH, JSON.stringify(payload, null, 2), "utf8");
+
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(TRACKER_PATH, payload);
 }
 
 function makeRecord(job, { status = "new", event = "discovered" } = {}) {

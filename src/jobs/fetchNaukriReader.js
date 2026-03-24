@@ -160,6 +160,7 @@ export async function fetchNaukriJobsViaReader({
     Number(process.env.NAUKRI_READER_KEYWORDS_PER_PLAN || 2)
   );
   const uniqueJobs = new Map();
+  let lastError = null;
 
   for (const plan of Array.isArray(plans) ? plans : []) {
     const keywords = Array.isArray(plan.keywords)
@@ -182,6 +183,7 @@ export async function fetchNaukriJobsViaReader({
           if (uniqueJobs.size >= maxUniqueResults) break;
         }
       } catch (error) {
+        lastError = error;
         console.log(`⚠️ Naukri reader source failed (${keyword}): ${error.message}`);
       }
     }
@@ -190,6 +192,9 @@ export async function fetchNaukriJobsViaReader({
   }
 
   const jobs = [...uniqueJobs.values()];
+  if (jobs.length === 0 && lastError) {
+    throw lastError;
+  }
   console.log(`✅ Naukri reader provider collected: ${jobs.length} unique job(s)`);
   return jobs;
 }

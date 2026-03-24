@@ -6,6 +6,12 @@ import { fetchArbeitnowJobs } from "./fetchArbeitnow.js";
 import { fetchAdzunaJobs } from "./fetchAdzuna.js";
 import { filterSalesforceJobs } from "./filterSalesforceJobs.js";
 import { fetchLinkedInJobs } from "./fetchLinkedIn.js";
+import {
+  buildPauseReason,
+  getProviderGate,
+  markProviderFailure,
+  markProviderSuccess
+} from "../db/providerHealth.js";
 
 const APIFY_BASE = "https://api.apify.com/v2";
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -15,6 +21,14 @@ const DEFAULT_ACTOR_SOURCES = [
   { id: "techupservices~naukri-job-scraper", mode: "query_location" },
   { id: "muhammetakkurtt~naukri-job-scraper", mode: "query_location" }
 ];
+const PROVIDER_META = {
+  apify: { cost: "paid", healthKey: "apify" },
+  naukri_reader: { cost: "free", healthKey: "naukri_reader" },
+  linkedin: { cost: "free", healthKey: "linkedin" },
+  direct: { cost: "free", healthKey: "naukri_direct" },
+  arbeitnow: { cost: "free", healthKey: "arbeitnow" },
+  adzuna: { cost: "free", healthKey: "adzuna" }
+};
 let lastFetchReport = null;
 
 const SEARCH_PLANS = [
@@ -54,6 +68,40 @@ function isTruthy(value) {
   return ["1", "true", "yes", "on"].includes(
     String(value || "").trim().toLowerCase()
   );
+}
+
+function trimError(error) {
+  return String(error || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
+function getProviderMeta(provider) {
+  return PROVIDER_META[provider] || {
+    cost: "free",
+    healthKey: provider
+  };
+}
+
+function prioritizeProviders(providers) {
+  const strategy = String(process.env.FETCH_PROVIDER_STRATEGY || "free_first")
+    .trim()
+    .toLowerCase();
+
+  if (strategy !== "free_first") {
+    return providers;
+  }
+
+  return [...providers].sort((left, right) => {
+    const leftCost = getProviderMeta(left).cost === "paid" ? 1 : 0;
+    const rightCost = getProviderMeta(right).cost === "paid" ? 1 : 0;
+    return leftCost - rightCost;
+  });
+}
+
+function shouldUsePaidOnlyWhenNeeded() {
+  return isTruthy(process.env.PAID_PROVIDERS_FALLBACK_ONLY || "true");
 }
 
 async function safeFetch(url, options = {}) {
@@ -182,7 +230,7 @@ function getActorSources() {
 
 function getFetchProviders() {
   return String(
-    process.env.NAUKRI_FETCH_PROVIDERS || "apify,naukri_reader,linkedin,direct,arbeitnow,adzuna"
+    process.env.NAUKRI_FETCH_PROVIDERS || "naukri_reader,direct,linkedin,arbeitnow,adzuna,apify"
   )
     .split(",")
     .map(provider => provider.trim().toLowerCase())
@@ -284,10 +332,7 @@ async function runActorSearchPlan(source, plan) {
       startJson?.error?.message ||
       startJson?.message ||
       "unknown reason";
-    console.log(
-      `❌ Failed to start actor ${actorId} for plan ${plan.name}: ${reason}`
-    );
-    return [];
+    throw new Error(`Apify actor ${actorId} failed to start for ${plan.name}: ${reason}`);
   }
 
   console.log(`⏳ Actor ${actorId} run started for ${plan.name}: ${runId}`);
@@ -305,15 +350,13 @@ async function runActorSearchPlan(source, plan) {
     if (status === "SUCCEEDED") break;
 
     if (status === "FAILED" || status === "ABORTED" || status === "TIMED-OUT") {
-      console.log(`❌ Actor ${actorId} run ended with status ${status}`);
-      return [];
+      throw new Error(`Apify actor ${actorId} ended with status ${status}`);
     }
   }
 
   const datasetId = runInfo?.data?.defaultDatasetId;
   if (!datasetId) {
-    console.log(`❌ Dataset ID missing for ${actorId} plan ${plan.name}`);
-    return [];
+    throw new Error(`Apify dataset missing for ${actorId} plan ${plan.name}`);
   }
 
   console.log(`📦 Dataset ready for ${plan.name} (${actorId}):`, datasetId);
@@ -341,6 +384,7 @@ async function runActorSearchPlan(source, plan) {
 
 async function runSearchPlan(plan) {
   const actorSources = getActorSources();
+  let lastError = null;
 
   for (const source of actorSources) {
     try {
@@ -349,10 +393,14 @@ async function runSearchPlan(plan) {
         return items;
       }
     } catch (error) {
+      lastError = error;
       console.log(`⚠️ Actor source failed (${source.id}): ${error.message}`);
     }
   }
 
+  if (lastError) {
+    throw lastError;
+  }
   console.log(`❌ All actor sources failed for plan ${plan.name}`);
   return [];
 }
@@ -412,13 +460,6 @@ function getSearchKeywords(plans) {
   return [...new Set(keywords)];
 }
 
-function trimError(error) {
-  return String(error || "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 180);
-}
-
 function inferJobSource(job) {
   const sourceId = String(job?.source_job_id || "").toLowerCase();
   const link = String(job?.apply_link || "").toLowerCase();
@@ -474,10 +515,11 @@ export async function fetchNaukriJobs() {
   );
   const plans = await getPlansForThisRun();
   const searchKeywords = getSearchKeywords(plans);
-  const providers = getFetchProviders();
+  const providers = prioritizeProviders(getFetchProviders());
   const uniqueJobs = new Map();
   const hasApifyToken = Boolean(process.env.APIFY_TOKEN);
   const fetchAllProviders = isTruthy(process.env.FETCH_ALL_PROVIDERS || "true");
+  const paidFallbackOnly = shouldUsePaidOnlyWhenNeeded();
   const providerReports = [];
 
   lastFetchReport = {
@@ -491,18 +533,45 @@ export async function fetchNaukriJobs() {
 
   for (const provider of providers) {
     if (uniqueJobs.size >= maxUniqueResults) break;
+    const meta = getProviderMeta(provider);
 
     let providerJobs = [];
     const providerReport = {
       provider,
       status: "success",
+      cost_tier: meta.cost,
+      health_key: meta.healthKey,
       raw_count: 0,
       salesforce_count: 0,
       contributed_count: 0,
       reason: "",
-      error: ""
+      error: "",
+      failure_kind: "",
+      disabled_until: ""
     };
     providerReports.push(providerReport);
+    const gate = await getProviderGate(meta.healthKey);
+
+    if (gate.shouldSkip) {
+      providerReport.status = "paused";
+      providerReport.reason = buildPauseReason(gate.state);
+      providerReport.disabled_until = String(gate.state?.disabled_until || "");
+      providerReport.failure_kind = String(gate.state?.last_failure_kind || "");
+      providerReport.error = trimError(gate.state?.last_error || "");
+      console.log(`⏸ Provider '${provider}' skipped: ${providerReport.reason}`);
+      continue;
+    }
+
+    if (
+      meta.cost === "paid" &&
+      paidFallbackOnly &&
+      uniqueJobs.size >= minTargetResults
+    ) {
+      providerReport.status = "skipped";
+      providerReport.reason = `Free providers already met target (${uniqueJobs.size})`;
+      console.log(`⏭️ Provider '${provider}' skipped: ${providerReport.reason}`);
+      continue;
+    }
 
     try {
       if (provider === "apify") {
@@ -549,10 +618,23 @@ export async function fetchNaukriJobs() {
         providerReport.reason = "Unknown provider";
         continue;
       }
+      const successState = await markProviderSuccess(meta.healthKey, {
+        note: providerJobs.length > 0
+          ? `${providerJobs.length} job(s) returned`
+          : "provider completed with no results"
+      });
+      providerReport.status = successState.recovered ? "recovered" : "success";
+      if (successState.recovered) {
+        providerReport.reason = "Platform recovered and was re-enabled automatically";
+      }
     } catch (error) {
+      const failure = await markProviderFailure(meta.healthKey, { error });
       console.log(`⚠️ Provider '${provider}' failed: ${error.message}`);
-      providerReport.status = "failed";
+      providerReport.status = "paused";
       providerReport.error = trimError(error.message);
+      providerReport.reason = buildPauseReason(failure.state);
+      providerReport.failure_kind = failure.kind;
+      providerReport.disabled_until = failure.state?.disabled_until || "";
       continue;
     }
 

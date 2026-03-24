@@ -1,139 +1,35 @@
 name: Salesforce Job Radar Agent
 
 on:
+  schedule:
+    - cron: "*/5 * * * *"   # Poll every 5 minutes; gate keeps effective cadence near 10 minutes
   workflow_dispatch:
-  # Enable schedule after adding your own secrets and validating a manual run.
-  # schedule:
-  #   - cron: "2,12,22,32,42,52 * * * *"   # Primary schedule: every 10 minutes
-  #   - cron: "7,17,27,37,47,57 * * * *"   # Backup schedule: 5 minutes later if primary was missed
+    inputs:
+      dispatch_source:
+        description: "manual or external-scheduler"
+        required: false
+        default: "manual"
+      force_run:
+        description: "Set true to bypass external/manual scheduling controls"
+        required: false
+        default: "false"
 
-env:
-  MIN_RUN_GAP_MINUTES: "7"
+concurrency:
+  group: salesforce-job-radar-agent
+  cancel-in-progress: false
 
 permissions:
   actions: read
   contents: read
 
 jobs:
-  schedule-gate:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.gate.outputs.should_run }}
-      reason: ${{ steps.gate.outputs.reason }}
-    steps:
-      - name: Decide whether this scheduled run should execute
-        id: gate
-        uses: actions/github-script@v7
-        with:
-          script: |
-            if (context.eventName !== 'schedule') {
-              core.setOutput('should_run', 'true');
-              core.setOutput('reason', 'non_schedule_event_execute');
-              core.info(`Event '${context.eventName}' detected. Executing run.`);
-              return;
-            }
-
-            const workflowId = 'salesforce-job-radar-agent.yml';
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const currentRunId = Number(process.env.GITHUB_RUN_ID);
-            const minGapMinutes = Number(process.env.MIN_RUN_GAP_MINUTES || 20);
-
-            const { data } = await github.rest.actions.listWorkflowRuns({
-              owner,
-              repo,
-              workflow_id: workflowId,
-              event: 'schedule',
-              per_page: 20
-            });
-
-            const previous = data.workflow_runs
-              .filter(run => Number(run.id) !== currentRunId)
-              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-            if (!previous) {
-              core.setOutput('should_run', 'true');
-              core.setOutput('reason', 'no_previous_schedule_run');
-              core.info('No previous scheduled run found. Executing this run.');
-              return;
-            }
-
-            const diffMinutes = (Date.now() - Date.parse(previous.created_at)) / 60000;
-            const shouldRun = diffMinutes >= minGapMinutes;
-            const reason = shouldRun
-              ? `last_schedule_run_${diffMinutes.toFixed(1)}m_ago_execute`
-              : `last_schedule_run_${diffMinutes.toFixed(1)}m_ago_skip`;
-
-            core.setOutput('should_run', String(shouldRun));
-            core.setOutput('reason', reason);
-            core.info(
-              `Previous scheduled run #${previous.run_number} at ${previous.created_at}; ` +
-              `diff=${diffMinutes.toFixed(1)}m; min_gap=${minGapMinutes}m; should_run=${shouldRun}`
-            );
-
   run-agent:
-    needs: [schedule-gate]
-    if: github.event_name != 'schedule' || needs.schedule-gate.outputs.should_run == 'true'
     runs-on: ubuntu-latest
-    env:
-      ALERT_MAX_ITEMS: "all"
-      AGENT_NAME: "Salesforce Job Radar Agent"
-      EMAIL_FROM_NAME: "Salesforce Job Radar Agent"
-      EMAIL_PROVIDER_ORDER: "resend,smtp"
-      ALERT_REQUIRE_SOURCE_MIX: "true"
-      ALERT_TOP_PICKS_COUNT: "5"
-      ALERT_MUST_APPLY_HOURS: "48"
-      ALERT_MIN_MATCH_SCORE: "20"
-      PRECISION_PROFILE: "balanced"
-      NAUKRI_GAP_GUARD_ENABLED: "true"
-      NAUKRI_MIN_REQUIRED_PER_RUN: "1"
-      APPLICATION_TRACKER_ENABLED: "true"
-      TRACKER_AUTO_FOLLOWUP_HOURS: "36"
-      TRACKER_ACTIONABLE_LIMIT: "10"
-      ALERT_LOCATION_PRIORITY: "Remote,Bengaluru,Pune,Hyderabad,Mumbai,Delhi,Gurugram,Noida,Chennai,India"
-      NAUKRI_FETCH_PROVIDERS: "apify,naukri_reader,linkedin,direct,arbeitnow,adzuna"
-      NAUKRI_APIFY_SOURCES: "nuclear_quietude~naukri-job-scraper:search_keywords,techupservices~naukri-job-scraper:query_location,muhammetakkurtt~naukri-job-scraper:query_location"
-      LINKEDIN_FETCH_PROVIDERS: "apify,direct"
-      LINKEDIN_APIFY_SOURCES: "curious_coder~linkedin-jobs-scraper:urls,worldunboxer~rapid-linkedin-scraper:query_location"
-      LINKEDIN_PLANS_PER_RUN: "1"
-      LINKEDIN_MAX_ITEMS_PER_PLAN: "60"
-      LINKEDIN_MAX_URLS_PER_PLAN: "2"
-      LINKEDIN_POLL_ATTEMPTS: "12"
-      LINKEDIN_DIRECT_MAX_PAGES: "2"
-      LINKEDIN_DIRECT_PAGE_SIZE: "25"
-      LINKEDIN_DIRECT_KEYWORDS_PER_PLAN: "2"
-      NAUKRI_PLANS_PER_RUN: "3"
-      NAUKRI_MAX_ITEMS_PER_PLAN: "120"
-      NAUKRI_MAX_UNIQUE_RESULTS: "200"
-      OUTBOX_MAX_SYNC_PER_RUN: "5"
-      FETCH_ALL_PROVIDERS: "true"
-      SALESFORCE_ROLE_MODE: "developer_strict"
-      RESUME_MATCH_ENABLED: "true"
-      RESUME_AI_ENABLED: "false"
-      RESUME_AI_MAX_JOBS_PER_RUN: "3"
-      RESUME_TAILOR_WITH_AI: "true"
-      APPLY_PACK_ENABLED: "true"
-      APPLY_PACK_MAX_FILES: "3"
-      APPLY_PACK_AI_ENABLED: "true"
-      APPLY_PACK_AI_MODEL: "gpt-4.1-mini"
-      RESUME_BASE_PDF_PATH: "assets/resume/base/your_resume.pdf"
-      RESUME_ATTACHMENT_MAX_FILES: "3"
-      RESUME_ATTACH_BASE_PDF: "false"
-      TELEGRAM_MAX_DOCS_PER_RUN: "7"
-      ALERT_ON_EMPTY: "false"
-      NOTIFY_EVERY_RUN: "true"
-      DAILY_SUMMARY_ENABLED: "true"
-      DAILY_SUMMARY_TIMEZONE: "Asia/Kolkata"
-      DAILY_SUMMARY_HOUR: "21"
-      SMTP_HOST: "smtp.gmail.com"
-      SMTP_PORT: "587"
-      SMTP_SECURE: "false"
-
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: ♻️ Restore local agent state cache
+      - name: Restore local agent state cache
         uses: actions/cache/restore@v4
         with:
           path: .cache
@@ -141,15 +37,18 @@ jobs:
           restore-keys: |
             salesforce-job-radar-state-${{ github.ref_name }}-
 
-      - name: 🟢 Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: 📦 Install dependencies
+      - name: Load shared runtime defaults
+        run: node scripts/render-cloud-env.js github-env >> "$GITHUB_ENV"
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🔐 Load environment variables
+      - name: Load environment variables
         run: |
           echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
@@ -171,22 +70,43 @@ jobs:
           echo "RESUME_TEXT=${{ secrets.RESUME_TEXT }}" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
 
-      - name: 🚀 Run Salesforce Job Radar Agent
+      - name: Validate email provider configuration
+        run: |
+          if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ] || [ -z "$EMAIL_FROM" ] || [ -z "$EMAIL_TO" ]; then
+            if [ -z "$RESEND_API_KEY" ] || [ -z "$RESEND_FROM" ] || [ -z "$RESEND_TO" ]; then
+              echo "ERROR: No email provider configured. Set SMTP_* or RESEND_* secrets." >&2
+              echo "  Required (SMTP): SMTP_USER, SMTP_PASS, EMAIL_FROM, EMAIL_TO" >&2
+              echo "  Or (Resend): RESEND_API_KEY, RESEND_FROM, RESEND_TO" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Validate notifier and Supabase config
+        run: npm run doctor
+
+      - name: Validate shared lease config
+        env:
+          SCHEDULER_MODE: always
+        run: npm run doctor:cloud
+
+      - name: Debug env configuration
+        run: |
+          echo "SMTP_HOST set: ${SMTP_HOST:+yes}"
+          echo "SMTP_PORT set: ${SMTP_PORT:+yes}"
+          echo "SMTP_USER set: ${SMTP_USER:+yes}"
+          echo "SMTP_PASS set: ${SMTP_PASS:+yes}"
+          echo "EMAIL_FROM set: ${EMAIL_FROM:+yes}"
+          echo "EMAIL_TO set: ${EMAIL_TO:+yes}"
+          echo "RESEND_API_KEY set: ${RESEND_API_KEY:+yes}"
+          echo "RESEND_FROM set: ${RESEND_FROM:+yes}"
+          echo "RESEND_TO set: ${RESEND_TO:+yes}"
+
+      - name: Run Salesforce Job Radar Agent
         run: node src/run.js
 
-      - name: 💾 Save local agent state cache
+      - name: Save local agent state cache
         if: always()
         uses: actions/cache/save@v4
         with:
           path: .cache
           key: salesforce-job-radar-state-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-
-  skipped-schedule-log:
-    needs: [schedule-gate]
-    if: github.event_name == 'schedule' && needs.schedule-gate.outputs.should_run != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Skip duplicate backup run
-        run: |
-          echo "ℹ️ Skipping scheduled run to avoid duplicate execution."
-          echo "Reason: ${{ needs.schedule-gate.outputs.reason }}"

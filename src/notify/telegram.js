@@ -1,9 +1,11 @@
-// src/notify/telegram.js
-import fs from "fs/promises";
-import path from "path";
-
 const TELEGRAM_API = "https://api.telegram.org";
 const TELEGRAM_MAX_LEN = 3800;
+
+function basename(filePath) {
+  const normalized = String(filePath || "").replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] || "attachment";
+}
 
 function splitIntoChunks(text, maxLen = TELEGRAM_MAX_LEN) {
   const input = String(text || "");
@@ -69,13 +71,14 @@ async function sendTelegramChunk({ token, chatId, text }) {
 
 async function sendTelegramDocument({ token, chatId, filePath, caption }) {
   const url = `${TELEGRAM_API}/bot${token}/sendDocument`;
+  const fs = await import("node:fs/promises");
   const fileBuffer = await fs.readFile(filePath);
   const form = new FormData();
   form.append("chat_id", chatId);
   form.append(
     "document",
     new Blob([fileBuffer]),
-    path.basename(filePath)
+    basename(filePath)
   );
   if (caption) {
     form.append("caption", caption);

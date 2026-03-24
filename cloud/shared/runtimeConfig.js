@@ -1,0 +1,85 @@
+export const sharedRuntimeDefaults = Object.freeze({
+  ALERT_MAX_ITEMS: "all",
+  AGENT_NAME: "Salesforce Job Radar Agent",
+  EMAIL_FROM_NAME: "Salesforce Job Radar Agent",
+  EMAIL_PROVIDER_ORDER: "resend,smtp",
+  RESEND_TO: "your-alert-email@example.com",
+  RUN_LEASE_ENABLED: "true",
+  RUN_LEASE_REQUIRED: "true",
+  RUN_LEASE_KEY: "salesforce-job-radar-agent",
+  RUN_LEASE_DURATION_MINUTES: "25",
+  ALERT_REQUIRE_SOURCE_MIX: "true",
+  ALERT_TOP_PICKS_COUNT: "5",
+  ALERT_MUST_APPLY_HOURS: "48",
+  ALERT_MIN_MATCH_SCORE: "20",
+  PRECISION_PROFILE: "balanced",
+  NAUKRI_GAP_GUARD_ENABLED: "true",
+  NAUKRI_MIN_REQUIRED_PER_RUN: "1",
+  APPLICATION_TRACKER_ENABLED: "true",
+  TRACKER_AUTO_FOLLOWUP_HOURS: "36",
+  TRACKER_ACTIONABLE_LIMIT: "10",
+  ALERT_LOCATION_PRIORITY: "Remote,Bengaluru,Pune,Hyderabad,Mumbai,Delhi,Gurugram,Noida,Chennai,India",
+  FETCH_PROVIDER_STRATEGY: "free_first",
+  PAID_PROVIDERS_FALLBACK_ONLY: "true",
+  NAUKRI_FETCH_PROVIDERS: "naukri_reader,direct,linkedin,arbeitnow,adzuna",
+  NAUKRI_APIFY_SOURCES: "nuclear_quietude~naukri-job-scraper:search_keywords,techupservices~naukri-job-scraper:query_location,muhammetakkurtt~naukri-job-scraper:query_location",
+  LINKEDIN_FETCH_PROVIDERS: "direct",
+  LINKEDIN_APIFY_SOURCES: "curious_coder~linkedin-jobs-scraper:urls,worldunboxer~rapid-linkedin-scraper:query_location",
+  LINKEDIN_PLANS_PER_RUN: "1",
+  LINKEDIN_MAX_ITEMS_PER_PLAN: "60",
+  LINKEDIN_MAX_URLS_PER_PLAN: "2",
+  LINKEDIN_POLL_ATTEMPTS: "12",
+  LINKEDIN_DIRECT_MAX_PAGES: "2",
+  LINKEDIN_DIRECT_PAGE_SIZE: "25",
+  LINKEDIN_DIRECT_KEYWORDS_PER_PLAN: "2",
+  NAUKRI_PLANS_PER_RUN: "3",
+  NAUKRI_MAX_ITEMS_PER_PLAN: "120",
+  NAUKRI_MAX_UNIQUE_RESULTS: "200",
+  OUTBOX_MAX_SYNC_PER_RUN: "5",
+  FETCH_ALL_PROVIDERS: "true",
+  SALESFORCE_ROLE_MODE: "developer_strict",
+  RESUME_MATCH_ENABLED: "true",
+  RESUME_AI_ENABLED: "false",
+  RESUME_AI_MAX_JOBS_PER_RUN: "3",
+  RESUME_TAILOR_WITH_AI: "false",
+  APPLY_PACK_ENABLED: "true",
+  APPLY_PACK_MAX_FILES: "3",
+  APPLY_PACK_AI_ENABLED: "false",
+  APPLY_PACK_AI_MODEL: "gpt-4.1-mini",
+  RESUME_BASE_PDF_PATH: "assets/resume/base/base-resume.pdf",
+  RESUME_ATTACHMENT_MAX_FILES: "3",
+  RESUME_ATTACH_BASE_PDF: "true",
+  TELEGRAM_MAX_DOCS_PER_RUN: "7",
+  ALERT_ON_EMPTY: "false",
+  NOTIFY_EVERY_RUN: "false",
+  DAILY_SUMMARY_ENABLED: "true",
+  DAILY_SUMMARY_TIMEZONE: "Asia/Kolkata",
+  DAILY_SUMMARY_HOUR: "21",
+  SMTP_HOST: "smtp.gmail.com",
+  SMTP_PORT: "587",
+  SMTP_SECURE: "false"
+});
+
+const backupSchedulerDefaults = Object.freeze({
+  GITHUB_REPO: "Sunilkhatate0770/salesforce-job-radar-agent",
+  GITHUB_WORKFLOW_FILE: "salesforce-job-radar-agent.yml",
+  GITHUB_ACTIONS_MAX_GAP_MINUTES: "20",
+  SCHEDULER_MODE: "fallback"
+});
+
+export const runtimeTargets = Object.freeze({
+  github: Object.freeze({
+    AGENT_RUN_SOURCE: "github-actions"
+  }),
+  cloudrunBackup1: Object.freeze({
+    ...backupSchedulerDefaults,
+    AGENT_RUN_SOURCE: "cloudrun-backup-1",
+    FALLBACK_START_DELAY_SECONDS: "0"
+  }),
+  ociBackup2: Object.freeze({
+    ...backupSchedulerDefaults,
+    AGENT_RUN_SOURCE: "oci-backup-2",
+    FALLBACK_START_DELAY_SECONDS: "90"
+  })
+});
+

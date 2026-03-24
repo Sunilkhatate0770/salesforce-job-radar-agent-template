@@ -1,19 +1,27 @@
-import fs from "fs/promises";
-import path from "path";
-import { fileURLToPath } from "url";
+import {
+  readSupabaseJsonState,
+  usesSupabaseStateBackend,
+  writeSupabaseJsonState
+} from "./stateStore.js";
+import { readJsonFile, writeJsonFile } from "../utils/localJsonFile.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const OUTBOX_PATH = path.resolve(__dirname, "../../.cache/job-outbox.json");
+const OUTBOX_PATH = new URL("../../.cache/job-outbox.json", import.meta.url);
+const STATE_KEY = "job_outbox";
+
+function normalizeJobs(parsed) {
+  if (Array.isArray(parsed)) return parsed;
+  if (Array.isArray(parsed?.jobs)) return parsed.jobs;
+  return [];
+}
 
 async function readOutbox() {
-  try {
-    const raw = await fs.readFile(OUTBOX_PATH, "utf8");
-    const parsed = JSON.parse(raw);
+  if (usesSupabaseStateBackend()) {
+    const payload = await readSupabaseJsonState(STATE_KEY);
+    return normalizeJobs(payload);
+  }
 
-    if (Array.isArray(parsed)) return parsed;
-    if (Array.isArray(parsed.jobs)) return parsed.jobs;
-    return [];
+  try {
+    return normalizeJobs(await readJsonFile(OUTBOX_PATH));
   } catch (error) {
     if (error.code === "ENOENT") return [];
     console.log("⚠️ Job outbox read failed:", error.message);
@@ -27,8 +35,12 @@ async function writeOutbox(jobs) {
     updated_at: new Date().toISOString()
   };
 
-  await fs.mkdir(path.dirname(OUTBOX_PATH), { recursive: true });
-  await fs.writeFile(OUTBOX_PATH, JSON.stringify(payload, null, 2), "utf8");
+  if (usesSupabaseStateBackend()) {
+    await writeSupabaseJsonState(STATE_KEY, payload);
+    return;
+  }
+
+  await writeJsonFile(OUTBOX_PATH, payload);
 }
 
 export async function queueJobForSync(jobPayload) {

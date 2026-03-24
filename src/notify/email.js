@@ -1,6 +1,3 @@
-import fs from "fs/promises";
-import nodemailer from "nodemailer";
-
 function normalizeList(value) {
   return String(value || "")
     .split(",")
@@ -126,15 +123,17 @@ function getProviderOrder() {
 }
 
 function createTransport(config) {
-  return nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: {
-      user: config.user,
-      pass: config.pass
-    }
-  });
+  return import("nodemailer").then(module =>
+    module.default.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: {
+        user: config.user,
+        pass: config.pass
+      }
+    })
+  );
 }
 
 async function loadResendAttachments(attachments) {
@@ -144,6 +143,7 @@ async function loadResendAttachments(attachments) {
     const filePath = String(attachment?.path || "").trim();
     if (!filePath) continue;
 
+    const fs = await import("node:fs/promises");
     const content = await fs.readFile(filePath, "base64");
     normalized.push({
       filename: String(attachment?.filename || "").trim() || "attachment",
@@ -155,14 +155,15 @@ async function loadResendAttachments(attachments) {
 }
 
 async function sendEmailViaSmtp(config, message) {
-  const transporter = createTransport(config);
+  const transporter = await createTransport(config);
   await transporter.sendMail({
     from: config.from,
     to: config.to,
     subject: message.subject,
     text: message.text,
     html: message.html,
-    attachments: message.attachments
+    attachments: message.attachments,
+    headers: message.headers
   });
 }
 
@@ -182,7 +183,8 @@ async function sendEmailViaResend(config, message) {
       subject: message.subject,
       text: message.text,
       html: message.html,
-      attachments
+      attachments,
+      headers: message.headers
     })
   });
 
@@ -197,7 +199,22 @@ async function sendEmailViaResend(config, message) {
 export async function sendEmailMessage({ subject, text, html, attachments = [] }) {
   const smtpConfig = getEmailConfig();
   const resendConfig = getResendConfig();
-  const message = { subject, text, html, attachments };
+
+  const prefix = String(process.env.EMAIL_SUBJECT_PREFIX || "").trim();
+  const subjectWithPrefix = prefix ? `${prefix} ${subject}` : subject;
+
+  const labelHeaderName = String(process.env.EMAIL_LABEL_HEADER_NAME || "X-Agent-Mail").trim();
+  const labelHeaderValue = String(process.env.EMAIL_LABEL_HEADER_VALUE || "true").trim();
+  const labelHeaders = labelHeaderName ? { [labelHeaderName]: labelHeaderValue } : undefined;
+
+  const message = {
+    subject: subjectWithPrefix,
+    text,
+    html,
+    attachments,
+    headers: labelHeaders
+  };
+
   const providerOrder = getProviderOrder();
   const errors = [];
 
@@ -227,7 +244,8 @@ export async function sendEmailMessage({ subject, text, html, attachments = [] }
   }
 
   if (!smtpConfig && !resendConfig) {
-    console.log("ℹ️ Email notifier skipped: no configured email provider");
+    console.log("ℹ️ Email notifier skipped: no configured email provider.");
+    console.log("   To enable email alerts, set either SMTP_* (SMTP_HOST, SMTP_USER, SMTP_PASS, EMAIL_FROM, EMAIL_TO) or RESEND_* (RESEND_API_KEY, RESEND_FROM, RESEND_TO) env vars.");
   } else {
     console.log(`❌ Email send failed: ${errors.join(" | ") || "no available provider"}`);
   }

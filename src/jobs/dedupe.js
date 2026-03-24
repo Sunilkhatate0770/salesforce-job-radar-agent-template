@@ -1,5 +1,5 @@
-import crypto from "crypto";
-import { supabase } from "../db/supabase.js";
+import crypto from "node:crypto";
+import { supabase, isSupabaseEnabled } from "../db/supabase.js";
 import { hasLocalHash, saveLocalHash } from "../db/localDedupeStore.js";
 import {
   flushJobOutbox,
@@ -127,7 +127,7 @@ async function withRetry(
 }
 
 function canUseSupabase() {
-  return Date.now() >= supabaseCooldownUntil;
+  return isSupabaseEnabled() && Date.now() >= supabaseCooldownUntil;
 }
 
 function setSupabaseCooldown(reason) {

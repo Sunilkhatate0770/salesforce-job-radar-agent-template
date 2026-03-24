@@ -1,0 +1,11 @@
+.git
+.github
+.cache
+.vscode
+node_modules
+gate_logs
+run-*-logs
+run-*-logs2
+launchd
+retrieved
+*.log

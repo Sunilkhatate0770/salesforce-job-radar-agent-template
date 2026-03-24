@@ -255,6 +255,7 @@ export async function fetchNaukriJobsDirect({
   let cookieJar = [];
   const unique = new Map();
   let recaptchaBlocked = false;
+  let lastError = null;
 
   for (const plan of plans) {
     const keywords = Array.isArray(plan.keywords)
@@ -298,6 +299,7 @@ export async function fetchNaukriJobsDirect({
             if (unique.size >= maxUniqueResults) break;
           }
         } catch (error) {
+          lastError = error;
           console.log(`⚠️ Direct Naukri fetch failed (${keyword}, page ${pageNo}): ${error.message}`);
           break;
         }
@@ -313,6 +315,12 @@ export async function fetchNaukriJobsDirect({
 
   if (recaptchaBlocked) {
     console.log("⚠️ Direct Naukri endpoint blocked by recaptcha");
+    if (jobs.length === 0) {
+      throw new Error("Direct Naukri blocked by recaptcha");
+    }
+  }
+  if (jobs.length === 0 && lastError) {
+    throw lastError;
   }
   console.log(`✅ Direct Naukri provider collected: ${jobs.length} unique job(s)`);
 

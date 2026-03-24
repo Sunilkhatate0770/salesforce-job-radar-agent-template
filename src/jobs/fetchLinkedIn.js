@@ -165,7 +165,7 @@ function parseActorSources() {
 }
 
 function getLinkedInFetchProviders() {
-  return String(process.env.LINKEDIN_FETCH_PROVIDERS || "apify,direct")
+  return String(process.env.LINKEDIN_FETCH_PROVIDERS || "direct,apify")
     .split(",")
     .map(value => value.trim().toLowerCase())
     .filter(Boolean);
