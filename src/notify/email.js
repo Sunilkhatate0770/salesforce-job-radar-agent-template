@@ -156,15 +156,21 @@ async function loadResendAttachments(attachments) {
 
 async function sendEmailViaSmtp(config, message) {
   const transporter = await createTransport(config);
-  await transporter.sendMail({
-    from: config.from,
-    to: config.to,
-    subject: message.subject,
-    text: message.text,
-    html: message.html,
-    attachments: message.attachments,
-    headers: message.headers
-  });
+  try {
+    await transporter.sendMail({
+      from: config.from,
+      to: config.to,
+      subject: message.subject,
+      text: message.text,
+      html: message.html,
+      attachments: message.attachments,
+      headers: message.headers
+    });
+  } finally {
+    if (typeof transporter.close === "function") {
+      transporter.close();
+    }
+  }
 }
 
 async function sendEmailViaResend(config, message) {
@@ -252,4 +258,3 @@ export async function sendEmailMessage({ subject, text, html, attachments = [] }
 
   return false;
 }
-

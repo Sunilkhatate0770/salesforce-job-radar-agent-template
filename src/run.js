@@ -1755,6 +1755,28 @@ async function notifyAll({
   };
 }
 
+function getNotificationTimeLabel() {
+  const timezone = String(process.env.DAILY_SUMMARY_TIMEZONE || "Asia/Kolkata").trim() || "Asia/Kolkata";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  })
+    .formatToParts(new Date())
+    .reduce((acc, part) => {
+      if (part.type !== "literal") {
+        acc[part.type] = part.value;
+      }
+      return acc;
+    }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} ${timezone}`;
+}
+
 async function sendRunSummary({
   fetchedCount,
   salesforceCount,
@@ -1764,6 +1786,7 @@ async function sendRunSummary({
   sourceSummary = "",
   messageBlocks = emptyMessageBlocks()
 }) {
+  const timeLabel = getNotificationTimeLabel();
   const diagnosticsTelegram = String(messageBlocks.heartbeatTelegramBlock || "").trim();
   const diagnosticsText = String(messageBlocks.heartbeatTextBlock || "").trim();
   const diagnosticsHtml = String(messageBlocks.heartbeatHtmlBlock || "").trim();
@@ -1779,6 +1802,7 @@ async function sendRunSummary({
 
   const emailText =
     `${AGENT_NAME} Heartbeat\n\n` +
+    `Time: ${timeLabel}\n` +
     `Fetched: ${fetchedCount}\n` +
     `Salesforce matched: ${salesforceCount}\n` +
     `${sourceSummary ? `Source mix: ${sourceSummary}\n` : ""}` +
@@ -1794,6 +1818,7 @@ async function sendRunSummary({
     `<div style="padding:22px;border-radius:18px;background:#111827;color:#ffffff;">` +
     `<div style="font-size:24px;font-weight:800;margin-bottom:8px;">${escapeHtml(AGENT_NAME)} Heartbeat</div>` +
     `<div style="font-size:14px;line-height:1.8;">` +
+    `<div><strong>Time:</strong> ${escapeHtml(timeLabel)}</div>` +
     `<div><strong>Fetched:</strong> ${fetchedCount}</div>` +
     `<div><strong>Salesforce matched:</strong> ${salesforceCount}</div>` +
     `${sourceSummary ? `<div><strong>Source mix:</strong> ${escapeHtml(sourceSummary)}</div>` : ""}` +
@@ -1808,7 +1833,7 @@ async function sendRunSummary({
 
   const result = await notifyAll({
     telegramText,
-    emailSubject: `${AGENT_NAME}: ${newCount} new jobs | heartbeat`,
+    emailSubject: `${AGENT_NAME}: ${newCount} new jobs | heartbeat (${timeLabel})`,
     emailText,
     emailHtml
   });

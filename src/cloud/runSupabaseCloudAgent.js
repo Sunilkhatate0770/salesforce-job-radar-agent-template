@@ -157,6 +157,28 @@ function buildEmailJobAlert(agentName, jobs, sourceSummary) {
   return { subject, text, html };
 }
 
+function getNotificationTimeLabel() {
+  const timezone = String(process.env.DAILY_SUMMARY_TIMEZONE || "Asia/Kolkata").trim() || "Asia/Kolkata";
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  })
+    .formatToParts(new Date())
+    .reduce((acc, part) => {
+      if (part.type !== "literal") {
+        acc[part.type] = part.value;
+      }
+      return acc;
+    }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute} ${timezone}`;
+}
+
 function buildHeartbeatMessages({
   agentName,
   fetchedCount,
@@ -166,8 +188,10 @@ function buildHeartbeatMessages({
   sourceSummary,
   note
 }) {
+  const timeLabel = getNotificationTimeLabel();
   const telegramText =
     `<b>${escapeHtml(agentName)} heartbeat</b>\n\n` +
+    `Time: <b>${escapeHtml(timeLabel)}</b>\n` +
     `Fetched: <b>${fetchedCount}</b>\n` +
     `Salesforce matched: <b>${salesforceCount}</b>\n` +
     `${sourceSummary ? `Source mix: ${escapeHtml(sourceSummary)}\n` : ""}` +
@@ -175,9 +199,10 @@ function buildHeartbeatMessages({
     `Pending queue: <b>${pendingCount}</b>\n` +
     `Note: ${escapeHtml(note)}`;
 
-  const emailSubject = `${agentName}: heartbeat`;
+  const emailSubject = `${agentName}: heartbeat (${timeLabel})`;
   const emailText =
     `${agentName} heartbeat\n\n` +
+    `Time: ${timeLabel}\n` +
     `Fetched: ${fetchedCount}\n` +
     `Salesforce matched: ${salesforceCount}\n` +
     `${sourceSummary ? `Source mix: ${sourceSummary}\n` : ""}` +
@@ -187,6 +212,7 @@ function buildHeartbeatMessages({
   const emailHtml =
     `<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;">` +
     `<h2>${escapeHtml(agentName)} heartbeat</h2>` +
+    `<p>Time: <strong>${escapeHtml(timeLabel)}</strong></p>` +
     `<p>Fetched: <strong>${fetchedCount}</strong></p>` +
     `<p>Salesforce matched: <strong>${salesforceCount}</strong></p>` +
     `${sourceSummary ? `<p>Source mix: ${escapeHtml(sourceSummary)}</p>` : ""}` +
