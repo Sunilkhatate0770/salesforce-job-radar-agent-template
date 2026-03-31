@@ -297,7 +297,41 @@ function buildLocationKey(job) {
   return normalizeText(location.split(",")[0]);
 }
 
+function shouldKeepDistinctPostLead(job) {
+  if (inferOpportunityKind(job) !== "post") {
+    return false;
+  }
+
+  const configured = String(
+    process.env.POST_KEEP_DISTINCT_SIGNALS || "true"
+  ).trim().toLowerCase();
+  if (["0", "false", "no", "off"].includes(configured)) {
+    return false;
+  }
+
+  const contactEmail = normalizeDisplay(job?.source_evidence?.contact_email);
+  const author = normalizeDisplay(job?.post_author);
+  const postUrl = normalizeApplyLink(job?.post_url);
+
+  return Boolean(contactEmail || author || postUrl);
+}
+
 function buildMergeKey(job) {
+  if (shouldKeepDistinctPostLead(job)) {
+    const postUrl = normalizeApplyLink(job?.post_url);
+    if (postUrl) {
+      return `post-lead:${postUrl}`;
+    }
+
+    return `post-lead:${hashValue(JSON.stringify([
+      normalizeText(job?.title),
+      normalizeText(job?.company),
+      normalizeText(job?.location),
+      normalizeText(job?.post_author),
+      normalizeText(job?.source_evidence?.contact_email)
+    ]))}`;
+  }
+
   const role = inferCanonicalRole(job);
   const company = inferCanonicalCompany(job);
   const location = buildLocationKey(job);

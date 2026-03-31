@@ -48,7 +48,12 @@ function withEnv(overrides, fn) {
 }
 
 test("prepareOpportunities merges listing and hiring post while keeping India/remote scope", () =>
-  withEnv({ OPPORTUNITY_GEO_SCOPE: "india_remote" }, () => {
+  withEnv(
+    {
+      OPPORTUNITY_GEO_SCOPE: "india_remote",
+      POST_KEEP_DISTINCT_SIGNALS: "false"
+    },
+    () => {
     const listing = {
       title: "Salesforce Developer",
       company: "Acme",
@@ -85,6 +90,51 @@ test("prepareOpportunities merges listing and hiring post while keeping India/re
     assert.equal(prepared.summary.merged_count, 1);
     assert.equal(prepared.summary.merged_duplicate_count, 1);
   }));
+
+test("prepareOpportunities keeps recruiter-signaled hiring posts distinct from listings", () =>
+  withEnv(
+    {
+      OPPORTUNITY_GEO_SCOPE: "india_remote",
+      POST_KEEP_DISTINCT_SIGNALS: "true"
+    },
+    () => {
+      const listing = {
+        title: "Salesforce Developer",
+        company: "Acme",
+        location: "Bengaluru, India",
+        apply_link: "https://jobs.acme.com/salesforce-developer",
+        source_job_id: "linkedin:321"
+      };
+      const post = {
+        title: "We are hiring Salesforce Developer at Acme",
+        company: "Acme",
+        location: "Bengaluru",
+        post_url: "https://www.linkedin.com/posts/acme_hiring-salesforce-developer-321/",
+        apply_link: "https://www.linkedin.com/posts/acme_hiring-salesforce-developer-321/",
+        source_job_id: "linkedin_post:distinct321",
+        source_platform: "linkedin_posts",
+        post_author: "Asha Recruiter",
+        description: "We are hiring a Salesforce Developer in Bengaluru. Share your resume at jobs@acme.com.",
+        source_evidence: {
+          contact_email: "jobs@acme.com"
+        }
+      };
+
+      const prepared = prepareOpportunities([listing, post]);
+
+      assert.equal(prepared.jobs.length, 2);
+      assert.equal(
+        prepared.jobs.filter(job => job.opportunity_kind === "post").length,
+        1
+      );
+      assert.equal(
+        prepared.jobs.filter(job => job.opportunity_kind === "listing").length,
+        1
+      );
+      assert.equal(prepared.summary.by_kind.post, 1);
+      assert.equal(prepared.summary.by_kind.listing, 1);
+    }
+  ));
 
 test("splitOpportunitiesForAlerts separates high listings, high posts, medium review, and low suppress", () => {
   const jobs = [

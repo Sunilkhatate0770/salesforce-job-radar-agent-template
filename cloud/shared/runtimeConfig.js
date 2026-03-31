@@ -3,7 +3,7 @@ export const sharedRuntimeDefaults = Object.freeze({
   AGENT_NAME: "Salesforce Job Radar Agent",
   EMAIL_FROM_NAME: "Salesforce Job Radar Agent",
   EMAIL_PROVIDER_ORDER: "resend,smtp",
-  RESEND_TO: "your-alert-email@example.com",
+  RESEND_TO: "sunilkhatate@gmail.com",
   RUN_LEASE_ENABLED: "true",
   RUN_LEASE_REQUIRED: "true",
   RUN_LEASE_KEY: "salesforce-job-radar-agent",
@@ -45,7 +45,7 @@ export const sharedRuntimeDefaults = Object.freeze({
   LINKEDIN_DIRECT_MAX_PAGES: "2",
   LINKEDIN_DIRECT_PAGE_SIZE: "25",
   LINKEDIN_DIRECT_KEYWORDS_PER_PLAN: "2",
-  LINKEDIN_POSTS_QUERIES_PER_RUN: "3",
+  LINKEDIN_POSTS_QUERIES_PER_RUN: "6",
   LINKEDIN_POSTS_PAGES_PER_QUERY: "2",
   LINKEDIN_POSTS_FETCH_DETAILS: "true",
   LINKEDIN_POSTS_MAX_DETAIL_FETCHES: "6",
@@ -64,12 +64,12 @@ export const sharedRuntimeDefaults = Object.freeze({
   APPLY_PACK_MAX_FILES: "3",
   APPLY_PACK_AI_ENABLED: "false",
   APPLY_PACK_AI_MODEL: "gpt-4.1-mini",
-  RESUME_BASE_PDF_PATH: "assets/resume/base/base-resume.pdf",
+  RESUME_BASE_PDF_PATH: "assets/resume/base/Sunil_Khatate_SFDC_2026.pdf",
   RESUME_ATTACHMENT_MAX_FILES: "3",
   RESUME_ATTACH_BASE_PDF: "true",
   TELEGRAM_MAX_DOCS_PER_RUN: "7",
   ALERT_ON_EMPTY: "false",
-  NOTIFY_EVERY_RUN: "false",
+  NOTIFY_EVERY_RUN: "true",
   DAILY_SUMMARY_ENABLED: "true",
   DAILY_SUMMARY_TIMEZONE: "Asia/Kolkata",
   DAILY_SUMMARY_HOUR: "21",
@@ -100,4 +100,3 @@ export const runtimeTargets = Object.freeze({
     FALLBACK_START_DELAY_SECONDS: "90"
   })
 });
-
