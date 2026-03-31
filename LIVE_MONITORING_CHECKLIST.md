@@ -56,6 +56,17 @@ That prints recent board-by-board ATS performance for:
 - `review_live` means a live board has gone quiet and may need to move back to `shadow`
 - `investigate` means a board is erroring repeatedly and should be checked before trusting it
 
+For geo-fit promotion checks, run:
+
+```powershell
+npm run ats:probe:live
+```
+
+- `candidate_for_live` means the board is currently surfacing India/remote-fit Salesforce roles
+- `candidate_for_live` is strict: it counts India roles and open remote roles, but not region-restricted remote roles like `Remote U.S.`
+- `keep_shadow_geo_mismatch` means the board has Salesforce roles, but the current geo fit is poor
+- `review_live_geo` means a live board is returning Salesforce roles, but they do not currently look India/remote-fit
+
 ## Gmail checks
 
 - Agent emails should be visible under the `Agent Mail` label

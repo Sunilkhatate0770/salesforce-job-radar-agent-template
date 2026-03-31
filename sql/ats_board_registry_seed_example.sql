@@ -86,9 +86,9 @@ insert into public.ats_board_registry (
     'https://boards.greenhouse.io/okta',
     'india_remote',
     72,
-    'shadow',
+    'live',
     true,
-    jsonb_build_object('notes', 'Large ATS board, use for shadow-only discovery first')
+    jsonb_build_object('notes', 'Promoted after India Salesforce developer geo-fit probe')
   ),
   (
     'greenhouse',

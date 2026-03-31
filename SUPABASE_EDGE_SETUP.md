@@ -98,6 +98,7 @@ Notes:
 - `supabase/migrations/20260331153000_ats_registry_and_source_quality.sql` adds the ATS board registry plus `source_quality_tier`, `ats_provider`, `ats_board_key`, and `source_urls` on `job_alerts`.
 - `supabase/migrations/20260331162000_ats_registry_modes.sql` adds per-board `mode` support so some ATS boards can stay `shadow` while others are promoted to `live`.
 - `supabase/migrations/20260331173000_seed_ats_board_registry_starter.sql` seeds a safe starter set of Greenhouse / Lever / Ashby boards, with the strongest India-fit Lever boards already promoted to `live`.
+- `supabase/migrations/20260331181000_promote_okta_board_live.sql` shows the first geo-fit promotion pattern: promote a board only after the live probe shows India/open-remote Salesforce coverage worth alerting on.
 - `CLOUD_ATTACHMENTS_ENABLED=false` keeps the cloud path away from PDF/ZIP/file attachment generation while still sending inline ATS/tailoring previews in alerts.
 - `ACTION_CARD_RENDERER_ENABLED=true` turns on the shared action-card UI for email and Telegram while still letting you fall back to legacy formatting if needed.
 - `ATS_PROVIDER_MODE=shadow` keeps Greenhouse / Lever / Ashby in coverage-only mode first so they can prove themselves before they join the live alert path.

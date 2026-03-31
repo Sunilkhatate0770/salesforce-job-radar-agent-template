@@ -11,6 +11,8 @@
     "coverage:report": "node src/tools/coverageReport.js",
     "ats:report": "node src/tools/atsBoardReport.js",
     "ats:live": "powershell -ExecutionPolicy Bypass -File scripts/check-ats-board-health.ps1",
+    "ats:probe": "node src/tools/atsBoardProbe.js",
+    "ats:probe:live": "powershell -ExecutionPolicy Bypass -File scripts/check-ats-board-probe.ps1",
     "health:live": "powershell -ExecutionPolicy Bypass -File scripts/check-live-health.ps1",
     "cloud:sync": "node scripts/render-cloud-env.js sync-examples",
     "tracker": "node src/tools/tracker.js",
