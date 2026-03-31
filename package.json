@@ -22,6 +22,8 @@
     "scheduler:install:windows": "powershell -ExecutionPolicy Bypass -File scripts/install-task-scheduler.ps1",
     "scheduler:uninstall:windows": "powershell -ExecutionPolicy Bypass -File scripts/uninstall-task-scheduler.ps1",
     "test:failover": "node --test test/failover.test.js",
+    "test:opportunities": "node --test test/opportunityPipeline.test.js",
+    "test": "node --test",
     "dispatch:test": "zsh scripts/test-workflow-dispatch.sh"
   },
   "keywords": [

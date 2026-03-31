@@ -19,7 +19,8 @@ Run these files in the Supabase SQL Editor in this order:
 2. `sql/agent_run_leases.sql`
 3. `sql/agent_state.sql`
 4. `sql/agent_run_history.sql`
-5. `sql/supabase_edge_cron_template.sql` after your functions are deployed and you replace the placeholders
+5. `sql/job_alerts_opportunity_fields.sql`
+6. `sql/supabase_edge_cron_template.sql` after your functions are deployed and you replace the placeholders
 
 ## 2. Cloud env for the Supabase-backed path
 
@@ -43,14 +44,33 @@ RUN_HISTORY_ENABLED=true
 RUN_HISTORY_TABLE=agent_run_history
 
 CLOUD_ATTACHMENTS_ENABLED=false
-EMAIL_PROVIDER_ORDER=resend
+EMAIL_PROVIDER_ORDER=smtp
+
+ENABLE_POST_PROVIDERS=true
+POST_FETCH_PROVIDERS=linkedin_posts
+OPPORTUNITY_GEO_SCOPE=india_remote
+ALERT_MEDIUM_DIGEST_MAX_ITEMS=4
+POST_ALERT_POLICY=high_and_medium
+COVERAGE_MONITOR_ENABLED=true
+COVERAGE_BASELINE_WINDOW=8
+COVERAGE_BASELINE_MIN_TOTAL=8
+COVERAGE_TOTAL_DROP_RATIO=0.45
+COVERAGE_POST_ZERO_RUN_THRESHOLD=4
+COVERAGE_PROVIDER_PAUSE_RUN_THRESHOLD=2
+COVERAGE_ZERO_RESULT_RUN_THRESHOLD=3
+COVERAGE_ALERT_COOLDOWN_MINUTES=240
+RESUME_TOP_OPPORTUNITY_LIMIT=2
 
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
-RESEND_API_KEY=
-RESEND_FROM=
-RESEND_TO=
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=
+SMTP_PASS=
+EMAIL_FROM=
+EMAIL_TO=
 
 JOB_RADAR_CRON_SECRET=
 
@@ -62,8 +82,12 @@ APIFY_TOKEN=
 Notes:
 
 - `STATE_BACKEND=supabase` moves these state stores into Supabase: pending alerts, provider health, application tracker, fetch cursor, local dedupe fallback, daily summary state, and outbox.
-- `CLOUD_ATTACHMENTS_ENABLED=false` keeps the cloud path away from PDF/ZIP/file attachment generation.
-- `EMAIL_PROVIDER_ORDER=resend` is the recommended cloud-safe email path.
+- `sql/job_alerts_opportunity_fields.sql` adds the new listing/post/confidence/canonical fields used by the vNext opportunity engine.
+- `CLOUD_ATTACHMENTS_ENABLED=false` keeps the cloud path away from PDF/ZIP/file attachment generation while still sending inline ATS/tailoring previews in alerts.
+- `ENABLE_POST_PROVIDERS=true` enables the public hiring-post pipeline. Today that starts with `linkedin_posts`.
+- `POST_ALERT_POLICY` lets you tune whether post-based opportunities are disabled, included only when high-confidence, or included in both the high-confidence and review digest sections.
+- `COVERAGE_*` settings enable stale-coverage monitoring so the agent can alert when hiring-post coverage drops to zero, providers stay paused, or total opportunity volume falls well below the recent baseline.
+- `EMAIL_PROVIDER_ORDER=smtp` is valid for the Gmail SMTP 465 path you are already using in Supabase.
 - `JOB_RADAR_CRON_SECRET` is optional but recommended; pass it as `x-job-radar-secret` or `Authorization: Bearer ...` when your scheduler calls `job-radar-run`.
 - For Supabase Cron HTTP calls, use your project's legacy `anon` JWT in the `Authorization` header. The SQL template now expects `YOUR_SUPABASE_ANON_KEY`.
 

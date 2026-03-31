@@ -108,6 +108,20 @@ function inferKeywordList(job) {
   return candidates.filter(keyword => text.includes(keyword.toLowerCase()));
 }
 
+function getTopResumePackLimit() {
+  return Math.max(
+    0,
+    toFiniteNumber(
+      process.env.RESUME_TOP_OPPORTUNITY_LIMIT,
+      process.env.RESUME_ATTACHMENT_MAX_FILES || 1
+    )
+  );
+}
+
+function shouldUseFullApplyPack(job) {
+  return String(job?.opportunity_kind || "listing").trim().toLowerCase() !== "post";
+}
+
 function buildBasicTailoredResume(job) {
   const profile = getCandidateProfile();
   const matchScore = Number(job.match_score || 0);
@@ -378,6 +392,95 @@ async function buildApplyEmailDraft(job) {
   return { subject, body };
 }
 
+export function selectTopResumePackJobs(jobs) {
+  const limit = getTopResumePackLimit();
+  if (limit === 0) return [];
+
+  return [...(Array.isArray(jobs) ? jobs : [])]
+    .filter(job => shouldUseFullApplyPack(job))
+    .sort((a, b) => Number(b.match_score || 0) - Number(a.match_score || 0))
+    .slice(0, limit);
+}
+
+export async function buildResumePreview(job) {
+  const profile = getCandidateProfile();
+  const keywords = inferKeywordList(job).slice(0, 8);
+  const resumeActions = Array.isArray(job?.resume_actions)
+    ? job.resume_actions.slice(0, 3)
+    : [];
+  const bulletSuggestions = Array.isArray(job?.resume_bullet_suggestions)
+    ? job.resume_bullet_suggestions.slice(0, 3)
+    : [];
+  const draft = await buildApplyEmailDraft(job);
+
+  return {
+    candidateName: profile.name,
+    atsKeywords: keywords,
+    resumeActions,
+    bulletSuggestions,
+    draftSubject: draft.subject,
+    draftBody: draft.body
+  };
+}
+
+function getPreviewJobKey(job) {
+  return String(
+    job?.job_hash ||
+      job?.source_job_id ||
+      job?.canonical_apply_url ||
+      job?.apply_link ||
+      `${job?.title || ""}|${job?.company || ""}|${job?.location || ""}`
+  ).trim();
+}
+
+export async function annotateJobsWithResumeSupport(
+  jobs,
+  {
+    previewLimit = getTopResumePackLimit(),
+    fullPackJobs = [],
+    attachmentsEnabled = false
+  } = {}
+) {
+  const list = Array.isArray(jobs) ? jobs : [];
+  if (list.length === 0 || previewLimit <= 0) {
+    return list;
+  }
+
+  const previewCandidates = [...list]
+    .sort((a, b) => Number(b?.match_score || 0) - Number(a?.match_score || 0))
+    .slice(0, previewLimit);
+  const previewMap = new Map();
+  for (const job of previewCandidates) {
+    previewMap.set(getPreviewJobKey(job), await buildResumePreview(job));
+  }
+
+  const fullPackKeys = new Set(
+    (Array.isArray(fullPackJobs) ? fullPackJobs : []).map(getPreviewJobKey)
+  );
+
+  return list.map(job => {
+    const key = getPreviewJobKey(job);
+    const preview = previewMap.get(key);
+    if (!preview) {
+      return job;
+    }
+
+    const defaultMode = shouldUseFullApplyPack(job)
+      ? attachmentsEnabled
+        ? "full_pack_attached"
+        : "full_pack_ready"
+      : "preview_only";
+
+    return {
+      ...job,
+      resume_support: {
+        mode: fullPackKeys.has(key) ? defaultMode : "preview_only",
+        preview
+      }
+    };
+  });
+}
+
 async function writeApplyEmailDraft(job, index) {
   const draft = await buildApplyEmailDraft(job);
   const slug = sanitizeFilePart(job.title || `job-${index + 1}`) || `job-${index + 1}`;
@@ -628,7 +731,7 @@ async function createApplyBundle(job, index, fileAttachments = []) {
 }
 
 export async function createResumeAttachments(jobs) {
-  const list = Array.isArray(jobs) ? jobs : [];
+  const list = selectTopResumePackJobs(jobs);
   if (list.length === 0) return [];
 
   const maxTailoredFiles = Math.max(
@@ -643,9 +746,7 @@ export async function createResumeAttachments(jobs) {
       Math.min(3, Math.max(1, maxTailoredFiles))
     )
   );
-  const ordered = [...list].sort(
-    (a, b) => Number(b.match_score || 0) - Number(a.match_score || 0)
-  );
+  const ordered = [...list];
 
   const attachments = [];
   for (let i = 0; i < ordered.length && i < maxTailoredFiles; i += 1) {
@@ -659,6 +760,7 @@ export async function createResumeAttachments(jobs) {
 
   if (applyPackEnabled && maxApplyPackFiles > 0) {
     for (let i = 0; i < ordered.length && i < maxApplyPackFiles; i += 1) {
+      if (!shouldUseFullApplyPack(ordered[i])) continue;
       const result = await writeApplyPack(ordered[i], i);
       if (Array.isArray(result)) {
         attachments.push(...result);

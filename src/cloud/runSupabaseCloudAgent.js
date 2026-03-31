@@ -2,6 +2,7 @@ import { fetchNaukriJobs, getLastNaukriFetchReport } from "../jobs/fetchNaukri.j
 import { filterSalesforceJobs } from "../jobs/filterSalesforceJobs.js";
 import { applyPrecisionFilters } from "../jobs/precisionFilters.js";
 import { enrichJobsWithResumeMatch } from "../resume/matchResume.js";
+import { annotateJobsWithResumeSupport } from "../resume/generateTailoredResume.js";
 import { generateJobHash, getNewJobs, saveJobs } from "../jobs/dedupe.js";
 import {
   acknowledgePendingAlerts,
@@ -19,6 +20,19 @@ import { markDailySummarySent, shouldSendDailySummary } from "../notify/dailySum
 import { sendEmailMessage } from "../notify/email.js";
 import { sendTelegramMessage } from "../notify/telegram.js";
 import { getStateBackend } from "../db/stateStore.js";
+import {
+  buildCoverageHealth,
+  buildOpportunitySummary,
+  getOpportunityConfidenceLabel,
+  getOpportunityKindLabel,
+  prepareOpportunities,
+  selectOpportunitiesForAlerts,
+  splitOpportunitiesForAlerts
+} from "../jobs/opportunityPipeline.js";
+import {
+  buildCoverageAlertMessages,
+  monitorCoverageHealth
+} from "../jobs/coverageMonitor.js";
 
 function isTruthy(value) {
   return ["1", "true", "yes", "on"].includes(
@@ -63,9 +77,19 @@ function getMinMatchScore() {
 }
 
 function inferJobSource(job) {
+  const sourcePlatform = String(job?.source_platform || "").trim().toLowerCase();
   const sourceId = String(job?.source_job_id || "").trim().toLowerCase();
   const link = String(job?.apply_link || "").trim().toLowerCase();
+  const postUrl = String(job?.post_url || "").trim().toLowerCase();
 
+  if (
+    sourcePlatform === "linkedin_posts" ||
+    sourceId.startsWith("linkedin_post:") ||
+    postUrl.includes("linkedin.com/posts") ||
+    postUrl.includes("linkedin.com/feed/update")
+  ) {
+    return "LinkedIn Posts";
+  }
   if (sourceId.startsWith("naukri:") || link.includes("naukri.com")) {
     return "Naukri";
   }
@@ -95,73 +119,183 @@ function buildSourceSummary(jobs) {
     .join(" | ");
 }
 
-function buildJobLine(job) {
-  const score = Number.isFinite(Number(job?.match_score))
-    ? ` | Score ${Number(job.match_score)}`
-    : "";
-  const location = String(job?.location || "").trim();
-  const link = String(job?.apply_link || "").trim();
-
-  return [
-    `${job?.title || "Unknown title"} - ${job?.company || "Unknown company"}`,
-    location ? `Location: ${location}` : "",
-    score ? score.replace(/^ \| /, "Score: ") : "",
-    link ? `Apply: ${link}` : ""
-  ]
-    .filter(Boolean)
-    .join("\n");
+function formatListValue(values, limit = 4, fallback = "None") {
+  const list = Array.isArray(values)
+    ? values.map(value => trimText(value, 120)).filter(Boolean)
+    : [];
+  if (list.length === 0) return fallback;
+  return list.slice(0, limit).join(", ");
 }
 
-function buildTelegramJobAlert(agentName, jobs, sourceSummary) {
-  const header =
-    `<b>${escapeHtml(agentName)}</b>\n` +
-    `${jobs.length} queued job(s) ready to review\n` +
-    `${sourceSummary ? `${escapeHtml(sourceSummary)}\n\n` : "\n"}`;
-
-  const body = jobs.map((job, index) => {
-    const score = Number.isFinite(Number(job?.match_score))
-      ? ` | <b>Score:</b> ${Number(job.match_score)}`
-      : "";
-    const location = String(job?.location || "").trim();
-    const link = String(job?.apply_link || "").trim();
-
-    return [
-      `<b>${index + 1}. ${escapeHtml(job?.title || "Unknown title")}</b>`,
-      `${escapeHtml(job?.company || "Unknown company")}${location ? ` | ${escapeHtml(location)}` : ""}${score}`,
-      link ? escapeHtml(link) : ""
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }).join("\n\n");
-
-  return `${header}${body}`.trim();
+function getOpportunityActionUrl(job) {
+  return String(
+    job?.canonical_apply_url || job?.apply_link || job?.post_url || ""
+  ).trim();
 }
 
-function buildEmailJobAlert(agentName, jobs, sourceSummary) {
-  const subject = `${agentName}: ${jobs.length} new jobs`;
-  const text =
-    `${agentName}\n\n` +
-    `${jobs.length} queued job(s) ready to review\n` +
-    `${sourceSummary ? `Source mix: ${sourceSummary}\n\n` : "\n"}` +
-    jobs.map(buildJobLine).join("\n\n");
+function getOpportunityActionLabel(job) {
+  return String(job?.opportunity_kind || "listing").trim().toLowerCase() === "post"
+    ? "Open post"
+    : "Open job";
+}
 
+function getResumeSupportLabel(job) {
+  const mode = String(job?.resume_support?.mode || "").trim().toLowerCase();
+  if (mode === "full_pack_attached") return "Full tailored resume pack attached";
+  if (mode === "full_pack_ready") return "Full tailored resume pack ready";
+  if (mode === "preview_only") return "ATS preview included";
+  return "";
+}
+
+function getResumePreview(job) {
+  return job?.resume_support?.preview || null;
+}
+
+function getOpportunityEvidence(job) {
+  return trimText(job?.source_evidence?.snippet || job?.description || "", 200);
+}
+
+function buildTelegramOpportunityCard(job, index) {
+  const actionUrl = getOpportunityActionUrl(job);
+  const resumePreview = getResumePreview(job);
+  const evidence = getOpportunityEvidence(job);
+  const lines = [
+    `<b>${index}. ${escapeHtml(job?.title || "Unknown title")}</b>`,
+    `${escapeHtml(job?.company || "Unknown company")}${job?.location ? ` | ${escapeHtml(job.location)}` : ""}`,
+    `<b>${escapeHtml(getOpportunityKindLabel(job))}</b> | ${escapeHtml(getOpportunityConfidenceLabel(job))} | ${escapeHtml(inferJobSource(job))}`,
+    `Match: <b>${escapeHtml(String(job?.match_score ?? "n/a"))}</b>`
+  ];
+
+  const resumeSupport = getResumeSupportLabel(job);
+  if (resumeSupport) lines.push(`Tailored support: ${escapeHtml(resumeSupport)}`);
+  if (resumePreview?.atsKeywords?.length) {
+    lines.push(`ATS keywords: ${escapeHtml(formatListValue(resumePreview.atsKeywords, 5))}`);
+  }
+  if (resumePreview?.draftSubject) {
+    lines.push(`Draft subject: ${escapeHtml(trimText(resumePreview.draftSubject, 120))}`);
+  }
+  if (job?.missing_skills?.length) {
+    lines.push(`Missing: ${escapeHtml(formatListValue(job.missing_skills, 4))}`);
+  }
+  if (evidence) lines.push(`Evidence: ${escapeHtml(evidence)}`);
+  lines.push(actionUrl ? `<a href="${escapeHtml(actionUrl)}">${escapeHtml(getOpportunityActionLabel(job))}</a>` : "Link unavailable");
+  return lines.join("\n");
+}
+
+function buildEmailTextOpportunityCard(job, index) {
+  const actionUrl = getOpportunityActionUrl(job);
+  const resumePreview = getResumePreview(job);
+  const evidence = getOpportunityEvidence(job);
+  const lines = [
+    `${index}. ${trimText(job?.title || "Unknown title", 140)}`,
+    `${trimText(job?.company || "Unknown company", 120)}${job?.location ? ` | ${trimText(job.location, 80)}` : ""}`,
+    `Type: ${getOpportunityKindLabel(job)} | Confidence: ${getOpportunityConfidenceLabel(job)} | Source: ${inferJobSource(job)}`,
+    `Match: ${String(job?.match_score ?? "n/a")}`
+  ];
+  const resumeSupport = getResumeSupportLabel(job);
+  if (resumeSupport) lines.push(`Tailored support: ${resumeSupport}`);
+  if (resumePreview?.atsKeywords?.length) {
+    lines.push(`ATS keywords: ${formatListValue(resumePreview.atsKeywords, 5)}`);
+  }
+  if (resumePreview?.draftSubject) {
+    lines.push(`Draft subject: ${trimText(resumePreview.draftSubject, 120)}`);
+  }
+  if (job?.missing_skills?.length) {
+    lines.push(`Missing: ${formatListValue(job.missing_skills, 4)}`);
+  }
+  if (evidence) lines.push(`Evidence: ${evidence}`);
+  lines.push(`${getOpportunityActionLabel(job)}: ${actionUrl || "Link unavailable"}`);
+  return lines.join("\n");
+}
+
+function buildEmailHtmlOpportunityCard(job, index) {
+  const actionUrl = getOpportunityActionUrl(job);
+  const resumePreview = getResumePreview(job);
+  const evidence = getOpportunityEvidence(job);
+  const resumeSupport = getResumeSupportLabel(job);
+  const chips = [
+    `<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;">${escapeHtml(getOpportunityKindLabel(job))}</span>`,
+    `<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:999px;background:#ecfeff;color:#0f766e;font-size:12px;font-weight:700;">${escapeHtml(getOpportunityConfidenceLabel(job))}</span>`,
+    `<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:999px;background:#f8fafc;color:#334155;font-size:12px;font-weight:700;">${escapeHtml(inferJobSource(job))}</span>`,
+    `<span style="display:inline-block;margin:0 6px 6px 0;padding:5px 10px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;">Match ${escapeHtml(String(job?.match_score ?? "n/a"))}</span>`
+  ];
+  return (
+    `<div style="margin:0 0 16px 0;padding:18px;border:1px solid #dbe3ea;border-radius:16px;background:#ffffff;">` +
+    `<div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:8px;">${escapeHtml(index)}. ${escapeHtml(job?.title || "Unknown title")}</div>` +
+    `<div style="font-size:14px;color:#334155;margin-bottom:10px;">${escapeHtml(job?.company || "Unknown company")}${job?.location ? ` | ${escapeHtml(job.location)}` : ""}</div>` +
+    `<div style="margin-bottom:8px;">${chips.join("")}</div>` +
+    `${resumeSupport ? `<div style="margin:6px 0;"><strong>Tailored support:</strong> ${escapeHtml(resumeSupport)}</div>` : ""}` +
+    `${resumePreview?.atsKeywords?.length ? `<div style="margin:6px 0;"><strong>ATS keywords:</strong> ${escapeHtml(formatListValue(resumePreview.atsKeywords, 5))}</div>` : ""}` +
+    `${resumePreview?.draftSubject ? `<div style="margin:6px 0;"><strong>Draft subject:</strong> ${escapeHtml(trimText(resumePreview.draftSubject, 120))}</div>` : ""}` +
+    `${job?.missing_skills?.length ? `<div style="margin:6px 0;"><strong>Missing:</strong> ${escapeHtml(formatListValue(job.missing_skills, 4))}</div>` : ""}` +
+    `${evidence ? `<div style="margin:6px 0;"><strong>Evidence:</strong> ${escapeHtml(evidence)}</div>` : ""}` +
+    `${actionUrl
+      ? `<div style="margin-top:12px;"><a href="${escapeHtml(actionUrl)}" style="display:inline-block;padding:8px 12px;border-radius:10px;background:#0f172a;color:#ffffff;text-decoration:none;font-weight:700;">${escapeHtml(getOpportunityActionLabel(job))}</a></div>`
+      : `<div style="margin-top:12px;color:#6b7280;">Link unavailable</div>`}` +
+    `</div>`
+  );
+}
+
+function buildOpportunitySections(jobs) {
+  const split = splitOpportunitiesForAlerts(jobs);
+  const sections = [
+    { title: "High-confidence listings", jobs: split.highListings },
+    { title: "High-confidence hiring posts", jobs: split.highPosts },
+    { title: "Medium-confidence review queue", jobs: split.mediumQueue }
+  ].filter(section => Array.isArray(section.jobs) && section.jobs.length > 0);
+
+  return {
+    telegram: sections.map(section =>
+      `<b>${escapeHtml(section.title)} (${section.jobs.length})</b>
+
+` +
+      section.jobs.map((job, index) => buildTelegramOpportunityCard(job, index + 1)).join("\n\n")
+    ).join("\n\n"),
+    emailText: sections.map(section =>
+      `${section.title} (${section.jobs.length})
+
+` +
+      section.jobs.map((job, index) => buildEmailTextOpportunityCard(job, index + 1)).join("\n\n")
+    ).join("\n\n"),
+    emailHtml: sections.map(section =>
+      `<div style="margin-top:22px;"><h3 style="margin:0 0 12px 0;color:#0f172a;">${escapeHtml(section.title)} (${section.jobs.length})</h3>${section.jobs.map((job, index) => buildEmailHtmlOpportunityCard(job, index + 1)).join("")}</div>`
+    ).join("")
+  };
+}
+
+function buildJobAlertMessages(agentName, jobs, sourceSummary) {
+  const summary = buildOpportunitySummary(jobs);
+  const sections = buildOpportunitySections(jobs);
+  const subject = `${agentName}: ${jobs.length} opportunities | Listings ${summary.by_kind?.listing || 0} | Posts ${summary.by_kind?.post || 0}`;
+  const text = [
+    `${agentName}` ,
+    "",
+    `${jobs.length} opportunity(ies) ready to review`,
+    sourceSummary ? `Source mix: ${sourceSummary}` : "",
+    `Listings: ${summary.by_kind?.listing || 0} | Posts: ${summary.by_kind?.post || 0} | Review: ${summary.by_confidence?.medium || 0}` ,
+    "",
+    sections.emailText
+  ].filter(Boolean).join("\n");
   const html =
-    `<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;">` +
-    `<h2>${escapeHtml(agentName)}</h2>` +
-    `<p><strong>${jobs.length}</strong> queued job(s) ready to review</p>` +
-    `${sourceSummary ? `<p><strong>Source mix:</strong> ${escapeHtml(sourceSummary)}</p>` : ""}` +
-    jobs.map((job, index) =>
-      `<div style="margin:18px 0;padding:14px;border:1px solid #e5e7eb;border-radius:12px;">` +
-      `<div style="font-weight:700;">${index + 1}. ${escapeHtml(job?.title || "Unknown title")}</div>` +
-      `<div>${escapeHtml(job?.company || "Unknown company")}</div>` +
-      `${job?.location ? `<div>${escapeHtml(job.location)}</div>` : ""}` +
-      `${Number.isFinite(Number(job?.match_score)) ? `<div>Score: ${Number(job.match_score)}</div>` : ""}` +
-      `${job?.apply_link ? `<div><a href="${escapeHtml(job.apply_link)}">${escapeHtml(job.apply_link)}</a></div>` : ""}` +
-      `</div>`
-    ).join("") +
-    `</body></html>`;
-
-  return { subject, text, html };
+    `<!doctype html><html><body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,sans-serif;color:#111827;">` +
+    `<div style="max-width:780px;margin:0 auto;">` +
+    `<div style="padding:24px;border-radius:20px;background:#0f172a;color:#ffffff;">` +
+    `<div style="font-size:28px;font-weight:800;margin-bottom:8px;">${escapeHtml(agentName)}</div>` +
+    `<div style="font-size:16px;line-height:1.7;">${jobs.length} opportunity(ies) ready to review</div>` +
+    `${sourceSummary ? `<div style="margin-top:8px;font-size:14px;opacity:0.88;">Source mix: ${escapeHtml(sourceSummary)}</div>` : ""}` +
+    `<div style="margin-top:12px;font-size:14px;opacity:0.88;">Listings: ${summary.by_kind?.listing || 0} | Posts: ${summary.by_kind?.post || 0} | Review: ${summary.by_confidence?.medium || 0}</div>` +
+    `</div>` +
+    sections.emailHtml +
+    `</div></body></html>`;
+  const telegram = [
+    `<b>${escapeHtml(agentName)}</b>`,
+    `${jobs.length} opportunity(ies) ready to review`,
+    sourceSummary ? `${escapeHtml(sourceSummary)}` : "",
+    `Listings: ${summary.by_kind?.listing || 0} | Posts: ${summary.by_kind?.post || 0} | Review: ${summary.by_confidence?.medium || 0}` ,
+    "",
+    sections.telegram
+  ].filter(Boolean).join("\n");
+  return { subject, text, html, telegram };
 }
 
 function getNotificationTimeLabel() {
@@ -193,15 +327,20 @@ function buildHeartbeatMessages({
   newCount,
   pendingCount,
   sourceSummary,
-  note
+  note,
+  classificationSummary = null
 }) {
   const timeLabel = getNotificationTimeLabel();
+  const listingCount = Number(classificationSummary?.by_kind?.listing || 0);
+  const postCount = Number(classificationSummary?.by_kind?.post || 0);
+  const reviewCount = Number(classificationSummary?.by_confidence?.medium || 0);
   const telegramText =
     `<b>${escapeHtml(agentName)} heartbeat</b>\n\n` +
     `Time: <b>${escapeHtml(timeLabel)}</b>\n` +
     `Fetched: <b>${fetchedCount}</b>\n` +
     `Salesforce matched: <b>${salesforceCount}</b>\n` +
     `${sourceSummary ? `Source mix: ${escapeHtml(sourceSummary)}\n` : ""}` +
+    `Listings: <b>${listingCount}</b> | Posts: <b>${postCount}</b> | Review: <b>${reviewCount}</b>\n` +
     `New this run: <b>${newCount}</b>\n` +
     `Pending queue: <b>${pendingCount}</b>\n` +
     `Note: ${escapeHtml(note)}`;
@@ -213,6 +352,7 @@ function buildHeartbeatMessages({
     `Fetched: ${fetchedCount}\n` +
     `Salesforce matched: ${salesforceCount}\n` +
     `${sourceSummary ? `Source mix: ${sourceSummary}\n` : ""}` +
+    `Listings: ${listingCount} | Posts: ${postCount} | Review: ${reviewCount}\n` +
     `New this run: ${newCount}\n` +
     `Pending queue: ${pendingCount}\n` +
     `Note: ${note}`;
@@ -223,6 +363,7 @@ function buildHeartbeatMessages({
     `<p>Fetched: <strong>${fetchedCount}</strong></p>` +
     `<p>Salesforce matched: <strong>${salesforceCount}</strong></p>` +
     `${sourceSummary ? `<p>Source mix: ${escapeHtml(sourceSummary)}</p>` : ""}` +
+    `<p>Listings: <strong>${listingCount}</strong> | Posts: <strong>${postCount}</strong> | Review: <strong>${reviewCount}</strong></p>` +
     `<p>New this run: <strong>${newCount}</strong></p>` +
     `<p>Pending queue: <strong>${pendingCount}</strong></p>` +
     `<p>Note: ${escapeHtml(note)}</p>` +
@@ -238,16 +379,24 @@ function buildDailySummaryMessages({
   salesforceCount,
   newCount,
   pendingCount,
-  sourceSummary
+  sourceSummary,
+  classificationSummary = null,
+  newJobs = []
 }) {
+  const listingCount = Number(classificationSummary?.by_kind?.listing || 0);
+  const postCount = Number(classificationSummary?.by_kind?.post || 0);
+  const reviewCount = Number(classificationSummary?.by_confidence?.medium || 0);
+  const sections = buildOpportunitySections(newJobs);
   const telegramText =
     `<b>${escapeHtml(agentName)} daily summary</b>\n\n` +
     `Date: <b>${escapeHtml(dateKey)}</b>\n` +
     `Fetched: <b>${fetchedCount}</b>\n` +
     `Salesforce matched: <b>${salesforceCount}</b>\n` +
+    `Listings: <b>${listingCount}</b> | Posts: <b>${postCount}</b> | Review: <b>${reviewCount}</b>\n` +
     `New jobs: <b>${newCount}</b>\n` +
     `Pending queue: <b>${pendingCount}</b>\n` +
-    `${sourceSummary ? `Source mix: ${escapeHtml(sourceSummary)}` : ""}`;
+    `${sourceSummary ? `Source mix: ${escapeHtml(sourceSummary)}` : ""}` +
+    `${sections.telegram ? `\n\n${sections.telegram}` : ""}`;
 
   const emailSubject = `${agentName} daily summary (${dateKey})`;
   const emailText =
@@ -255,18 +404,22 @@ function buildDailySummaryMessages({
     `Date: ${dateKey}\n` +
     `Fetched: ${fetchedCount}\n` +
     `Salesforce matched: ${salesforceCount}\n` +
+    `Listings: ${listingCount} | Posts: ${postCount} | Review: ${reviewCount}\n` +
     `New jobs: ${newCount}\n` +
     `Pending queue: ${pendingCount}\n` +
-    `${sourceSummary ? `Source mix: ${sourceSummary}` : ""}`;
+    `${sourceSummary ? `Source mix: ${sourceSummary}` : ""}` +
+    `${sections.emailText ? `\n\n${sections.emailText}` : ""}`;
   const emailHtml =
     `<!doctype html><html><body style="font-family:Arial,sans-serif;padding:24px;">` +
     `<h2>${escapeHtml(agentName)} daily summary</h2>` +
     `<p>Date: <strong>${escapeHtml(dateKey)}</strong></p>` +
     `<p>Fetched: <strong>${fetchedCount}</strong></p>` +
     `<p>Salesforce matched: <strong>${salesforceCount}</strong></p>` +
+    `<p>Listings: <strong>${listingCount}</strong> | Posts: <strong>${postCount}</strong> | Review: <strong>${reviewCount}</strong></p>` +
     `<p>New jobs: <strong>${newCount}</strong></p>` +
     `<p>Pending queue: <strong>${pendingCount}</strong></p>` +
     `${sourceSummary ? `<p>Source mix: ${escapeHtml(sourceSummary)}</p>` : ""}` +
+    `${sections.emailHtml || ""}` +
     `</body></html>`;
 
   return { telegramText, emailSubject, emailText, emailHtml };
@@ -370,23 +523,69 @@ async function processPendingAlertsCloud(agentName, runDetails) {
     };
   }
 
+  const suppressedLow = eligibleQueue.filter(
+    job => String(job?.alert_bucket || "").toLowerCase() === "suppress"
+  );
+  if (suppressedLow.length > 0) {
+    await acknowledgePendingAlerts(suppressedLow.map(job => job.job_hash));
+  }
+
+  const actionableQueue = eligibleQueue.filter(
+    job => String(job?.alert_bucket || "").toLowerCase() !== "suppress"
+  );
+  if (actionableQueue.length === 0) {
+    return {
+      pendingCount: await getPendingAlertCount(),
+      alertedCount: 0,
+      notified: false
+    };
+  }
+
   const maxItems = getAlertBatchLimit();
-  const jobsToAlert = Number.isFinite(maxItems)
-    ? eligibleQueue.slice(0, maxItems)
-    : eligibleQueue;
-  const sourceSummary = buildSourceSummary(jobsToAlert);
-  const telegramText = buildTelegramJobAlert(agentName, jobsToAlert, sourceSummary);
-  const emailPayload = buildEmailJobAlert(agentName, jobsToAlert, sourceSummary);
+  const selection = selectOpportunitiesForAlerts(actionableQueue, {
+    maxItems,
+    mediumLimit: Math.max(
+      0,
+      Number(process.env.ALERT_MEDIUM_DIGEST_MAX_ITEMS || 4)
+    )
+  });
+  const split = selection.split;
+  const selectedHigh = selection.selectedHigh;
+  const mediumQueue = selection.selectedMedium;
+  const jobsToAlert = selection.jobsToAlert;
+  if (jobsToAlert.length === 0) {
+    return {
+      pendingCount: await getPendingAlertCount(),
+      alertedCount: 0,
+      notified: false
+    };
+  }
+
+  const jobsWithResumeSupport = await annotateJobsWithResumeSupport(jobsToAlert, {
+    fullPackJobs: selectedHigh,
+    attachmentsEnabled: false
+  });
+  const sourceSummary = buildSourceSummary(jobsWithResumeSupport);
+  const messagePayload = buildJobAlertMessages(
+    agentName,
+    jobsWithResumeSupport,
+    sourceSummary
+  );
   const notifyResult = await notifyAll({
-    telegramText,
-    emailSubject: emailPayload.subject,
-    emailText: emailPayload.text,
-    emailHtml: emailPayload.html
+    telegramText: messagePayload.telegram,
+    emailSubject: messagePayload.subject,
+    emailText: messagePayload.text,
+    emailHtml: messagePayload.html
   });
   recordNotificationAttempt(runDetails, "job_alert", notifyResult, {
-    subject: emailPayload.subject,
+    subject: messagePayload.subject,
     pendingCount,
-    alertedCount: jobsToAlert.length
+    alertedCount: jobsToAlert.length,
+    highListings: split.highListings.length,
+    highPosts: selection.effectiveHighPosts.length,
+    mediumReviewCount: mediumQueue.length,
+    suppressedByPolicyCount: selection.suppressedByPolicy.length,
+    postAlertPolicy: selection.postPolicy
   });
 
   if (!notifyResult.anyOk) {
@@ -399,7 +598,7 @@ async function processPendingAlertsCloud(agentName, runDetails) {
   }
 
   await acknowledgePendingAlerts(jobsToAlert.map(job => job.job_hash));
-  await registerApplicationJobs(jobsToAlert, {
+  await registerApplicationJobs(jobsWithResumeSupport, {
     event: "alerted",
     defaultStatus: "new"
   });
@@ -419,7 +618,9 @@ async function maybeSendDailySummaryCloud({
   salesforceCount,
   newCount,
   pendingCount,
-  sourceSummary
+  sourceSummary,
+  classificationSummary = null,
+  newJobs = []
 }) {
   const check = await shouldSendDailySummary();
   if (!check.shouldSend) {
@@ -433,7 +634,9 @@ async function maybeSendDailySummaryCloud({
     salesforceCount,
     newCount,
     pendingCount,
-    sourceSummary
+    sourceSummary,
+    classificationSummary,
+    newJobs
   });
 
   const result = await notifyAll(messages);
@@ -508,16 +711,46 @@ export async function runSupabaseCloudAgent() {
     const fetchReport = getLastNaukriFetchReport();
     runFetchedCount = Array.isArray(jobs) ? jobs.length : 0;
     runDetails.fetchReport = fetchReport || null;
+    runDetails.classificationSummary = buildOpportunitySummary([], {
+      rawCount: runFetchedCount,
+      mergedDuplicateCount: 0
+    });
+    runDetails.dedupeSummary = {
+      rawCount: runFetchedCount,
+      mergedCount: 0,
+      mergedDuplicateCount: 0
+    };
 
     const salesforceJobsRaw = filterSalesforceJobs(jobs || []);
-    const { jobs: salesforceJobs, report: precisionReport } =
+    const { jobs: precisionJobs, report: precisionReport } =
       applyPrecisionFilters(salesforceJobsRaw);
+    const preparedOpportunities = prepareOpportunities(precisionJobs);
+    const salesforceJobs = preparedOpportunities.jobs;
     runSalesforceCount = salesforceJobs.length;
     runSourceSummary = buildSourceSummary(salesforceJobs);
     runDetails.precisionReport = precisionReport;
+    runDetails.classificationSummary = preparedOpportunities.summary;
+    runDetails.dedupeSummary = {
+      rawCount: preparedOpportunities.summary.raw_count,
+      mergedCount: preparedOpportunities.summary.merged_count,
+      mergedDuplicateCount: preparedOpportunities.summary.merged_duplicate_count
+    };
+    runDetails.providerCoverage = buildCoverageHealth(
+      fetchReport,
+      preparedOpportunities.summary
+    );
+    const coverageMonitor = await monitorCoverageHealth(runDetails.providerCoverage, {
+      runSource
+    });
+    runDetails.coverageAlerts = coverageMonitor.alerts;
+    runDetails.sourceSummary = runSourceSummary;
 
     const newJobs = await getNewJobs(salesforceJobs);
     runNewJobsCount = newJobs.length;
+    runDetails.newOpportunitySummary = buildOpportunitySummary(newJobs, {
+      rawCount: newJobs.length,
+      mergedDuplicateCount: 0
+    });
 
     let scoredNewJobs = [];
     if (newJobs.length > 0) {
@@ -535,8 +768,26 @@ export async function runSupabaseCloudAgent() {
           ...job,
           job_hash: generateJobHash(job)
         }));
+      runDetails.alertableOpportunitySummary = buildOpportunitySummary(pendingPayload, {
+        rawCount: scoredNewJobs.length,
+        mergedDuplicateCount: 0
+      });
 
       await enqueuePendingAlerts(pendingPayload);
+    }
+
+    if (Array.isArray(runDetails.coverageAlerts) && runDetails.coverageAlerts.length > 0) {
+      const coverageMessages = buildCoverageAlertMessages({
+        agentName,
+        runSource,
+        providerCoverage: runDetails.providerCoverage,
+        alerts: runDetails.coverageAlerts
+      });
+      const coverageResult = await notifyAll(coverageMessages);
+      recordNotificationAttempt(runDetails, "coverage_alert", coverageResult, {
+        subject: coverageMessages.emailSubject,
+        alertCount: runDetails.coverageAlerts.length
+      });
     }
 
     const pendingResult = await processPendingAlertsCloud(agentName, runDetails);
@@ -551,6 +802,7 @@ export async function runSupabaseCloudAgent() {
         newCount: runNewJobsCount,
         pendingCount: runPendingCount,
         sourceSummary: runSourceSummary,
+        classificationSummary: runDetails.classificationSummary,
         note: newJobs.length === 0
           ? "No new jobs after dedupe in this run."
           : "Run completed without sending alert notifications."
@@ -570,7 +822,9 @@ export async function runSupabaseCloudAgent() {
       salesforceCount: runSalesforceCount,
       newCount: runNewJobsCount,
       pendingCount: runPendingCount,
-      sourceSummary: runSourceSummary
+      sourceSummary: runSourceSummary,
+      classificationSummary: runDetails.classificationSummary,
+      newJobs: scoredNewJobs
     });
 
     if (pendingResult.notified) {

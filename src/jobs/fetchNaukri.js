@@ -6,6 +6,7 @@ import { fetchArbeitnowJobs } from "./fetchArbeitnow.js";
 import { fetchAdzunaJobs } from "./fetchAdzuna.js";
 import { filterSalesforceJobs } from "./filterSalesforceJobs.js";
 import { fetchLinkedInJobs } from "./fetchLinkedIn.js";
+import { fetchLinkedInPosts } from "./fetchLinkedInPosts.js";
 import {
   buildPauseReason,
   getProviderGate,
@@ -25,6 +26,7 @@ const PROVIDER_META = {
   apify: { cost: "paid", healthKey: "apify" },
   naukri_reader: { cost: "free", healthKey: "naukri_reader" },
   linkedin: { cost: "free", healthKey: "linkedin" },
+  linkedin_posts: { cost: "free", healthKey: "linkedin_posts" },
   direct: { cost: "free", healthKey: "naukri_direct" },
   arbeitnow: { cost: "free", healthKey: "arbeitnow" },
   adzuna: { cost: "free", healthKey: "adzuna" }
@@ -232,6 +234,17 @@ function getFetchProviders() {
   return String(
     process.env.NAUKRI_FETCH_PROVIDERS || "naukri_reader,direct,linkedin,arbeitnow,adzuna,apify"
   )
+    .split(",")
+    .map(provider => provider.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function getPostProviders() {
+  if (!isTruthy(process.env.ENABLE_POST_PROVIDERS || "true")) {
+    return [];
+  }
+
+  return String(process.env.POST_FETCH_PROVIDERS || "linkedin_posts")
     .split(",")
     .map(provider => provider.trim().toLowerCase())
     .filter(Boolean);
@@ -461,8 +474,18 @@ function getSearchKeywords(plans) {
 }
 
 function inferJobSource(job) {
+  const sourcePlatform = String(job?.source_platform || "").toLowerCase();
   const sourceId = String(job?.source_job_id || "").toLowerCase();
   const link = String(job?.apply_link || "").toLowerCase();
+  const postUrl = String(job?.post_url || "").toLowerCase();
+
+  if (
+    sourcePlatform === "linkedin_posts" ||
+    sourceId.startsWith("linkedin_post:") ||
+    postUrl.includes("linkedin.com/posts")
+  ) {
+    return "LinkedIn Posts";
+  }
 
   if (sourceId.startsWith("naukri:") || link.includes("naukri.com")) {
     return "Naukri";
@@ -483,6 +506,7 @@ function getSourceCounts(jobs) {
   const counts = {
     Naukri: 0,
     LinkedIn: 0,
+    "LinkedIn Posts": 0,
     Arbeitnow: 0,
     Adzuna: 0,
     Other: 0
@@ -515,7 +539,10 @@ export async function fetchNaukriJobs() {
   );
   const plans = await getPlansForThisRun();
   const searchKeywords = getSearchKeywords(plans);
-  const providers = prioritizeProviders(getFetchProviders());
+  const providers = prioritizeProviders([
+    ...getFetchProviders(),
+    ...getPostProviders()
+  ]);
   const uniqueJobs = new Map();
   const hasApifyToken = Boolean(process.env.APIFY_TOKEN);
   const fetchAllProviders = isTruthy(process.env.FETCH_ALL_PROVIDERS || "true");
@@ -586,6 +613,11 @@ export async function fetchNaukriJobs() {
         );
       } else if (provider === "linkedin") {
         providerJobs = await fetchLinkedInJobs({
+          plans,
+          maxUniqueResults: maxUniqueResults - uniqueJobs.size
+        });
+      } else if (provider === "linkedin_posts") {
+        providerJobs = await fetchLinkedInPosts({
           plans,
           maxUniqueResults: maxUniqueResults - uniqueJobs.size
         });
@@ -669,7 +701,11 @@ export async function fetchNaukriJobs() {
     providers: providerReports,
     totals: {
       unique_jobs: jobs.length,
-      source_counts: getSourceCounts(jobs)
+      source_counts: getSourceCounts(jobs),
+      kind_counts: {
+        listing: jobs.filter(job => String(job?.opportunity_kind || "listing").toLowerCase() === "listing").length,
+        post: jobs.filter(job => String(job?.opportunity_kind || "").toLowerCase() === "post").length
+      }
     }
   };
   console.log(`✅ Total unique jobs collected this run: ${jobs.length}`);

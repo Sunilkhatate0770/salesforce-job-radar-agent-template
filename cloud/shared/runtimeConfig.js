@@ -22,6 +22,19 @@ export const sharedRuntimeDefaults = Object.freeze({
   FETCH_PROVIDER_STRATEGY: "free_first",
   PAID_PROVIDERS_FALLBACK_ONLY: "true",
   NAUKRI_FETCH_PROVIDERS: "naukri_reader,direct,linkedin,arbeitnow,adzuna",
+  ENABLE_POST_PROVIDERS: "true",
+  POST_FETCH_PROVIDERS: "linkedin_posts",
+  OPPORTUNITY_GEO_SCOPE: "india_remote",
+  POST_ALERT_POLICY: "high_and_medium",
+  ALERT_MEDIUM_DIGEST_MAX_ITEMS: "4",
+  COVERAGE_MONITOR_ENABLED: "true",
+  COVERAGE_BASELINE_WINDOW: "8",
+  COVERAGE_BASELINE_MIN_TOTAL: "8",
+  COVERAGE_TOTAL_DROP_RATIO: "0.45",
+  COVERAGE_POST_ZERO_RUN_THRESHOLD: "4",
+  COVERAGE_PROVIDER_PAUSE_RUN_THRESHOLD: "2",
+  COVERAGE_ZERO_RESULT_RUN_THRESHOLD: "3",
+  COVERAGE_ALERT_COOLDOWN_MINUTES: "240",
   NAUKRI_APIFY_SOURCES: "nuclear_quietude~naukri-job-scraper:search_keywords,techupservices~naukri-job-scraper:query_location,muhammetakkurtt~naukri-job-scraper:query_location",
   LINKEDIN_FETCH_PROVIDERS: "direct",
   LINKEDIN_APIFY_SOURCES: "curious_coder~linkedin-jobs-scraper:urls,worldunboxer~rapid-linkedin-scraper:query_location",
@@ -32,6 +45,7 @@ export const sharedRuntimeDefaults = Object.freeze({
   LINKEDIN_DIRECT_MAX_PAGES: "2",
   LINKEDIN_DIRECT_PAGE_SIZE: "25",
   LINKEDIN_DIRECT_KEYWORDS_PER_PLAN: "2",
+  LINKEDIN_POSTS_QUERIES_PER_RUN: "3",
   NAUKRI_PLANS_PER_RUN: "3",
   NAUKRI_MAX_ITEMS_PER_PLAN: "120",
   NAUKRI_MAX_UNIQUE_RESULTS: "200",
@@ -42,6 +56,7 @@ export const sharedRuntimeDefaults = Object.freeze({
   RESUME_AI_ENABLED: "false",
   RESUME_AI_MAX_JOBS_PER_RUN: "3",
   RESUME_TAILOR_WITH_AI: "false",
+  RESUME_TOP_OPPORTUNITY_LIMIT: "2",
   APPLY_PACK_ENABLED: "true",
   APPLY_PACK_MAX_FILES: "3",
   APPLY_PACK_AI_ENABLED: "false",
@@ -56,8 +71,8 @@ export const sharedRuntimeDefaults = Object.freeze({
   DAILY_SUMMARY_TIMEZONE: "Asia/Kolkata",
   DAILY_SUMMARY_HOUR: "21",
   SMTP_HOST: "smtp.gmail.com",
-  SMTP_PORT: "587",
-  SMTP_SECURE: "false"
+  SMTP_PORT: "465",
+  SMTP_SECURE: "true"
 });
 
 const backupSchedulerDefaults = Object.freeze({

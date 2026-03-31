@@ -61,18 +61,26 @@ function buildJobRecord(job) {
       job.id ||
       extractJobIdFromLink(job.apply_link)
   );
-  const canonicalLink = normalizeApplyLink(job.apply_link);
+  const canonicalLink = normalizeApplyLink(
+    job.canonical_apply_url || job.apply_link || job.post_url
+  );
+  const canonicalCompany = normalizeText(job.canonical_company || job.company);
+  const canonicalRole = normalizeText(job.canonical_role || job.title);
+  const opportunityKind = normalizeText(job.opportunity_kind || "listing");
 
   const raw = sourceJobId
     ? `id:${sourceJobId}`
     : canonicalLink
       ? `url:${canonicalLink}`
-      : [
-          normalizeText(job.title),
-          normalizeText(job.company),
-          normalizeText(job.location),
-          normalizeText(job.experience)
-        ].join("|");
+      : canonicalRole && canonicalCompany
+        ? `canonical:${canonicalRole}|${canonicalCompany}|${normalizeText(job.location)}|${opportunityKind}`
+        : [
+            normalizeText(job.title),
+            normalizeText(job.company),
+            normalizeText(job.location),
+            normalizeText(job.experience),
+            opportunityKind
+          ].join("|");
 
   const jobHash = crypto.createHash("sha256").update(raw).digest("hex");
 
@@ -84,6 +92,18 @@ function buildJobRecord(job) {
     experience: job.experience,
     apply_link: canonicalLink || job.apply_link || null,
     source_job_id: sourceJobId || null,
+    source_platform: normalizeText(job.source_platform || "") || null,
+    opportunity_kind: opportunityKind || "listing",
+    confidence_tier: normalizeText(job.confidence_tier || "") || null,
+    canonical_apply_url: canonicalLink || null,
+    canonical_company: canonicalCompany || null,
+    canonical_role: canonicalRole || null,
+    post_author: String(job.post_author || "").trim() || null,
+    post_url: normalizeApplyLink(job.post_url) || null,
+    source_evidence:
+      job.source_evidence && typeof job.source_evidence === "object"
+        ? job.source_evidence
+        : null,
     last_seen_at: new Date().toISOString()
   };
 
@@ -167,22 +187,42 @@ async function upsertJobPayload(payload) {
     await runUpsert(payload);
   } catch (error) {
     let fallbackPayload = { ...payload };
+    let lastError = error;
 
-    if (isMissingColumnError(error, "source_job_id")) {
-      const { source_job_id, ...nextPayload } = fallbackPayload;
-      fallbackPayload = nextPayload;
+    while (true) {
+      let changed = false;
+
+      for (const columnName of [
+        "source_job_id",
+        "last_seen_at",
+        "source_platform",
+        "opportunity_kind",
+        "confidence_tier",
+        "canonical_apply_url",
+        "canonical_company",
+        "canonical_role",
+        "post_author",
+        "post_url",
+        "source_evidence"
+      ]) {
+        if (isMissingColumnError(lastError, columnName) && columnName in fallbackPayload) {
+          const { [columnName]: _removed, ...nextPayload } = fallbackPayload;
+          fallbackPayload = nextPayload;
+          changed = true;
+        }
+      }
+
+      if (!changed) {
+        throw lastError;
+      }
+
+      try {
+        await runUpsert(fallbackPayload);
+        return;
+      } catch (retryError) {
+        lastError = retryError;
+      }
     }
-
-    if (isMissingColumnError(error, "last_seen_at")) {
-      const { last_seen_at, ...nextPayload } = fallbackPayload;
-      fallbackPayload = nextPayload;
-    }
-
-    if (Object.keys(fallbackPayload).length === Object.keys(payload).length) {
-      throw error;
-    }
-
-    await runUpsert(fallbackPayload);
   }
 }
 
