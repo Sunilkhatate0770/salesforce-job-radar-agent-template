@@ -9,6 +9,7 @@
     "doctor": "node src/tools/doctor.js",
     "doctor:cloud": "node src/tools/cloudDoctor.js",
     "coverage:report": "node src/tools/coverageReport.js",
+    "health:live": "powershell -ExecutionPolicy Bypass -File scripts/check-live-health.ps1",
     "cloud:sync": "node scripts/render-cloud-env.js sync-examples",
     "tracker": "node src/tools/tracker.js",
     "tracker:summary": "node src/tools/tracker.js summary",
