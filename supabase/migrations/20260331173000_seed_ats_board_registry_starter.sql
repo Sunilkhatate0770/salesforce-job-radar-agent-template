@@ -1,7 +1,3 @@
--- Starter ATS board seeds for safe rollout.
--- Strong India / remote Lever boards are promoted to `live`.
--- Broader Greenhouse / Ashby boards stay in `shadow` until coverage proves useful.
-
 insert into public.ats_board_registry (
   provider,
   company,
@@ -22,7 +18,10 @@ insert into public.ats_board_registry (
     96,
     'live',
     true,
-    jsonb_build_object('notes', 'Remote India Salesforce roles observed')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Observed India remote Salesforce architect roles'
+    )
   ),
   (
     'lever',
@@ -33,7 +32,10 @@ insert into public.ats_board_registry (
     94,
     'live',
     true,
-    jsonb_build_object('notes', 'Hyderabad / India Salesforce admin roles observed')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Observed Hyderabad / India Salesforce administrator roles'
+    )
   ),
   (
     'lever',
@@ -44,7 +46,10 @@ insert into public.ats_board_registry (
     82,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Keep shadow until India Salesforce roles recur')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Keep shadow until India Salesforce roles recur'
+    )
   ),
   (
     'greenhouse',
@@ -55,7 +60,10 @@ insert into public.ats_board_registry (
     80,
     'shadow',
     true,
-    jsonb_build_object('notes', 'India remote revenue / systems board, validate before promotion')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'High-value revenue systems board; validate before promotion'
+    )
   ),
   (
     'greenhouse',
@@ -66,7 +74,10 @@ insert into public.ats_board_registry (
     78,
     'shadow',
     true,
-    jsonb_build_object('notes', 'India board with business applications signal, still validating Salesforce relevance')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'India business applications signal; validate Salesforce relevance first'
+    )
   ),
   (
     'greenhouse',
@@ -77,7 +88,10 @@ insert into public.ats_board_registry (
     74,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Shadow until Salesforce / CPQ roles prove current')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Shadow until Salesforce / CPQ roles prove current'
+    )
   ),
   (
     'greenhouse',
@@ -88,7 +102,10 @@ insert into public.ats_board_registry (
     72,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Large ATS board, use for shadow-only discovery first')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Large ATS board; keep discovery-only for now'
+    )
   ),
   (
     'greenhouse',
@@ -99,7 +116,10 @@ insert into public.ats_board_registry (
     71,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Shadow until Salesforce engineering roles recur')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Shadow until Salesforce engineering roles recur'
+    )
   ),
   (
     'greenhouse',
@@ -110,7 +130,10 @@ insert into public.ats_board_registry (
     70,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Historically relevant Salesforce solution roles, validate freshness')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Historically relevant Salesforce solution roles; validate freshness'
+    )
   ),
   (
     'ashby',
@@ -121,7 +144,10 @@ insert into public.ats_board_registry (
     66,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Strong Salesforce board but currently Mexico-heavy')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Strong Salesforce board but current geo fit is weaker'
+    )
   ),
   (
     'ashby',
@@ -132,7 +158,10 @@ insert into public.ats_board_registry (
     64,
     'shadow',
     true,
-    jsonb_build_object('notes', 'Strong Salesforce engineering signal, keep shadow until geo fit improves')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'Strong Salesforce engineering signal; keep shadow pending India/remote fit'
+    )
   ),
   (
     'ashby',
@@ -143,7 +172,10 @@ insert into public.ats_board_registry (
     60,
     'shadow',
     true,
-    jsonb_build_object('notes', 'RevOps / Salesforce signal, shadow only for now')
+    jsonb_build_object(
+      'seed_version', 'starter_v1',
+      'reason', 'RevOps / Salesforce signal; shadow-only for now'
+    )
   )
 on conflict (provider, board_key) do update
 set

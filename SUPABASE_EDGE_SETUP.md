@@ -22,7 +22,8 @@ Run these files in the Supabase SQL Editor in this order:
 5. `sql/job_alerts_opportunity_fields.sql`
 6. `supabase/migrations/20260331153000_ats_registry_and_source_quality.sql`
 7. `supabase/migrations/20260331162000_ats_registry_modes.sql`
-8. `sql/supabase_edge_cron_template.sql` after your functions are deployed and you replace the placeholders
+8. `supabase/migrations/20260331173000_seed_ats_board_registry_starter.sql`
+9. `sql/supabase_edge_cron_template.sql` after your functions are deployed and you replace the placeholders
 
 ## 2. Cloud env for the Supabase-backed path
 
@@ -96,6 +97,7 @@ Notes:
 - `sql/job_alerts_opportunity_fields.sql` adds the new listing/post/confidence/canonical fields used by the vNext opportunity engine.
 - `supabase/migrations/20260331153000_ats_registry_and_source_quality.sql` adds the ATS board registry plus `source_quality_tier`, `ats_provider`, `ats_board_key`, and `source_urls` on `job_alerts`.
 - `supabase/migrations/20260331162000_ats_registry_modes.sql` adds per-board `mode` support so some ATS boards can stay `shadow` while others are promoted to `live`.
+- `supabase/migrations/20260331173000_seed_ats_board_registry_starter.sql` seeds a safe starter set of Greenhouse / Lever / Ashby boards, with the strongest India-fit Lever boards already promoted to `live`.
 - `CLOUD_ATTACHMENTS_ENABLED=false` keeps the cloud path away from PDF/ZIP/file attachment generation while still sending inline ATS/tailoring previews in alerts.
 - `ACTION_CARD_RENDERER_ENABLED=true` turns on the shared action-card UI for email and Telegram while still letting you fall back to legacy formatting if needed.
 - `ATS_PROVIDER_MODE=shadow` keeps Greenhouse / Lever / Ashby in coverage-only mode first so they can prove themselves before they join the live alert path.
@@ -105,7 +107,7 @@ Notes:
 - `COVERAGE_*` settings enable stale-coverage monitoring so the agent can alert when hiring-post coverage drops to zero, providers stay paused, or total opportunity volume falls well below the recent baseline.
 - `RESUME_TOP_OPPORTUNITY_LIMIT=3` keeps the full tailored resume/apply-pack work bounded to the top three high-confidence listing opportunities.
 - `EMAIL_PROVIDER_ORDER=smtp` is valid for the Gmail SMTP 465 path you are already using in Supabase.
-- `sql/ats_board_registry_seed_example.sql` gives you a safe starter pattern for seeding boards in `shadow` mode before promoting them to `live`.
+- `sql/ats_board_registry_seed_example.sql` now mirrors the curated starter pattern so you can reseed or edit the board list manually later without touching application code.
 - `JOB_RADAR_CRON_SECRET` is optional but recommended; pass it as `x-job-radar-secret` or `Authorization: Bearer ...` when your scheduler calls `job-radar-run`.
 - For Supabase Cron HTTP calls, use your project's legacy `anon` JWT in the `Authorization` header. The SQL template now expects `YOUR_SUPABASE_ANON_KEY`.
 
