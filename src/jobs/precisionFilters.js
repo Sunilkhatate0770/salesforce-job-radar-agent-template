@@ -536,16 +536,16 @@ export function applyPrecisionFilters(jobs) {
 
   let filtered = [...inputJobs];
   filtered = applyExcludeKeywordsFilter(filtered, config.excludedKeywords, report);
-  filtered = applyRequiredSkillsFilter(
-    filtered,
-    config.requiredSkills,
-    config.requiredMode,
-    report
-  );
   filtered = applyPostedHoursFilter(
     filtered,
     config.maxPostedHours,
     config.keepUnknownPosted,
+    report
+  );
+  filtered = applyRequiredSkillsFilter(
+    filtered,
+    config.requiredSkills,
+    config.requiredMode,
     report
   );
   if (config.clusterDuplicates) {
