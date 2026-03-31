@@ -45,6 +45,11 @@ function normalizeText(value) {
     .replace(/\s+/g, " ");
 }
 
+function extractEmail(text) {
+  const match = String(text || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return match ? match[0] : "";
+}
+
 function normalizeApplyLink(link) {
   const raw = String(link || "").trim();
   if (!raw) return "";
@@ -146,7 +151,10 @@ function buildFilterText(job) {
       job?.location,
       job?.experience,
       job?.skills,
-      job?.description
+      job?.description,
+      job?.post_author,
+      job?.source_evidence?.snippet,
+      job?.source_evidence?.contact_email
     ]
       .filter(Boolean)
       .join(" ")
@@ -174,6 +182,76 @@ function parseProfile() {
     .trim()
     .toLowerCase();
   return PRECISION_PROFILES[requested] ? requested : "balanced";
+}
+
+function inferOpportunityKind(job) {
+  const explicit = normalizeText(job?.opportunity_kind);
+  if (explicit === "post" || explicit === "listing") {
+    return explicit;
+  }
+
+  const sourcePlatform = normalizeText(job?.source_platform);
+  const sourceId = normalizeText(job?.source_job_id);
+  const postUrl = normalizeApplyLink(job?.post_url);
+  if (
+    explicit === "post" ||
+    sourcePlatform.endsWith("_posts") ||
+    sourceId.startsWith("linkedin_post:") ||
+    postUrl.includes("linkedin.com/posts") ||
+    postUrl.includes("linkedin.com/feed/update")
+  ) {
+    return "post";
+  }
+
+  return "listing";
+}
+
+function keepHighSignalPostsEnabled() {
+  return isTruthy(process.env.PRECISION_KEEP_HIGH_SIGNAL_POSTS || "true");
+}
+
+function shouldKeepHighSignalPost(job, text) {
+  if (!keepHighSignalPostsEnabled()) {
+    return false;
+  }
+
+  if (inferOpportunityKind(job) !== "post") {
+    return false;
+  }
+
+  const normalizedText = normalizeText(text);
+  const postUrl = normalizeApplyLink(job?.post_url || job?.apply_link);
+  const author = normalizeText(job?.post_author);
+  const contactEmail = normalizeText(
+    job?.source_evidence?.contact_email || extractEmail(normalizedText)
+  );
+
+  const hasSalesforceSignal =
+    /\b(salesforce|apex|lwc|sfdc|lightning|cpq|service cloud|sales cloud)\b/i.test(
+      normalizedText
+    );
+  const hasHiringSignal =
+    /\b(hiring|looking for|job opening|opening|apply now|vacancy|share your resume|send your cv|send your resume|talent acquisition|immediate joiner)\b/i.test(
+      normalizedText
+    );
+  const hasRoleSignal =
+    /\b(salesforce developer|salesforce engineer|salesforce consultant|apex developer|lwc developer|lightning developer|sfdc developer|salesforce architect|salesforce administrator)\b/i.test(
+      normalizedText
+    );
+  const hasRecruiterSignal =
+    /\b(recruiter|talent acquisition|hiring manager|hr)\b/i.test(
+      `${author} ${normalizedText}`
+    );
+  const hasPostLink =
+    postUrl.includes("linkedin.com/posts") ||
+    postUrl.includes("linkedin.com/feed/update");
+
+  return (
+    hasSalesforceSignal &&
+    (hasHiringSignal || hasRecruiterSignal || Boolean(contactEmail)) &&
+    (hasRoleSignal || Boolean(contactEmail)) &&
+    (hasPostLink || Boolean(contactEmail) || Boolean(author))
+  );
 }
 
 function resolvePrecisionConfig() {
@@ -353,6 +431,7 @@ function applyRequiredSkillsFilter(jobs, requiredSkills, mode, report) {
 
   const filtered = [];
   let removed = 0;
+  let preservedHighSignalPosts = 0;
 
   for (const job of jobs) {
     const text = buildFilterText(job);
@@ -362,6 +441,14 @@ function applyRequiredSkillsFilter(jobs, requiredSkills, mode, report) {
       : matches.length > 0;
 
     if (!keep) {
+      if (shouldKeepHighSignalPost(job, text)) {
+        filtered.push({
+          ...job,
+          precision_override: "high_signal_post"
+        });
+        preservedHighSignalPosts += 1;
+        continue;
+      }
       removed += 1;
       continue;
     }
@@ -369,6 +456,7 @@ function applyRequiredSkillsFilter(jobs, requiredSkills, mode, report) {
   }
 
   report.removed.missing_required_skills = removed;
+  report.preserved_high_signal_posts = preservedHighSignalPosts;
   return filtered;
 }
 
@@ -441,6 +529,7 @@ export function applyPrecisionFilters(jobs) {
       stale_posted: 0,
       duplicate_cluster: 0
     },
+    preserved_high_signal_posts: 0,
     source_mix_before: getSourceCounts(inputJobs),
     source_mix_after: {}
   };
