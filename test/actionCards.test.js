@@ -5,7 +5,8 @@ import {
   ACTION_CARD_RENDERER_VERSION,
   buildActionCardDailySummaryMessages,
   buildActionCardHeartbeatMessages,
-  buildActionCardJobAlertMessages
+  buildActionCardJobAlertMessages,
+  buildActionCardResumePackMessages
 } from "../src/notify/actionCards.js";
 
 const listingJob = {
@@ -25,8 +26,11 @@ const listingJob = {
     mode: "full_pack_ready",
     preview: {
       atsSummary: "92% High | Priority High",
+      atsKeywordCoverage: "75% keyword coverage",
+      matchedKeywords: ["Apex", "LWC", "Sales Cloud"],
       whyMatched: ["Matched skills: Apex, LWC."],
       missingKeywords: ["CPQ"],
+      generatedArtifacts: ["Tailored resume PDF", "Apply-pack PDF", "ZIP bundle"],
       headline: "Salesforce Developer | ATS 92%"
     }
   }
@@ -49,6 +53,7 @@ const postJob = {
     mode: "preview_only",
     preview: {
       atsSummary: "74% Medium | Priority Medium",
+      atsKeywordCoverage: "50% keyword coverage",
       whyMatched: ["Role/title fit is strong."],
       missingKeywords: ["Experience Cloud"]
     }
@@ -73,7 +78,10 @@ test("action-card job alerts render split sections and top tailored packs", () =
   assert.match(payload.telegram, /High-confidence job listings/i);
   assert.match(payload.telegram, /High-confidence hiring posts/i);
   assert.match(payload.telegram, /Top tailored apply packs/i);
+  assert.match(payload.telegram, /JD matched/i);
+  assert.match(payload.telegram, /Tailored resume PDF/i);
   assert.match(payload.html, /Greenhouse/i);
+  assert.match(payload.html, /keyword coverage/i);
   assert.match(payload.text, /Provider health is stable/i);
 });
 
@@ -113,4 +121,18 @@ test("action-card heartbeat and daily summary keep shared renderer version compa
   assert.match(daily.subject, /daily summary/i);
   assert.match(daily.html, /Top Companies/i);
   assert.match(daily.html, /Acme/);
+});
+
+test("action-card resume pack follow-up renders tailored pack section", () => {
+  const payload = buildActionCardResumePackMessages({
+    agentName: "Salesforce Job Radar Agent",
+    jobs: [listingJob],
+    sourceSummary: "Greenhouse"
+  });
+
+  assert.match(payload.subject, /tailored resume pack ready/i);
+  assert.match(payload.telegram, /Tailored resume pack ready/i);
+  assert.match(payload.telegram, /JD matched/i);
+  assert.match(payload.text, /Pack: Tailored resume PDF/i);
+  assert.match(payload.html, /JD-matched PDF resume/i);
 });

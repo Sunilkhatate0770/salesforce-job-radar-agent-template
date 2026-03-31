@@ -104,6 +104,10 @@ jobs:
       - name: Run Salesforce Job Radar Agent
         run: node src/run.js
 
+      - name: Process tailored resume pack follow-up queue
+        if: always()
+        run: node src/tools/processResumePackQueue.js
+
       - name: Save local agent state cache
         if: always()
         uses: actions/cache/save@v5

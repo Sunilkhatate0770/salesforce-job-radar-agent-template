@@ -100,27 +100,126 @@ function getCandidateProfile() {
   };
 }
 
-function inferKeywordList(job) {
-  const text = `${job.title || ""} ${job.skills || ""} ${job.description || ""}`.toLowerCase();
-  const candidates = [
-    "Salesforce",
-    "Apex",
-    "LWC",
-    "SOQL",
-    "SOSL",
-    "Integration",
-    "REST API",
-    "Sales Cloud",
-    "Service Cloud",
-    "Experience Cloud",
-    "CPQ",
-    "Field Service",
-    "Flows",
-    "Triggers",
-    "JavaScript"
-  ];
+const ATS_KEYWORD_RULES = [
+  { label: "Salesforce", patterns: ["salesforce", "sfdc", "force.com"] },
+  { label: "Apex", patterns: ["apex"] },
+  { label: "LWC", patterns: ["lwc", "lightning web component", "lightning web components"] },
+  { label: "SOQL", patterns: ["soql"] },
+  { label: "SOSL", patterns: ["sosl"] },
+  { label: "Flows", patterns: ["flow", "flows", "salesforce flow"] },
+  { label: "Triggers", patterns: ["trigger", "triggers", "apex trigger"] },
+  { label: "REST API", patterns: ["rest api", "restful api", "rest integration"] },
+  { label: "SOAP API", patterns: ["soap api", "soap integration"] },
+  { label: "Integration", patterns: ["integration", "integrations"] },
+  { label: "Platform Events", patterns: ["platform event", "platform events"] },
+  { label: "Sales Cloud", patterns: ["sales cloud"] },
+  { label: "Service Cloud", patterns: ["service cloud"] },
+  { label: "Experience Cloud", patterns: ["experience cloud", "community cloud"] },
+  { label: "CPQ", patterns: ["cpq", "salesforce cpq"] },
+  { label: "Field Service", patterns: ["field service", "field service lightning", "fsl"] },
+  { label: "OmniStudio", patterns: ["omnistudio", "vlocity"] },
+  { label: "Commerce Cloud", patterns: ["commerce cloud"] },
+  { label: "MuleSoft", patterns: ["mulesoft", "mule soft"] },
+  { label: "JavaScript", patterns: ["javascript", "js"] },
+  { label: "TypeScript", patterns: ["typescript"] },
+  { label: "DevOps", patterns: ["devops", "ci/cd", "ci cd", "gearset", "copado"] },
+  { label: "Git", patterns: ["git", "github", "gitlab", "bitbucket"] },
+  { label: "Data Migration", patterns: ["data migration", "dataloader", "data loader"] }
+];
 
-  return candidates.filter(keyword => text.includes(keyword.toLowerCase()));
+function normalizeKeywordKey(value) {
+  const text = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  if (!text) return "";
+
+  const matchedRule = ATS_KEYWORD_RULES.find(rule =>
+    rule.label.toLowerCase() === text ||
+    rule.patterns.some(pattern => text.includes(pattern))
+  );
+
+  return matchedRule ? matchedRule.label : value;
+}
+
+function scoreKeywordMatches(text, weight, scores) {
+  const normalized = String(text || "").toLowerCase();
+  if (!normalized) return;
+
+  for (const rule of ATS_KEYWORD_RULES) {
+    if (rule.patterns.some(pattern => normalized.includes(pattern))) {
+      scores.set(rule.label, (scores.get(rule.label) || 0) + weight);
+    }
+  }
+}
+
+function extractProfileKeywords(profile) {
+  const scores = new Map();
+  for (const skill of Array.isArray(profile?.profileSkills) ? profile.profileSkills : []) {
+    scoreKeywordMatches(skill, 4, scores);
+    const normalizedSkill = normalizeKeywordKey(skill);
+    if (normalizedSkill) {
+      scores.set(normalizedSkill, (scores.get(normalizedSkill) || 0) + 4);
+    }
+  }
+  scoreKeywordMatches(profile?.resumeText, 2, scores);
+
+  return new Set(
+    [...scores.keys()]
+      .map(normalizeKeywordKey)
+      .filter(Boolean)
+  );
+}
+
+function inferKeywordList(job) {
+  const scores = new Map();
+  scoreKeywordMatches(job?.title, 5, scores);
+  scoreKeywordMatches(job?.skills, 4, scores);
+  scoreKeywordMatches(job?.description, 2, scores);
+  scoreKeywordMatches(job?.source_evidence?.snippet, 1, scores);
+
+  return [...scores.entries()]
+    .sort((left, right) =>
+      right[1] - left[1] ||
+      left[0].localeCompare(right[0])
+    )
+    .map(([label]) => label);
+}
+
+function buildKeywordProfile(job, profile) {
+  const jdKeywords = inferKeywordList(job).slice(0, 10);
+  const candidateKeywordSet = new Set(
+    [
+      ...getMatchedSkills(job),
+      ...extractProfileKeywords(profile)
+    ]
+      .map(normalizeKeywordKey)
+      .filter(Boolean)
+  );
+  const explicitMissing = new Set(
+    getTopMissingKeywords(job)
+      .map(normalizeKeywordKey)
+      .filter(Boolean)
+  );
+
+  const matchedKeywords = jdKeywords.filter(keyword => candidateKeywordSet.has(keyword));
+  const missingKeywords = [
+    ...new Set([
+      ...jdKeywords.filter(keyword => explicitMissing.has(keyword) || !candidateKeywordSet.has(keyword)),
+      ...[...explicitMissing].filter(keyword => jdKeywords.includes(keyword))
+    ])
+  ].slice(0, 8);
+
+  const coveragePercent = jdKeywords.length > 0
+    ? Math.round((matchedKeywords.length / jdKeywords.length) * 100)
+    : Number(job?.match_score || 0);
+
+  return {
+    jdKeywords,
+    matchedKeywords,
+    missingKeywords,
+    coveragePercent
+  };
 }
 
 function getTopResumePackLimit() {
@@ -166,11 +265,12 @@ function getTopMissingKeywords(job) {
 }
 
 function buildAtsSnapshot(job) {
+  const profile = getCandidateProfile();
   const matchScore = Number(job?.match_score || 0);
   const matchLevel = normalize(job?.match_level || "N/A");
   const matchedSkills = getMatchedSkills(job);
   const missingSkills = getMissingSkills(job);
-  const atsKeywords = inferKeywordList(job);
+  const keywordProfile = buildKeywordProfile(job, profile);
   const applyPriority = normalize(job?.apply_priority || "Medium");
 
   return {
@@ -178,7 +278,10 @@ function buildAtsSnapshot(job) {
     matchLevel,
     matchedSkills,
     missingSkills,
-    atsKeywords,
+    atsKeywords: keywordProfile.jdKeywords,
+    matchedKeywords: keywordProfile.matchedKeywords,
+    missingKeywordTargets: keywordProfile.missingKeywords,
+    keywordCoveragePercent: keywordProfile.coveragePercent,
     applyPriority,
     missingText: missingSkills.length > 0
       ? missingSkills.slice(0, 5).join(", ")
@@ -188,12 +291,14 @@ function buildAtsSnapshot(job) {
 
 function buildResumeHeadline(job, profile, snapshot) {
   const role = normalize(job?.title || profile.targetRole || "Salesforce Developer");
-  const matchedSkillText = snapshot.matchedSkills.slice(0, 4).join(", ");
+  const matchedSkillText = snapshot.matchedKeywords.slice(0, 4).join(", ");
   return `${role} | ATS ${snapshot.matchScore}% | ${matchedSkillText || "Salesforce, Apex, LWC, integrations"}`;
 }
 
 function buildTailoringChecklist(job) {
-  const missingKeywords = getTopMissingKeywords(job).slice(0, 3);
+  const profile = getCandidateProfile();
+  const keywordProfile = buildKeywordProfile(job, profile);
+  const missingKeywords = keywordProfile.missingKeywords.slice(0, 3);
   const checklist = [
     "Keep the resume title aligned with the target role.",
     "Lead with one project that proves Salesforce delivery impact using numbers.",
@@ -216,6 +321,12 @@ function buildBasicTailoredResume(job) {
   const coreSkills = [...new Set([...snapshot.matchedSkills, ...profile.profileSkills])].slice(0, 16);
   const summarySkills = coreSkills.slice(0, 6).join(", ");
   const tailoringChecklist = buildTailoringChecklist(job);
+  const matchedKeywordText = snapshot.matchedKeywords.length > 0
+    ? snapshot.matchedKeywords.slice(0, 6).join(", ")
+    : "Add more direct JD-aligned Salesforce keywords if they are true for your experience";
+  const missingKeywordText = snapshot.missingKeywordTargets.length > 0
+    ? snapshot.missingKeywordTargets.slice(0, 6).join(", ")
+    : "No major JD keyword gaps detected";
 
   const lines = [];
   lines.push(`# ${profile.name}`);
@@ -235,6 +346,8 @@ function buildBasicTailoredResume(job) {
   lines.push(`- Location: ${normalize(job.location) || "N/A"}`);
   lines.push(`- Apply Link: ${normalize(job.apply_link) || "N/A"}`);
   lines.push(`- Apply Priority: ${snapshot.applyPriority}`);
+  lines.push(`- JD Keyword Coverage: ${snapshot.keywordCoveragePercent}%`);
+  lines.push(`- Matched JD Keywords: ${matchedKeywordText}`);
   lines.push(`- Missing Skills: ${snapshot.missingText}`);
   lines.push("");
   lines.push(`## Professional Summary`);
@@ -262,6 +375,12 @@ function buildBasicTailoredResume(job) {
   } else {
     lines.push("- Salesforce, Apex, LWC, Integration, CRM");
   }
+  lines.push("");
+  lines.push(`## JD Keyword Alignment`);
+  lines.push(`- Priority JD Keywords: ${snapshot.atsKeywords.slice(0, 8).join(", ") || "Salesforce, Apex, LWC"}`);
+  lines.push(`- Already Covered: ${matchedKeywordText}`);
+  lines.push(`- Add Proof For: ${missingKeywordText}`);
+  lines.push(`- ATS Keyword Coverage: ${snapshot.keywordCoveragePercent}%`);
   lines.push("");
   lines.push(`## Why This Role Matches`);
   if (whyMatched.length > 0) {
@@ -324,13 +443,15 @@ async function buildAiTailoredResume(job, basicResumeText) {
     "You are an expert ATS resume writer.",
     "Rewrite the resume in clean markdown.",
     "Keep facts realistic. Do not invent companies or years.",
-    "Use sections: Summary, Skills, Experience Highlights, Keywords.",
+    "Use sections: Resume Headline, ATS Match Snapshot, Professional Summary, Core Skills, JD Keyword Alignment, Experience Highlights, Tailoring Checklist.",
     "Output only markdown.",
     "",
     `Target job title: ${normalize(job.title)}`,
     `Company: ${normalize(job.company)}`,
     `Location: ${normalize(job.location)}`,
     `Match score: ${normalize(job.match_score)}`,
+    `JD keywords: ${buildAtsSnapshot(job).atsKeywords.join(", ")}`,
+    `Matched JD keywords: ${buildAtsSnapshot(job).matchedKeywords.join(", ")}`,
     `Missing skills: ${Array.isArray(job.missing_skills) ? job.missing_skills.join(", ") : ""}`,
     `Resume actions: ${Array.isArray(job.resume_actions) ? job.resume_actions.join(" | ") : ""}`,
     "",
@@ -397,10 +518,13 @@ function buildBasicApplyPack(job) {
   lines.push(`- Match Score: ${score}% (${level})`);
   lines.push(`- Apply Priority: ${snapshot.applyPriority}`);
   lines.push(`- Apply Link: ${applyLink}`);
+  lines.push(`- JD Keyword Coverage: ${snapshot.keywordCoveragePercent}%`);
+  lines.push(`- Matched JD Keywords: ${snapshot.matchedKeywords.slice(0, 6).join(", ") || "Needs stronger JD alignment"}`);
   lines.push(
     `- Missing Skills: ${missingSkills.length > 0 ? missingSkills.slice(0, 5).join(", ") : "No major gaps"}`
   );
   lines.push(`- ATS Keywords: ${keywordList.length > 0 ? keywordList.slice(0, 8).join(", ") : "Salesforce, Apex, LWC, Integration"}`);
+  lines.push(`- Missing JD Keywords: ${snapshot.missingKeywordTargets.length > 0 ? snapshot.missingKeywordTargets.slice(0, 6).join(", ") : "No major JD keyword gaps"}`);
   lines.push("");
   lines.push("## Why This Opportunity Is Worth Applying To");
   for (const reason of (whyMatched.length > 0 ? whyMatched : ["Role/title fit is strong for Salesforce delivery work."]).slice(0, 3)) {
@@ -532,7 +656,9 @@ export async function buildResumePreview(job) {
   return {
     candidateName: profile.name,
     atsKeywords: snapshot.atsKeywords.slice(0, 8),
+    matchedKeywords: snapshot.matchedKeywords.slice(0, 6),
     atsSummary: `${snapshot.matchScore}% ${snapshot.matchLevel} | Priority ${snapshot.applyPriority}`,
+    atsKeywordCoverage: `${snapshot.keywordCoveragePercent}% keyword coverage`,
     matchScore: snapshot.matchScore,
     applyPriority: snapshot.applyPriority,
     whyMatched,
@@ -541,6 +667,9 @@ export async function buildResumePreview(job) {
     bulletSuggestions,
     headline: buildResumeHeadline(job, profile, snapshot),
     checklist: buildTailoringChecklist(job),
+    generatedArtifacts: shouldUseFullApplyPack(job)
+      ? ["Tailored resume PDF", "Apply-pack PDF", "Email draft", "ZIP bundle"]
+      : ["ATS preview"],
     draftSubject: draft.subject,
     draftBody: draft.body
   };

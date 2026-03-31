@@ -14,6 +14,10 @@ import {
   peekPendingAlerts
 } from "../db/pendingAlertQueue.js";
 import {
+  enqueueResumePackJobs,
+  getResumePackQueueCount
+} from "../db/resumePackQueue.js";
+import {
   autoPromoteFollowUpJobs,
   registerApplicationJobs
 } from "../db/applicationTracker.js";
@@ -76,6 +80,10 @@ function getAgentName() {
 
 function getRunSource() {
   return String(process.env.AGENT_RUN_SOURCE || "supabase-edge").trim();
+}
+
+function shouldQueueResumePacks() {
+  return isTruthy(process.env.RESUME_PACK_QUEUE_ENABLED || "true");
 }
 
 function getAlertBatchLimit() {
@@ -954,11 +962,27 @@ async function processPendingAlertsCloud(agentName, runDetails, options = {}) {
     defaultStatus: "new"
   });
 
+  let queuedResumePacks = 0;
+  if (shouldQueueResumePacks() && topPackJobsWithResumeSupport.length > 0) {
+    queuedResumePacks = await enqueueResumePackJobs(topPackJobsWithResumeSupport, {
+      source: runDetails?.runSource || getRunSource(),
+      reason: "supabase_primary_followup"
+    });
+    if (queuedResumePacks > 0) {
+      console.log(`?? Queued ${queuedResumePacks} tailored resume pack follow-up job(s)`);
+    }
+  }
+  if (runDetails && typeof runDetails === "object") {
+    runDetails.applyPackQueuedCount = queuedResumePacks;
+    runDetails.resumePackQueueCount = await getResumePackQueueCount();
+  }
+
   return {
     pendingCount,
     alertedCount: jobsToAlert.length,
     notified: true,
     reviewDigestCount: reviewJobsWithResumeSupport.length,
+    queuedResumePacks,
     notifyResult
   };
 }

@@ -235,6 +235,8 @@ test("buildResumePreview includes ATS summary and apply guidance", async () => {
   const preview = await buildResumePreview({
     title: "Salesforce Developer",
     company: "Acme",
+    skills: "Apex, LWC, Integration, Sales Cloud",
+    description: "Build Salesforce solutions using Apex, LWC, REST API integrations, Sales Cloud and Service Cloud.",
     match_score: 91,
     match_level: "High",
     apply_priority: "High",
@@ -247,9 +249,13 @@ test("buildResumePreview includes ATS summary and apply guidance", async () => {
   });
 
   assert.match(preview.atsSummary, /91% High/i);
+  assert.match(preview.atsKeywordCoverage, /% keyword coverage/i);
   assert.equal(preview.applyPriority, "High");
   assert.ok(Array.isArray(preview.whyMatched));
+  assert.ok(Array.isArray(preview.matchedKeywords));
+  assert.ok(preview.matchedKeywords.includes("Apex"));
   assert.ok(Array.isArray(preview.missingKeywords));
+  assert.ok(Array.isArray(preview.generatedArtifacts));
   assert.ok(Array.isArray(preview.checklist));
   assert.match(preview.headline, /ATS 91%/i);
 });

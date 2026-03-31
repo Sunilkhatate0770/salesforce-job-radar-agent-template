@@ -105,19 +105,26 @@ function buildCardMetaLine(job) {
 function buildTelegramCard(job, index) {
   const actionUrl = getActionUrl(job);
   const whyMatched = getPreviewList(job, "whyMatched");
+  const matchedKeywords = getPreviewList(job, "matchedKeywords");
   const missingKeywords = getPreviewList(job, "missingKeywords");
+  const generatedArtifacts = getPreviewList(job, "generatedArtifacts");
   const resumeLabel = getResumeSupportLabel(job);
   const atsSummary = getPreviewValue(job, "atsSummary");
+  const atsKeywordCoverage = getPreviewValue(job, "atsKeywordCoverage");
   const lines = [
     `<b>${index}. ${escapeHtml(trimText(job?.title || "Unknown role", 100))}</b>`,
     escapeHtml(buildCardMetaLine(job)),
     `${escapeHtml(getOpportunityKindLabel(job))} | ${escapeHtml(getOpportunityConfidenceLabel(job))} | ${escapeHtml(inferSourceLabel(job))}`,
-    `Match: <b>${escapeHtml(String(job?.match_score ?? "n/a"))}</b>${atsSummary ? ` | ${escapeHtml(atsSummary)}` : ""}`
+    `Match: <b>${escapeHtml(String(job?.match_score ?? "n/a"))}</b>${atsSummary ? ` | ${escapeHtml(atsSummary)}` : ""}${atsKeywordCoverage ? ` | ${escapeHtml(atsKeywordCoverage)}` : ""}`
   ];
 
   if (resumeLabel) lines.push(`Resume: ${escapeHtml(resumeLabel)}`);
+  if (generatedArtifacts.length > 0) lines.push(`Pack: ${escapeHtml(generatedArtifacts.join(", "))}`);
   if (whyMatched.length > 0) {
     lines.push(`Why matched: ${escapeHtml(whyMatched.slice(0, 2).join(", "))}`);
+  }
+  if (matchedKeywords.length > 0) {
+    lines.push(`JD matched: ${escapeHtml(matchedKeywords.slice(0, 4).join(", "))}`);
   }
   if (missingKeywords.length > 0) {
     lines.push(`Missing: ${escapeHtml(missingKeywords.slice(0, 4).join(", "))}`);
@@ -140,18 +147,23 @@ function buildTelegramCard(job, index) {
 function buildEmailTextCard(job, index) {
   const actionUrl = getActionUrl(job);
   const whyMatched = getPreviewList(job, "whyMatched");
+  const matchedKeywords = getPreviewList(job, "matchedKeywords");
   const missingKeywords = getPreviewList(job, "missingKeywords");
+  const generatedArtifacts = getPreviewList(job, "generatedArtifacts");
   const resumeLabel = getResumeSupportLabel(job);
   const atsSummary = getPreviewValue(job, "atsSummary");
+  const atsKeywordCoverage = getPreviewValue(job, "atsKeywordCoverage");
   const lines = [
     `${index}. ${trimText(job?.title || "Unknown role", 120)}`,
     buildCardMetaLine(job),
     `Type: ${getOpportunityKindLabel(job)} | Confidence: ${getOpportunityConfidenceLabel(job)} | Source: ${inferSourceLabel(job)}`,
-    `Match: ${String(job?.match_score ?? "n/a")}${atsSummary ? ` | ${atsSummary}` : ""}`
+    `Match: ${String(job?.match_score ?? "n/a")}${atsSummary ? ` | ${atsSummary}` : ""}${atsKeywordCoverage ? ` | ${atsKeywordCoverage}` : ""}`
   ];
 
   if (resumeLabel) lines.push(`Resume: ${resumeLabel}`);
+  if (generatedArtifacts.length > 0) lines.push(`Pack: ${generatedArtifacts.join(", ")}`);
   if (whyMatched.length > 0) lines.push(`Why matched: ${whyMatched.slice(0, 2).join(", ")}`);
+  if (matchedKeywords.length > 0) lines.push(`JD matched: ${matchedKeywords.slice(0, 4).join(", ")}`);
   if (missingKeywords.length > 0) lines.push(`Missing: ${missingKeywords.slice(0, 4).join(", ")}`);
   if (getPreviewValue(job, "headline")) lines.push(`Resume headline: ${getPreviewValue(job, "headline")}`);
   if (trimText(job?.source_evidence?.snippet || job?.description, 180)) {
@@ -176,9 +188,12 @@ function renderEmailBadge(label, background = "#e2e8f0", color = "#0f172a") {
 function buildEmailHtmlCard(job, index) {
   const actionUrl = getActionUrl(job);
   const whyMatched = getPreviewList(job, "whyMatched");
+  const matchedKeywords = getPreviewList(job, "matchedKeywords");
   const missingKeywords = getPreviewList(job, "missingKeywords");
+  const generatedArtifacts = getPreviewList(job, "generatedArtifacts");
   const resumeLabel = getResumeSupportLabel(job);
   const atsSummary = getPreviewValue(job, "atsSummary");
+  const atsKeywordCoverage = getPreviewValue(job, "atsKeywordCoverage");
   const badges = [
     renderEmailBadge(getOpportunityKindLabel(job), "#dbeafe", "#1d4ed8"),
     renderEmailBadge(getOpportunityConfidenceLabel(job), "#fef3c7", "#92400e"),
@@ -188,6 +203,9 @@ function buildEmailHtmlCard(job, index) {
   if (atsSummary) {
     badges.push(renderEmailBadge(atsSummary, "#e2e8f0", "#334155"));
   }
+  if (atsKeywordCoverage) {
+    badges.push(renderEmailBadge(atsKeywordCoverage, "#fae8ff", "#86198f"));
+  }
 
   return (
     `<div style="margin:0 0 16px 0;padding:18px;border:1px solid #dbe3ea;border-radius:18px;background:#ffffff;box-shadow:0 10px 22px rgba(15,23,42,0.06);">` +
@@ -195,8 +213,10 @@ function buildEmailHtmlCard(job, index) {
     `<div style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:10px;">${escapeHtml(buildCardMetaLine(job))}</div>` +
     `<div style="margin-bottom:8px;">${badges.join("")}</div>` +
     `${resumeLabel ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>Resume:</strong> ${escapeHtml(resumeLabel)}</div>` : ""}` +
+    `${generatedArtifacts.length > 0 ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>Pack:</strong> ${escapeHtml(generatedArtifacts.join(", "))}</div>` : ""}` +
     `${getPreviewValue(job, "headline") ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>Resume headline:</strong> ${escapeHtml(getPreviewValue(job, "headline"))}</div>` : ""}` +
     `${whyMatched.length > 0 ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>Why matched:</strong> ${escapeHtml(whyMatched.slice(0, 2).join(", "))}</div>` : ""}` +
+    `${matchedKeywords.length > 0 ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>JD matched:</strong> ${escapeHtml(matchedKeywords.slice(0, 4).join(", "))}</div>` : ""}` +
     `${missingKeywords.length > 0 ? `<div style="margin:0 0 8px 0;font-size:14px;color:#0f172a;"><strong>Missing:</strong> ${escapeHtml(missingKeywords.slice(0, 4).join(", "))}</div>` : ""}` +
     `${trimText(job?.source_evidence?.snippet || job?.description, 180) ? `<div style="margin:0 0 12px 0;font-size:14px;color:#334155;line-height:1.7;"><strong>Evidence:</strong> ${escapeHtml(trimText(job?.source_evidence?.snippet || job?.description, 180))}</div>` : ""}` +
     `<div>${renderEmailButton(getActionLabel(job), actionUrl, "#0f172a")}</div>` +
@@ -355,6 +375,45 @@ export function buildActionCardJobAlertMessages({
     text: joinParts([header.emailText, extra.emailText, sections.emailText]),
     html:
       `<!doctype html><html><body style="margin:0;padding:24px;background:radial-gradient(circle at top,#e0f2fe 0%,#f8fafc 42%,#eef2ff 100%);font-family:Segoe UI,Arial,sans-serif;color:#111827;"><div style="max-width:820px;margin:0 auto;">` +
+      joinParts([header.emailHtml, extra.emailHtml, sections.emailHtml], "") +
+      `</div></body></html>`
+  };
+}
+
+export function buildActionCardResumePackMessages({
+  agentName,
+  jobs,
+  sourceSummary = "",
+  extraSections = {}
+}) {
+  const packJobs = sortByMatch(Array.isArray(jobs) ? jobs : []);
+  const sections = renderSections([
+    {
+      title: "Tailored resume pack ready",
+      description:
+        "JD-matched PDF resume, apply pack, and follow-up draft prepared for quick application.",
+      jobs: packJobs
+    }
+  ]);
+  const header = renderHeader({
+    agentName,
+    headline: `${packJobs.length} tailored apply pack${packJobs.length === 1 ? "" : "s"} ready`,
+    sourceSummary,
+    metrics: [
+      `Tailored ${packJobs.length}`,
+      `Top match ${String(packJobs[0]?.match_score ?? "n/a")}`
+    ],
+    tone: "green"
+  });
+  const extra = renderExtraSections(extraSections);
+  const topRole = trimText(packJobs[0]?.title || "Tailored opportunity", 70);
+
+  return {
+    subject: `${agentName}: tailored resume pack ready | ${topRole}`,
+    telegram: joinParts([header.telegram, extra.telegram, sections.telegram]),
+    text: joinParts([header.emailText, extra.emailText, sections.emailText]),
+    html:
+      `<!doctype html><html><body style="margin:0;padding:24px;background:radial-gradient(circle at top,#ecfeff 0%,#f8fafc 48%,#e0f2fe 100%);font-family:Segoe UI,Arial,sans-serif;color:#111827;"><div style="max-width:820px;margin:0 auto;">` +
       joinParts([header.emailHtml, extra.emailHtml, sections.emailHtml], "") +
       `</div></body></html>`
   };
