@@ -92,27 +92,29 @@ var topicConfig = {
 async function getStudyData() {
   try {
     const [historyRes, tasksRes] = await Promise.all([
-      fetch('/api/summary/all?cb=' + Date.now()),
+      fetch('/api/study/history?cb=' + Date.now()),
       fetch('/api/study/tasks?cb=' + Date.now())
     ]);
-    const histories = await historyRes.json();
+    const sessions = await historyRes.json();
     const { completedTasks } = await tasksRes.json();
     
-    console.log('[Cloud] Data Received:', { histories, completedTasks });
+    console.log('[Cloud] Deep Sync Received:', { sessions, completedTasks });
 
     const topics = {};
-    const sessions = [];
-    Object.values(histories).forEach(h => {
-      if (h.study && h.study.breakdown) {
-         Object.keys(h.study.breakdown).forEach(tid => {
-           if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
-           topics[tid].totalSeconds += h.study.breakdown[tid].totalSeconds;
-           topics[tid].sessions += h.study.breakdown[tid].sessions || 1;
-         });
+    (sessions || []).forEach(s => {
+      const tid = s.topic;
+      if (!tid) return;
+      if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
+      topics[tid].totalSeconds += (s.duration || 0);
+      topics[tid].sessions += 1;
+      
+      const sessDate = new Date(s.startTime || s.date);
+      if (!topics[tid].lastStudied || sessDate > new Date(topics[tid].lastStudied)) {
+        topics[tid].lastStudied = sessDate;
       }
     });
     
-    console.log('[Cloud] Mapped Topics:', topics);
+    console.log('[Cloud] Rebuilt Topics:', topics);
     return { topics, sessions, completedTasks };
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
