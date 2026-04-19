@@ -15,18 +15,29 @@ const CACHE_DIR = path.join(process.cwd(), '.cache');
 const WEB_DIR = path.join(process.cwd(), 'web');
 
 // MongoDB Connection
-let isMongoConnected = false;
-if (process.env.MONGODB_URI) {
-  mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-      console.log('[DB] Connected to MongoDB Atlas');
-      isMongoConnected = true;
-    })
-    .catch(err => console.error('[DB] MongoDB Connection Error:', err));
+let cachedDb = null;
+async function connectDB() {
+  if (cachedDb) return cachedDb;
+  if (!process.env.MONGODB_URI) {
+    console.error('[DB] MONGODB_URI missing');
+    return null;
+  }
+  try {
+    const db = await mongoose.connect(process.env.MONGODB_URI);
+    console.log('[DB] Connected to MongoDB Atlas');
+    cachedDb = db;
+    return db;
+  } catch (err) {
+    console.error('[DB] MongoDB Connection Error:', err);
+    return null;
+  }
 }
 
 // THE HANDLER (Exported for Vercel)
 export default async function handler(req, res) {
+  const db = await connectDB();
+  const isMongoConnected = !!db;
+
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method;
