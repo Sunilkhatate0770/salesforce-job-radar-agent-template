@@ -22,3 +22,11 @@ const jobRecordSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const JobRecord = mongoose.models.JobRecord || mongoose.model('JobRecord', jobRecordSchema);
+
+const taskStatusSchema = new mongoose.Schema({
+  index: { type: Number, required: true, unique: true },
+  completed: { type: Boolean, default: false },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+export const TaskStatus = mongoose.models.TaskStatus || mongoose.model('TaskStatus', taskStatusSchema);

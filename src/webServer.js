@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { generateDailySummary } from './summaryService.js';
 import mongoose from 'mongoose';
 import 'dotenv/config';
-import { StudySession } from './models/models.js';
+import { StudySession, TaskStatus } from './models/models.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -147,39 +147,23 @@ export default async function handler(req, res) {
       try {
         const session = JSON.parse(body);
         
-        // 1. Save to MongoDB if connected
+        // SAVE ONLY TO CLOUD
         if (isMongoConnected) {
           try {
             const cloudSession = new StudySession(session);
             await cloudSession.save();
             console.log('[DB] Session saved to Cloud');
+            res.writeHead(200);
+            res.end(JSON.stringify({ success: true, cloud: true }));
           } catch (dbErr) {
             console.error('[DB] Failed to save session to cloud:', dbErr);
+            res.writeHead(500);
+            res.end(JSON.stringify({ error: 'Database save failed' }));
           }
+        } else {
+          res.writeHead(503);
+          res.end(JSON.stringify({ error: 'Database not connected' }));
         }
-
-        // 2. Fallback: Save to Local JSON
-        const trackerPath = path.join(CACHE_DIR, 'study-tracker.json');
-        let data = { sessions: [], topics: {}, completedTasks: [] };
-        if (fs.existsSync(trackerPath)) {
-           data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
-        }
-        
-        data.sessions.push(session);
-        if (data.sessions.length > 500) data.sessions = data.sessions.slice(-500);
-        
-        // Update topic stats
-        const topicId = session.topic;
-        if (!data.topics[topicId]) {
-          data.topics[topicId] = { totalSeconds: 0, sessions: 0, lastStudied: null };
-        }
-        data.topics[topicId].totalSeconds += session.duration;
-        data.topics[topicId].sessions += 1;
-        data.topics[topicId].lastStudied = session.endTime;
-        
-        fs.writeFileSync(trackerPath, JSON.stringify(data, null, 2));
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true, cloud: isMongoConnected }));
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -191,19 +175,24 @@ export default async function handler(req, res) {
   if (url === '/api/study/toggle-task' && method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         const { index } = JSON.parse(body);
-        const trackerPath = path.join(CACHE_DIR, 'study-tracker.json');
-        const data = JSON.parse(fs.readFileSync(trackerPath, 'utf8'));
-        
-        const idx = data.completedTasks.indexOf(index);
-        if (idx === -1) data.completedTasks.push(index);
-        else data.completedTasks.splice(idx, 1);
-        
-        fs.writeFileSync(trackerPath, JSON.stringify(data, null, 2));
-        res.writeHead(200);
-        res.end(JSON.stringify({ success: true }));
+        if (isMongoConnected) {
+          const status = await TaskStatus.findOne({ index });
+          if (status) {
+            status.completed = !status.completed;
+            status.updatedAt = Date.now();
+            await status.save();
+          } else {
+            await TaskStatus.create({ index, completed: true });
+          }
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true }));
+        } else {
+          res.writeHead(503);
+          res.end(JSON.stringify({ error: 'Database not connected' }));
+        }
       } catch (e) {
         res.writeHead(400);
         res.end(JSON.stringify({ error: 'Invalid request' }));
@@ -212,9 +201,25 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (url === '/api/study/tasks' && method === 'GET') {
+    if (isMongoConnected) {
+      const completed = await TaskStatus.find({ completed: true }).lean();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ completedTasks: completed.map(t => t.index) }));
+    } else {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ completedTasks: [] }));
+    }
+    return;
+  }
+
   if (url === '/api/summary/daily' && method === 'GET') {
     try {
-      const summaries = generateDailySummary();
+      let sessions = null;
+      if (isMongoConnected) {
+        sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
+      }
+      const summaries = generateDailySummary(sessions);
       const todayStr = new Date().toISOString().split('T')[0];
       const summary = summaries[todayStr] || { date: todayStr, study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, jobs: { newCount: 0, topMatches: [] } };
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -230,16 +235,8 @@ export default async function handler(req, res) {
     try {
       let sessions = null;
       if (isMongoConnected) {
-        try {
-          // Fetch last 30 days from cloud
-          sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
-          console.log(`[DB] Fetched ${sessions.length} sessions from Cloud`);
-        } catch (dbErr) {
-          console.error('[DB] Cloud fetch failed, falling back to local:', dbErr);
-        }
+        sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
       }
-
-      // Rebuild and return directly to avoid file-read race conditions
       const summaries = generateDailySummary(sessions);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(summaries));

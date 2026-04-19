@@ -91,9 +91,28 @@ var topicConfig = {
 // =============================================
 async function getStudyData() {
   try {
-    const response = await fetch('/api/study/data');
-    return await response.json();
+    const [historyRes, tasksRes] = await Promise.all([
+      fetch('/api/summary/all'),
+      fetch('/api/study/tasks')
+    ]);
+    const histories = await historyRes.json();
+    const { completedTasks } = await tasksRes.json();
+    
+    const topics = {};
+    const sessions = [];
+    Object.values(histories).forEach(h => {
+      if (h.study && h.study.topicBreakdown) {
+         Object.keys(h.study.topicBreakdown).forEach(tid => {
+           if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
+           topics[tid].totalSeconds += h.study.topicBreakdown[tid].totalSeconds;
+           topics[tid].sessions += h.study.topicBreakdown[tid].sessions || 1;
+         });
+      }
+    });
+    
+    return { topics, sessions, completedTasks };
   } catch(e) { 
+    console.error('[Cloud] Sync Error:', e);
     return { topics: {}, sessions: [], completedTasks: [] }; 
   }
 }
@@ -108,15 +127,15 @@ async function saveSession(session) {
   } catch(e) { console.error('Failed to save session', e); }
 }
 
-async function toggleTaskOnServer(index) {
+async function toggleTask(index) {
   try {
-    await fetch('/api/study/toggle-task', {
+    const res = await fetch('/api/study/toggle-task', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ index })
     });
-    renderTimetable();
-  } catch(e) { console.error('Failed to toggle task', e); }
+    if (res.ok) await renderTimetable();
+  } catch(e) { console.error('[Cloud] Toggle Error:', e); }
 }
 
 // =============================================
@@ -1152,7 +1171,7 @@ async function showPage(id) {
   if (id === 'study_tracker') {
     const lastTab = localStorage.getItem('last_tracker_tab') || 'tab_suggestions';
     switchTrackerTab(lastTab);
-    updateTrackerUI(); 
+    await updateTrackerUI(); 
     updateFloatingTimer(); 
   }
 
