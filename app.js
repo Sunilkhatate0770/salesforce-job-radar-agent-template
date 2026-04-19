@@ -92,24 +92,35 @@ var topicConfig = {
 async function getStudyData() {
   try {
     const [historyRes, tasksRes] = await Promise.all([
-      fetch('/api/summary/all'),
-      fetch('/api/study/tasks')
+      fetch('/api/study/history?cb=' + Date.now()),
+      fetch('/api/study/tasks?cb=' + Date.now())
     ]);
-    const histories = await historyRes.json();
+    const sessions = await historyRes.json();
     const { completedTasks } = await tasksRes.json();
     
+    console.log('[Cloud] Deep Sync Received:', { sessions, completedTasks });
+
     const topics = {};
-    const sessions = [];
-    Object.values(histories).forEach(h => {
-      if (h.study && h.study.topicBreakdown) {
-         Object.keys(h.study.topicBreakdown).forEach(tid => {
-           if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
-           topics[tid].totalSeconds += h.study.topicBreakdown[tid].totalSeconds;
-           topics[tid].sessions += h.study.topicBreakdown[tid].sessions || 1;
-         });
+    (sessions || []).forEach(s => {
+      const tid = s.topic || s.topicId;
+      if (!tid) return;
+      
+      const duration = Number(s.duration || 0);
+      if (!topics[tid]) {
+        topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
+        console.log(`[Cloud] Match Check: Found topic "${tid}" - In Config? ${!!topicConfig[tid]}`);
+      }
+      
+      topics[tid].totalSeconds += duration;
+      topics[tid].sessions += 1;
+      
+      const sessDate = new Date(s.startTime || s.date);
+      if (!topics[tid].lastStudied || sessDate > new Date(topics[tid].lastStudied)) {
+        topics[tid].lastStudied = sessDate;
       }
     });
     
+    console.log('[Cloud] SUCCESS! Topics Rebuilt:', topics);
     return { topics, sessions, completedTasks };
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
@@ -331,8 +342,7 @@ function startFloatingTimerInterval() {
 
 async function updateCourseTargets() {
   try {
-    const res = await fetch('/api/study/data');
-    const data = await res.json();
+    const data = await getStudyData();
     
     let totalRecommendedMin = 0;
     for (let id in topicConfig) {

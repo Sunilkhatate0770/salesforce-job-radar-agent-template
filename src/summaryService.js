@@ -28,7 +28,7 @@ export function generateDailySummary(providedSessions = null) {
   }
 
   // Get ALL unique dates from sessions to rebuild everything correctly
-  const allDates = [...new Set(studyData.sessions.map(s => s.date))];
+  const allDates = [...new Set(studyData.sessions.map(s => s.date).filter(Boolean))];
   
   allDates.forEach(dateStr => {
     if (!dateStr) return;
@@ -38,8 +38,16 @@ export function generateDailySummary(providedSessions = null) {
     if (!match) return;
     const finalDate = match[0];
 
-    const daySessions = studyData.sessions.filter(s => s.date && s.date.trim().startsWith(finalDate));
-    const dayJobs = (jobData.records || []).filter(r => r.date_added && r.date_added.startsWith(trimmedDate));
+    const daySessions = studyData.sessions.filter(s => {
+      if (!s.date) return false;
+      const sDate = String(s.date).trim();
+      return sDate.startsWith(finalDate);
+    });
+    const dayJobs = (jobData.records || []).filter(r => {
+      if (!r.date_added) return false;
+      const rDate = String(r.date_added).trim();
+      return rDate.startsWith(trimmedDate);
+    });
     
     console.log(`[SummaryService] Date: ${finalDate}. Found ${daySessions.length} sessions.`);
     daySessions.forEach(s => console.log(`  - Session: ${s.topicName} (${s.duration}s)`));
@@ -75,10 +83,13 @@ export function generateDailySummary(providedSessions = null) {
     };
   });
 
-  try {
-    fs.writeFileSync(summaryPath, JSON.stringify(summaries, null, 2));
-  } catch (err) {
-    console.error(`[SummaryService] Failed to write history file:`, err);
+  // Skip writing to disk if on Vercel (read-only filesystem)
+  if (!process.env.VERCEL) {
+    try {
+      fs.writeFileSync(summaryPath, JSON.stringify(summaries, null, 2));
+    } catch (err) {
+      console.error(`[SummaryService] Failed to write history file:`, err);
+    }
   }
   return summaries;
 }
