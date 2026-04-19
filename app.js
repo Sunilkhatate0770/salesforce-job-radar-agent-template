@@ -98,6 +98,8 @@ async function getStudyData() {
     const sessions = await historyRes.json();
     const { completedTasks } = await tasksRes.json();
     
+    console.log('[Cloud] Deep Sync Received:', { sessions, completedTasks });
+
     const topics = {};
     (sessions || []).forEach(s => {
       const tid = s.topic || s.topicId;
@@ -106,6 +108,7 @@ async function getStudyData() {
       const duration = Number(s.duration || 0);
       if (!topics[tid]) {
         topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
+        console.log(`[Cloud] Match Check: Found topic "${tid}" - In Config? ${!!topicConfig[tid]}`);
       }
       
       topics[tid].totalSeconds += duration;
@@ -117,6 +120,7 @@ async function getStudyData() {
       }
     });
     
+    console.log('[Cloud] SUCCESS! Topics Rebuilt:', topics);
     return { topics, sessions, completedTasks };
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
@@ -580,6 +584,7 @@ async function renderHistory() {
     Object.keys(histories).forEach(date => {
       const h = histories[date];
       if (h.study && !h.study.topicList) {
+        console.log('[Sync] Repairing topicList for:', date);
         const breakdown = h.study.breakdown || h.study.topicBreakdown || {};
         h.study.topicList = Object.keys(breakdown).map(k => ({
           id: k,
