@@ -98,7 +98,25 @@ async function getStudyData() {
     const sessions = await historyRes.json();
     const { completedTasks } = await tasksRes.json();
     
-    // Topic data processing...
+    const topics = {};
+    (sessions || []).forEach(s => {
+      const tid = s.topic || s.topicId;
+      if (!tid) return;
+      
+      const duration = Number(s.duration || 0);
+      if (!topics[tid]) {
+        topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
+      }
+      
+      topics[tid].totalSeconds += duration;
+      topics[tid].sessions += 1;
+      
+      const sessDate = new Date(s.startTime || s.date);
+      if (!topics[tid].lastStudied || sessDate > new Date(topics[tid].lastStudied)) {
+        topics[tid].lastStudied = sessDate;
+      }
+    });
+    
     return { topics, sessions, completedTasks };
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
