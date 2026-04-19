@@ -8,6 +8,8 @@ var trackingInterval = null;
 var isPaused = false;
 var pausedElapsed = 0;
 let globalStudyData = { topics: {}, sessions: [], completedTasks: [] }; // GLOBAL CACHE FOR LIVE UPDATES
+let lastFetchTime = 0;
+const MIN_FETCH_INTERVAL = 60000; // 1 minute throttle
 var floatingTimerInterval = null;
 
 // ALL topic IDs mapped - no duplicates
@@ -90,8 +92,14 @@ var topicConfig = {
 // =============================================
 // DATA LAYER (Server-side API)
 // =============================================
-async function getStudyData() {
+async function getStudyData(force = false) {
+  const now = Date.now();
+  if (!force && globalStudyData && (now - lastFetchTime < MIN_FETCH_INTERVAL)) {
+    return globalStudyData;
+  }
+  
   try {
+    lastFetchTime = now;
     const [historyRes, tasksRes] = await Promise.all([
       fetch('/api/study/history?cb=' + Date.now()),
       fetch('/api/study/tasks?cb=' + Date.now())
@@ -99,33 +107,19 @@ async function getStudyData() {
     const sessions = await historyRes.json();
     const { completedTasks } = await tasksRes.json();
     
-    console.log('[Cloud] Deep Sync Received:', { sessions, completedTasks });
-
     const topics = {};
     (sessions || []).forEach(s => {
       const tid = s.topic || s.topicId;
       if (!tid) return;
-      
       const duration = Number(s.duration || 0);
-      if (!topics[tid]) {
-        topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
-        console.log(`[Cloud] Match Check: Found topic "${tid}" - In Config? ${!!topicConfig[tid]}`);
-      }
-      
+      if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
       topics[tid].totalSeconds += duration;
       topics[tid].sessions += 1;
-      
-      const sessDate = new Date(s.startTime || s.date);
-      if (!topics[tid].lastStudied || sessDate > new Date(topics[tid].lastStudied)) {
-        topics[tid].lastStudied = sessDate;
-      }
     });
     
-    globalStudyData = { topics, sessions, completedTasks }; // UPDATE CACHE
-    console.log('[Cloud] SUCCESS! Topics Rebuilt:', topics);
+    globalStudyData = { topics, sessions, completedTasks };
     return globalStudyData;
   } catch(e) { 
-    console.error('[Cloud] Sync Error:', e);
     return globalStudyData || { topics: {}, sessions: [], completedTasks: [] }; 
   }
 }
