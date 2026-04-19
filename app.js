@@ -7,6 +7,7 @@ var trackingStartTime = null;
 var trackingInterval = null;
 var isPaused = false;
 var pausedElapsed = 0;
+let globalStudyData = { topics: {}, sessions: [], completedTasks: [] }; // GLOBAL CACHE FOR LIVE UPDATES
 var floatingTimerInterval = null;
 
 // ALL topic IDs mapped - no duplicates
@@ -120,11 +121,12 @@ async function getStudyData() {
       }
     });
     
+    globalStudyData = { topics, sessions, completedTasks }; // UPDATE CACHE
     console.log('[Cloud] SUCCESS! Topics Rebuilt:', topics);
-    return { topics, sessions, completedTasks };
+    return globalStudyData;
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
-    return { topics: {}, sessions: [], completedTasks: [] }; 
+    return globalStudyData || { topics: {}, sessions: [], completedTasks: [] }; 
   }
 }
 
@@ -329,14 +331,10 @@ function startFloatingTimerInterval() {
   if (floatingTimerInterval) clearInterval(floatingTimerInterval);
   floatingTimerInterval = setInterval(function() {
     updateFloatingTimer();
-    // Real-time UI refresh every 5 seconds if on tracker or history page
-    const isTrackerVisible = document.getElementById('study_tracker').style.display !== 'none';
-    const isHistoryVisible = document.getElementById('study_history').style.display !== 'none';
     
-    if ((isTrackerVisible || isHistoryVisible) && Math.floor(Date.now()/1000) % 5 === 0) {
-      if (isTrackerVisible) updateTrackerUI();
-      if (isHistoryVisible) renderHistory();
-    }
+    // SMOOTH LIVE UPDATES: Update UI every second without hitting server
+    const isTrackerVisible = document.getElementById('study_tracker').style.display !== 'none';
+    if (isTrackerVisible) updateTrackerUI(true); // 'true' means use cache
   }, 1000);
 }
 
@@ -780,8 +778,8 @@ function renderAnalyticsView(container, dates, histories) {
 // =============================================
 // TRACKER UI RENDERER
 // =============================================
-async function updateTrackerUI() {
-  const data = await getStudyData();
+async function updateTrackerUI(useCache = false) {
+  const data = useCache && globalStudyData ? globalStudyData : await getStudyData();
   var allTopics = Object.keys(topicConfig);
   var liveSeconds = getCurrentElapsed();
   
