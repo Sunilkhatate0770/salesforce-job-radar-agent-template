@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salesforce & FDE Interview Prep Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div style="font-size:0.6rem; color:var(--blue); font-family:'IBM Plex Mono',monospace; margin-bottom:0.5rem; letter-spacing:2px; text-transform:uppercase;">Agent Dashboard</div>
+    <h2>Salesforce & FDE<br>Master Prep Guide</h2>
+    <p>Premium Study & Tracking System</p>
+    <div id="syncStatus" style="font-size:0.6rem; color:var(--green); margin-top:8px; display:flex; align-items:center; gap:5px;">
+      <span style="width:6px; height:6px; background:var(--green); border-radius:50%; display:inline-block;"></span>
+      Synced to Agent Data Layer
+    </div>
+  </div>
+  <div class="search-wrap">
+    <input type="text" id="searchInput" placeholder="Search any topic or question..." oninput="searchContent(this.value)">
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title">📊 DASHBOARD & PLANNING</div>
+    <div class="nav-item active" onclick="showPage('schedule')">⏱ Daily Schedule <span class="count">Live</span></div>
+    <div class="nav-item" onclick="showPage('study_tracker')">📈 Progress Tracker <span class="count">Data</span></div>
+    <div class="nav-item" onclick="showPage('study_history')">📅 Study History <span class="count">Archive</span></div>
+    <div class="nav-item" onclick="showPage('job_radar')">📡 Job Radar Dashboard <span class="count">Radar</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title">⚡ CORE DEVELOPMENT Q&A</div>
+    <div class="nav-item" onclick="showPage('apex')">⚡ Apex Core <span class="count">22 Q</span></div>
+    <div class="nav-item" onclick="showPage('soql')">🔍 SOQL Deep Dive <span class="count">14 Q</span></div>
+    <div class="nav-item" onclick="showPage('async')">⚙ Async Apex <span class="count">16 Q</span></div>
+    <div class="nav-item" onclick="showPage('triggers')">🔧 Triggers & Patterns <span class="count">14 Q</span></div>
+    <div class="nav-item" onclick="showPage('lwc')">🖥 LWC Components <span class="count">20 Q</span></div>
+    <div class="nav-item" onclick="showPage('aura')">🔷 Aura Components <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('integration')">🔗 Integration & APIs <span class="count">18 Q</span></div>
+    <div class="nav-item" onclick="showPage('security')">🔒 Security & Sharing <span class="count">18 Q</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title">🏗️ ADVANCED & SCENARIOS</div>
+    <div class="nav-item" onclick="showPage('domain')">🏠 US Mortgage Domain <span class="count">Guide</span></div>
+    <div class="nav-item" onclick="showPage('scenario')">🧩 Scenario Questions <span class="count">16 Q</span></div>
+    <div class="nav-item" onclick="showPage('design')">🏗 Design Patterns <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('adv_apex')">🔥 Advanced Apex <span class="count">18 Q</span></div>
+    <div class="nav-item" onclick="showPage('admin')">🛠 Admin & Config <span class="count">14 Q</span></div>
+    <div class="nav-parent-title" style="margin-top:10px; font-size:0.55rem; opacity:0.6;">100 Scenario Mix</div>
+    <div class="nav-item" onclick="showPage('sc_objects')">📦 Objects & Fields <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_recordpage')">📋 Record Page + LWC <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_flow')">🌊 Flow Scenarios <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_arch')">🏗 Architecture Mix <span class="count">10 Q</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title">🗣️ COMMUNICATION & CAREER</div>
+    <div class="nav-item" onclick="showPage('intro')">🎙 Self-Introduction <span class="count">Mocks</span></div>
+    <div class="nav-item" onclick="showPage('behavioral')">💬 Behavioral Q&A (STAR) <span class="count">12 Story</span></div>
+    <div class="nav-item" onclick="showPage('speaking')">🗣 Speaking Drills <span class="count">40 Ex</span></div>
+    <div class="nav-item" onclick="showPage('comm')">📝 Comm Scripts <span class="count">20 Scr</span></div>
+    <div class="nav-item" onclick="showPage('vocab')">📖 Vocab & Phrases <span class="count">60 W</span></div>
+    <div class="nav-item" onclick="showPage('salary')">💰 Salary & Negotiation <span class="count">Scripts</span></div>
+    <div class="nav-item" onclick="showPage('mock')">🎯 Mock Interview <span class="count">3 Full</span></div>
+    <div class="nav-item" onclick="showPage('ai_interview')" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); color:#c4b5fd;">🤖 AI Mock Interview <span class="count" style="background:#8b5cf6;">Gemma 4</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title">🤖 AGENTFORCE & FDE MASTERY</div>
+    <div class="nav-item" onclick="showPage('fde_ag_concept')">🤖 Agentforce Core <span class="count">8 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_atlas')">⚙ Atlas Deep Dive <span class="count">6 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_trust')">🛡 Trust Layer <span class="count">5 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_dc_concept')">☁ Data Cloud Core <span class="count">8 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_dc_adv')">🔬 Data Cloud Advanced <span class="count">7 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_cheat')">🏁 Cheat Sheet <span class="count">7 Q</span></div>
+  </div>
+</nav>
+
+<!-- FLOATING TIMER -->
+<div id="floatingTimer">
+  <span class="ft-dot" id="ftDot"></span>
+  <span class="ft-topic" id="ftTopic">Ready</span>
+  <span class="ft-time" id="ftTime">00:00</span>
+  <button class="ft-btn playing" id="ftPlayPause" onclick="togglePause()" title="Pause/Resume">⏸</button>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+
+<!-- SEARCH RESULTS PAGE -->
+<div id="searchPage" class="page">
+  <div class="page-title">Search Results</div>
+  <div class="page-sub">Click any result to see the full answer</div>
+  <div id="searchResults"></div>
+</div>
+
+<!-- SCHEDULE PAGE -->
+<div id="schedule" class="page active">
+  <div class="page-title">Daily Study Schedule</div>
+  <div class="page-sub">Follow this exact structure every single day — consistency is more powerful than intensity</div>
+  <div class="summary-bar">
+    <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
+    <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
+    <div class="sum-chip"><b>30 min</b>Job applications</div>
+    <div class="sum-chip"><b>285 hrs</b>Total in 30 days</div>
+  </div>
+  <div style="margin-bottom:2rem;">
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;font-family:'IBM Plex Mono',monospace;">
+      <span>Daily Goal Progress</span>
+      <span id="dailyProgressText">0%</span>
+    </div>
+    <div style="width:100%;height:8px;background:var(--card);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+      <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
+    </div>
+  </div>
+  <div id="timetableContainer"></div>
+</div>
