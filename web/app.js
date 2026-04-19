@@ -15,6 +15,7 @@ var topicConfig = {
   'schedule': { name: 'Daily Schedule', recommended: 15, group: 'General', noTimer: true },
   'job_radar': { name: 'Job Radar Dashboard', recommended: 30, group: 'General', noTimer: true },
   'study_tracker': { name: 'Progress Tracker', recommended: 30, group: 'General', noTimer: true },
+  'study_history': { name: 'Study History', recommended: 0, group: 'General', noTimer: true },
   // Technical Interview Q&A
   'apex': { name: 'Apex Core', recommended: 120, group: 'Technical' },
   'soql': { name: 'SOQL Deep Dive', recommended: 90, group: 'Technical' },
@@ -224,8 +225,10 @@ async function stopTracking() {
   
   var activeEl = document.getElementById('currentlyStudying');
   var lightEl = document.getElementById('activeLight');
+  var timerEl = document.getElementById('floatingTimer');
   if (activeEl) activeEl.textContent = '—';
   if (lightEl) lightEl.style.display = 'none';
+  if (timerEl) timerEl.style.display = 'none';
 }
 
 function getCurrentElapsed() {
@@ -354,18 +357,21 @@ updateTrackerUI = async function() {
 // FORMAT HELPERS
 // =============================================
 function formatTime(totalSeconds) {
-  if (!totalSeconds || totalSeconds < 60) return totalSeconds ? totalSeconds + 's' : '0m';
+  if (!totalSeconds || totalSeconds <= 0) return '00s';
   var h = Math.floor(totalSeconds / 3600);
   var m = Math.floor((totalSeconds % 3600) / 60);
-  if (h > 0) return h + 'h ' + m + 'm';
-  return m + 'm';
+  var s = totalSeconds % 60;
+  
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 function formatTimeFull(totalSeconds) {
-  if (totalSeconds < 60) return Math.floor(totalSeconds) + 's';
   var h = Math.floor(totalSeconds / 3600);
   var m = Math.floor((totalSeconds % 3600) / 60);
-  return h + 'h ' + m + 'm';
+  var s = totalSeconds % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
 }
 
 function getTopicStatus(topicId, data) {
@@ -450,34 +456,121 @@ async function fetchDailySummary() {
   } catch (e) { console.error('Failed to fetch summary', e); }
 }
 
+let currentHistoryTab = 'timeline';
+
+function switchHistoryTab(mode) {
+  currentHistoryTab = mode;
+  document.querySelectorAll('.history-tab').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick').includes(mode)) btn.classList.add('active');
+  });
+  renderHistory();
+}
+
+async function syncHistoryWithFeedback() {
+  const btn = document.getElementById('syncHistoryBtn');
+  const icon = document.getElementById('syncIcon');
+  const text = document.getElementById('syncText');
+  
+  if (!btn) { renderHistory(); return; }
+
+  // Start Feedback
+  icon.classList.add('spin');
+  text.textContent = 'Syncing...';
+  btn.style.opacity = '0.8';
+  btn.style.pointerEvents = 'none';
+
+  try {
+    console.log('[Sync] Triggering history rebuild...');
+    await renderHistory();
+    console.log('[Sync] Success.');
+    
+    // Success State
+    text.textContent = 'Data Synced!';
+    icon.classList.remove('spin');
+    btn.style.background = 'var(--green)';
+    btn.style.boxShadow = '0 4px 15px rgba(16,185,129,0.3)';
+    
+    setTimeout(() => {
+      text.textContent = 'Sync Dashboard';
+      btn.style.background = 'var(--blue)';
+      btn.style.boxShadow = '0 4px 15px rgba(79,142,247,0.3)';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }, 2000);
+  } catch (e) {
+    console.error('[Sync] Failed:', e);
+    icon.classList.remove('spin');
+    text.textContent = 'Sync Failed';
+    btn.style.background = 'var(--red)';
+    setTimeout(() => {
+      text.textContent = 'Sync Dashboard';
+      btn.style.background = 'var(--blue)';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }, 2000);
+  }
+}
+
 async function renderHistory() {
   const container = document.getElementById('historyTimeline');
   if (!container) return;
 
   try {
-    const response = await fetch('/api/summary/all');
-    let histories = await response.json();
-    if (!histories || typeof histories !== 'object') histories = {};
+    const viewMode = currentHistoryTab;
+    const response = await fetch('/api/summary/all?cache_bust=' + Date.now());
+    const histories = await response.json();
     
     const now = new Date();
     const todayStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
     const yest = new Date(); yest.setDate(now.getDate() - 1);
     const yestStr = yest.getFullYear() + '-' + String(yest.getMonth()+1).padStart(2,'0') + '-' + String(yest.getDate()).padStart(2,'0');
-    
+
     // Virtual Today entry for real-time tracking
     if (currentTrackedPage) {
       const liveSecs = getCurrentElapsed();
-      if (!histories[todayStr]) histories[todayStr] = { study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [] }, jobs: { newCount: 0 } };
-      histories[todayStr].study.totalSeconds += liveSecs;
-      const activeName = topicConfig[currentTrackedPage].name;
-      if (!histories[todayStr].study.allTopics) histories[todayStr].study.allTopics = [];
-      if (!histories[todayStr].study.allTopics.includes(activeName)) histories[todayStr].study.allTopics.push(activeName);
+      const tid = currentTrackedPage;
+      const tName = topicConfig[tid] ? topicConfig[tid].name : tid;
+      
+      if (!histories[todayStr]) {
+        histories[todayStr] = { 
+          study: { totalSeconds: 0, sessionsCount: 1, topicList: [] }, 
+          jobs: { newCount: 0, topMatches: [] } 
+        };
+      }
+
+      const h = histories[todayStr];
+      h.study.totalSeconds += liveSecs;
+      
+      if (!h.study.topicList) h.study.topicList = [];
+      let entry = h.study.topicList.find(x => x.id === tid);
+      if (!entry) {
+        entry = { id: tid, name: tName, totalSeconds: 0 };
+        h.study.topicList.push(entry);
+      }
+      entry.totalSeconds += liveSecs;
     }
+    
+    // FINAL SAFETY: Ensure topicList exists for all history entries
+    Object.keys(histories).forEach(date => {
+      const h = histories[date];
+      if (h.study && !h.study.topicList) {
+        console.log('[Sync] Repairing topicList for:', date);
+        const breakdown = h.study.breakdown || h.study.topicBreakdown || {};
+        h.study.topicList = Object.keys(breakdown).map(k => ({
+          id: k,
+          name: breakdown[k].name || k,
+          totalSeconds: breakdown[k].totalSeconds || 0
+        }));
+      }
+    });
+
+    // CRITICAL: Update global cache
+    cachedHistories = histories;
 
     const filter = document.getElementById('historyPeriodFilter') ? document.getElementById('historyPeriodFilter').value : 'current_month';
-    const viewMode = document.getElementById('historyViewMode') ? document.getElementById('historyViewMode').value : 'timeline';
     let dates = Object.keys(histories).sort().reverse();
-    
+
     if (filter === 'today') dates = dates.filter(d => d === todayStr);
     else if (filter === 'yesterday') dates = dates.filter(d => d === yestStr);
     else if (filter === 'current_month') {
@@ -513,117 +606,145 @@ async function renderHistory() {
 }
 
 function renderTimelineView(container, dates, histories, todayStr, yestStr) {
-  let html = '';
-  dates.forEach(date => {
+  let html = '<div style="display:flex; flex-direction:column; gap:15px; margin-top:1rem;">';
+  dates.forEach((date, idx) => {
     const h = histories[date];
     const isToday = (date === todayStr);
     const isYesterday = (date === yestStr);
-    const topicList = (h.study.allTopics || [h.study.topTopic]).join(', ');
-    const jobs = h.jobs && h.jobs.topMatches && h.jobs.topMatches.length > 0 ? 
-                 h.jobs.topMatches.map(j => `<span style="color:var(--text); font-size:0.75rem;">⭐ ${j.title}</span>`).join('<br>') : 
-                 'No job matches found';
+    const jobsCount = h.jobs ? h.jobs.newCount : 0;
+    const breakdown = h.study.breakdown || {};
+    const topicIds = h.study.topics || [];
+    const previewIds = topicIds.slice(0, 3);
     
+    const colors = ['#4f8ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const accent = isToday ? '#10b981' : colors[idx % colors.length];
+
     html += `
-      <div style="border-bottom:1px solid rgba(255,255,255,0.05); padding:1.5rem 0; ${isToday ? 'border-left:4px solid var(--green); padding-left:15px; background:rgba(52,211,153,0.03);' : ''}">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
-          <span style="font-weight:700; color:${isToday ? 'var(--green)' : 'var(--text)'}; font-size:1rem;">
-            ${isToday ? 'Today' : (isYesterday ? 'Yesterday' : date)}
-          </span>
-          <span style="font-size:0.8rem; color:var(--blue); font-family:'IBM Plex Mono',monospace; background:rgba(79,142,247,0.1); padding:4px 10px; border-radius:4px;">${formatTime(h.study.totalSeconds)}</span>
-        </div>
-        <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:20px;">
-          <div style="font-size:0.85rem; color:var(--muted); line-height:1.7; border-right:1px solid rgba(255,255,255,0.05);">
-            <div style="margin-bottom:8px;"><span style="opacity:0.6;">📚 COVERED:</span> <b style="color:var(--text);">${topicList}</b></div>
-            <div><span style="opacity:0.6;">⏱ SESSIONS:</span> <b style="color:var(--text);">${h.study.sessionsCount || 1}</b></div>
+      <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:1.2rem; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; height:100%; width:4px; background:${accent};"></div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div>
+            <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${isToday ? 'Today' : (isYesterday ? 'Yesterday' : date)}</div>
+            <div style="font-size:1.3rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${formatTime(h.study.totalSeconds)}</div>
           </div>
-          <div style="font-size:0.8rem; color:var(--muted);">
-            <div style="margin-bottom:5px; opacity:0.6; text-transform:uppercase; letter-spacing:1px; font-size:0.65rem;">Radar Highlights:</div>
-            ${jobs}
-          </div>
+          <button onclick="showHistoryModal('${date}')" style="background:${accent}22; color:${accent}; border:1px solid ${accent}44; padding:8px 15px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:0.2s;">🔍 View Deep Info</button>
         </div>
-      </div>
-    `;
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          ${previewIds.length > 0 ? previewIds.map(tid => {
+            const name = (breakdown[tid] ? breakdown[tid].name : (topicConfig[tid] ? topicConfig[tid].name : tid));
+            return `<span style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--muted); padding:3px 10px; border-radius:12px;">📚 ${name}</span>`;
+          }).join('') : '<span style="font-size:0.65rem; color:var(--muted); font-style:italic;">No topics logged</span>'}
+          ${topicIds.length > 3 ? `<span style="font-size:0.65rem; color:var(--blue); padding:3px 0;">+${topicIds.length - 3} more</span>` : ''}
+        </div>
+        
+        <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+           <div style="display:flex; gap:10px; align-items:center;">
+             <span style="font-size:0.7rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:20px;">📡 Radar Active</span>
+             <span style="font-size:0.75rem; color:var(--text);">${jobsCount} Jobs Found</span>
+           </div>
+           <div style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono';">#${date.replace(/-/g,'')}</div>
+        </div>
+      </div>`;
   });
-  if (!dates.length) html = '<p style="text-align:center; padding:2rem; color:var(--muted);">No data found.</p>';
+  if (!dates.length) html = '<div style="text-align:center; padding:3rem; color:var(--muted);">No session history found.</div>';
+  html += '</div>';
   container.innerHTML = html;
 }
 
 function renderTableView(container, dates, histories) {
-  let html = `<table style="width:100%; border-collapse:collapse; font-size:0.85rem; color:var(--text);">
-    <thead>
-      <tr style="text-align:left; border-bottom:2px solid var(--border); color:var(--muted);">
-        <th style="padding:12px;">Date</th>
-        <th style="padding:12px;">Time Spent</th>
-        <th style="padding:12px;">Sessions</th>
-        <th style="padding:12px;">Jobs Found</th>
-        <th style="padding:12px;">Top Topics</th>
-      </tr>
-    </thead>
-    <tbody>`;
-  
-  dates.forEach(date => {
+  let html = '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:15px; margin-top:1rem;">';
+  dates.forEach((date, idx) => {
     const h = histories[date];
+    const accent = '#4f8ef7';
+
     html += `
-      <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-        <td style="padding:15px; font-weight:600;">${date}</td>
-        <td style="padding:15px; font-family:'IBM Plex Mono'; color:var(--blue);">${formatTime(h.study.totalSeconds)}</td>
-        <td style="padding:15px;">${h.study.sessionsCount}</td>
-        <td style="padding:15px; color:var(--green);">${h.jobs ? h.jobs.newCount : 0}</td>
-        <td style="padding:15px; font-size:0.75rem; opacity:0.8;">${(h.study.allTopics || [h.study.topTopic]).join(', ')}</td>
-      </tr>`;
+      <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:1.2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:0.8rem; font-weight:700; color:var(--text);">${date}</span>
+          <span style="font-size:0.85rem; color:var(--blue); font-family:'IBM Plex Mono'; font-weight:700;">${formatTime(h.study.totalSeconds)}</span>
+        </div>
+        <button onclick="showHistoryModal('${date}')" style="width:100%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); color:var(--text); padding:8px; border-radius:8px; font-size:0.75rem; font-weight:600; cursor:pointer;">Analyze Topics</button>
+        <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; font-size:0.65rem; color:var(--green); display:flex; justify-content:space-between;">
+           <span>Radar Matches</span>
+           <span>+${h.jobs ? h.jobs.newCount : 0} Hits</span>
+        </div>
+      </div>`;
   });
-  
-  html += `</tbody></table>`;
+  html += '</div>';
   container.innerHTML = html;
 }
 
 function renderAnalyticsView(container, dates, histories) {
   const topicStats = {};
-  let totalJobsFound = 0;
+  const topicDetails = {};
   
   dates.forEach(date => {
     const h = histories[date];
-    totalJobsFound += (h.jobs ? h.jobs.newCount : 0);
-    const tList = h.study.allTopics || [h.study.topTopic];
-    const timePerTopic = h.study.totalSeconds / tList.length;
-    tList.forEach(t => {
-      if (t === 'None') return;
-      topicStats[t] = (topicStats[t] || 0) + timePerTopic;
-    });
+    const breakdown = h.study.topicBreakdown || {};
+    
+    if (Object.keys(breakdown).length > 0) {
+      Object.keys(breakdown).forEach(t => {
+        if (t === 'None') return;
+        topicStats[t] = (topicStats[t] || 0) + (breakdown[t].totalSeconds || 0);
+        if (!topicDetails[t]) topicDetails[t] = { sessions: 0, lastDate: date };
+        topicDetails[t].sessions += (h.study.sessionsCount || 1);
+        if (date > topicDetails[t].lastDate) topicDetails[t].lastDate = date;
+      });
+    } else if (h.study.totalSeconds > 0) {
+      // Fallback for old data: assume topTopic or distribute among allTopics
+      const topT = h.study.topTopic || (h.study.allTopics && h.study.allTopics[0]) || 'General';
+      topicStats[topT] = (topicStats[topT] || 0) + h.study.totalSeconds;
+      if (!topicDetails[topT]) topicDetails[topT] = { sessions: 0, lastDate: date };
+      topicDetails[topT].sessions += (h.study.sessionsCount || 1);
+    }
   });
 
   const sortedTopics = Object.keys(topicStats).sort((a,b) => topicStats[b] - topicStats[a]);
+  let html = '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px; margin-top:1rem;">';
   
-  let html = `<div style="margin-top:10px; display:grid; grid-template-columns: 2fr 1fr; gap:20px;">
-    <div>
-      <h4 style="margin-bottom:1.5rem; color:var(--muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">Study Goal Tracking</h4>`;
-  
-  sortedTopics.forEach(t => {
+  sortedTopics.forEach((t, idx) => {
     let cfg = null;
     for (let id in topicConfig) { if (topicConfig[id].name === t || t.startsWith(topicConfig[id].name)) { cfg = topicConfig[id]; break; } }
     const spent = topicStats[t];
     const target = cfg ? (cfg.recommended * 60) : 3600;
     const pct = Math.min((spent / target) * 100, 100);
-    const isExceeded = (spent >= target);
+    const details = topicDetails[t];
     
+    const colors = ['#4f8ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const accent = colors[idx % colors.length];
+
     html += `
-      <div style="margin-bottom:1.5rem; background:rgba(255,255,255,0.02); padding:1rem; border-radius:8px; border:1px solid rgba(255,255,255,0.05);">
-        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:10px;">
-          <div><div style="font-weight:700; color:var(--text); font-size:0.9rem;">${t}</div><div style="font-size:0.7rem; color:var(--muted);">Target: ${formatTime(target)} · Spent: <b style="color:var(--blue);">${formatTime(spent)}</b></div></div>
-          <div style="text-align:right;"><div style="font-size:0.9rem; font-weight:700; color:${isExceeded ? 'var(--green)' : 'var(--blue)'};">${Math.round(pct)}%</div></div>
+      <div style="background:rgba(255,255,255,0.02); padding:1.2rem; border-radius:12px; border:1px solid rgba(255,255,255,0.05); position:relative; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+        <div style="position:absolute; top:0; left:0; height:100%; width:4px; background:${accent};"></div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+          <div style="font-size:1rem; font-weight:700; color:var(--text); line-height:1.2;">${t}</div>
+          <div style="font-size:0.7rem; font-weight:700; color:${accent}; background:rgba(255,255,255,0.05); padding:3px 10px; border-radius:10px;">${Math.round(pct)}% Done</div>
         </div>
-        <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; overflow:hidden;"><div style="height:100%; width:${pct}%; background:linear-gradient(90deg, ${isExceeded ? 'var(--green)' : 'var(--blue)'}, #a78bfa);"></div></div>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:1.5rem;">
+          <div style="background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">
+            <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase;">Total Time</div>
+            <div style="font-size:1rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${formatTime(spent)}</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02); padding:8px; border-radius:8px;">
+            <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase;">Sessions</div>
+            <div style="font-size:1rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${details.sessions}</div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.7rem; color:var(--muted); margin-bottom:10px;">
+           <span>Target: ${formatTime(target)}</span>
+           <span>Last: ${details.lastDate}</span>
+        </div>
+
+        <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+          <div style="height:100%; width:${pct}%; background:${accent}; box-shadow:0 0 10px ${accent}44;"></div>
+        </div>
       </div>`;
   });
   
-  html += `</div>
-    <div style="background:rgba(79,142,247,0.05); border:1px solid rgba(79,142,247,0.1); border-radius:12px; padding:1.5rem; height:fit-content;">
-      <h4 style="margin-bottom:1rem; color:var(--blue); font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Radar Deep Info</h4>
-      <div style="font-size:1.5rem; font-weight:700; color:var(--text); margin-bottom:5px;">${totalJobsFound}</div>
-      <div style="font-size:0.75rem; color:var(--muted); margin-bottom:1.5rem;">New Jobs Discovered</div>
-      <p style="font-size:0.75rem; line-height:1.6; color:var(--muted);">Your Agent has identified these top opportunities during your study sessions in this period.</p>
-    </div>
-  </div>`;
+  html += '</div>';
   container.innerHTML = html;
 }
 
@@ -980,8 +1101,22 @@ async function renderTimetable() {
   }
 }
 
-function toggleTask(index) {
-  toggleTaskOnServer(index);
+function switchTrackerTab(tabId) {
+  // Update Buttons
+  document.querySelectorAll('.tracker-tab').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick').includes(tabId)) btn.classList.add('active');
+  });
+  
+  // Update Content
+  document.querySelectorAll('.tracker-content').forEach(content => {
+    content.style.display = 'none';
+  });
+  const target = document.getElementById(tabId);
+  if (target) target.style.display = 'block';
+
+  // Save preference
+  localStorage.setItem('last_tracker_tab', tabId);
 }
 
 // Update showPage to include timetable rendering
@@ -1014,8 +1149,18 @@ async function showPage(id) {
     fetchJobsList();
   }
   
-  if (id !== 'study_tracker' && id !== 'job_radar' && id !== 'study_history') { await startTracking(id); }
-  else { await updateTrackerUI(); updateFloatingTimer(); }
+  if (id === 'study_tracker') {
+    const lastTab = localStorage.getItem('last_tracker_tab') || 'tab_suggestions';
+    switchTrackerTab(lastTab);
+    updateTrackerUI(); 
+    updateFloatingTimer(); 
+  }
+
+  // START TRACKING IF TOPIC
+  const cfg = topicConfig[id];
+  if (cfg && !cfg.noTimer) {
+    startTracking(id);
+  }
 }
 
 function toggleQA(el) { 
@@ -1062,6 +1207,102 @@ function goToResult(pageId, idx) {
   setTimeout(function() { if (searchData[idx] && searchData[idx].answerEl) { searchData[idx].answerEl.scrollIntoView({behavior:'smooth',block:'center'}); searchData[idx].answerEl.classList.add('open'); } }, 200);
 }
 
+let cachedHistories = {};
+
+async function showHistoryModal(date) {
+  console.log('[HistoryModal] Attempting to open for date:', date);
+  const h = cachedHistories[date];
+  if (!h) {
+    console.error('[HistoryModal] No cached data found for date:', date);
+    alert('No data found for this date. Please click Sync Dashboard first.');
+    return;
+  }
+  console.log('[HistoryModal] Cached Data:', JSON.stringify(h, null, 2));
+
+  const modal = document.getElementById('historyModal');
+  const dateEl = document.getElementById('modalDate');
+  const body = document.getElementById('modalBody');
+  
+  dateEl.textContent = date;
+  modal.classList.add('active');
+  modal.style.display = 'flex';
+
+  const sData = h.study || {};
+  const b = sData.breakdown || sData.topicBreakdown || {};
+  const topicList = Object.keys(b).map(tid => ({
+    id: tid,
+    name: b[tid].name || tid,
+    totalSeconds: b[tid].totalSeconds || 0
+  }));
+
+  let topicHtml = '';
+  
+  if (topicList.length > 0) {
+    topicList.forEach(t => {
+      const id = t.id;
+      const name = t.name;
+      const spent = t.totalSeconds || 0;
+      const cfg = topicConfig[id] || { recommended: 60 };
+      const target = cfg.recommended * 60;
+      const pct = Math.min((spent / target) * 100, 100);
+
+      topicHtml += `
+        <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:1rem;">📚</div>
+              <div>
+                <div style="font-size:0.9rem; font-weight:700; color:var(--text);">${name}</div>
+                <div style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono';">SPENT: ${formatTime(spent)}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.85rem; font-weight:700; color:var(--blue);">${Math.round(pct)}%</div>
+              <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase;">Goal: ${Math.round(target/60)}m</div>
+            </div>
+          </div>
+          <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+            <div style="height:100%; width:${Math.max(pct, 2)}%; background:linear-gradient(90deg, var(--blue), #60a5fa);"></div>
+          </div>
+        </div>`;
+    });
+  } else {
+    topicHtml = `<div style="text-align:center; padding:2rem; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed var(--border);">
+      <div style="font-size:1.1rem; font-weight:700; color:var(--text); margin-bottom:5px;">Study Session</div>
+      <div style="font-size:0.8rem; color:var(--muted);">No specific topics were logged for this date.</div>
+    </div>`;
+  }
+  
+  const jobsHtml = h.jobs && h.jobs.topMatches && h.jobs.topMatches.length > 0 ? 
+    h.jobs.topMatches.map(j => `<div style="padding:10px; background:rgba(255,255,255,0.02); border-radius:8px; margin-bottom:8px; font-size:0.8rem; border-left:3px solid var(--green);"><b>${j.title}</b> at ${j.company}</div>`).join('') :
+    '<div style="color:var(--muted); font-size:0.8rem;">No high-score matches found in this period.</div>';
+
+  body.innerHTML = `
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:2rem;">
+      <div style="background:rgba(79,142,247,0.1); padding:1rem; border-radius:12px; text-align:center;">
+        <div style="font-size:0.65rem; color:var(--blue); text-transform:uppercase; margin-bottom:5px;">Total Duration</div>
+        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:\'IBM Plex Mono\';">${formatTime(h.study.totalSeconds)}</div>
+      </div>
+      <div style="background:rgba(61,214,140,0.1); padding:1rem; border-radius:12px; text-align:center;">
+        <div style="font-size:0.65rem; color:var(--green); text-transform:uppercase; margin-bottom:5px;">Radar Hits</div>
+        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:\'IBM Plex Mono\';">+${h.jobs ? h.jobs.newCount : 0}</div>
+      </div>
+    </div>
+
+    <h4 style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:1.2rem;">Detailed Subject Breakdown</h4>
+    ${topicHtml}
+
+    <h4 style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin:2rem 0 1rem;">Radar Insights (Top Matches)</h4>
+    ${jobsHtml}
+  `;
+
+  modal.style.display = 'flex';
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').style.display = 'none';
+}
+
 // Lifecycle
 window.addEventListener('beforeunload', function() { stopTracking(); });
 document.addEventListener('visibilitychange', function() {
@@ -1075,4 +1316,83 @@ document.addEventListener('visibilitychange', function() {
 const lastTab = localStorage.getItem('last_active_tab') || 'schedule';
 showPage(lastTab);
 fetchJobRadarSummary();
-console.log('Salesforce & FDE Interview Prep Guide loaded.');
+// AI INTERVIEW SYSTEM
+let interviewMessages = [];
+
+async function startAIInterview() {
+  const topic = document.getElementById('interviewTopic').value;
+  const difficulty = document.getElementById('interviewDifficulty').value;
+  
+  const chatContainer = document.getElementById('interviewChat');
+  chatContainer.innerHTML = '';
+  document.getElementById('interviewInputArea').style.display = 'block';
+  document.getElementById('interviewSetup').style.opacity = '0.5';
+  document.getElementById('interviewSetup').style.pointerEvents = 'none';
+
+  addChatMessage('ai', `Hello! I am your AI Interviewer. We will be discussing ${topic} at a ${difficulty} level today. Let's begin. <br><br><b>First Question:</b> Can you tell me about your experience with ${topic} and how you handle complex requirements in this area?`);
+}
+
+async function submitAnswer() {
+  const input = document.getElementById('userAnswerInput');
+  const answer = input.value.trim();
+  if (!answer) return;
+
+  addChatMessage('user', answer);
+  input.value = '';
+  
+  const statusEl = document.getElementById('aiThinkingStatus');
+  statusEl.style.display = 'inline';
+
+  try {
+    const topic = document.getElementById('interviewTopic').value;
+    const difficulty = document.getElementById('interviewDifficulty').value;
+    
+    const res = await fetch('/api/ai/interview', {
+      method: 'POST',
+      body: JSON.stringify({ prompt: answer, topic, difficulty })
+    });
+    
+    const data = await res.json();
+    statusEl.style.display = 'none';
+    
+    if (data.error) {
+      addChatMessage('ai', '⚠️ ' + data.error);
+    } else {
+      addChatMessage('ai', data.response);
+    }
+  } catch (e) {
+    statusEl.style.display = 'none';
+    addChatMessage('ai', '⚠️ Failed to connect to local AI engine.');
+  }
+}
+
+function addChatMessage(role, text) {
+  const container = document.getElementById('interviewChat');
+  const msg = document.createElement('div');
+  msg.style.padding = '1rem';
+  msg.style.borderRadius = '12px';
+  msg.style.maxWidth = '85%';
+  msg.style.lineHeight = '1.6';
+  
+  if (role === 'ai') {
+    msg.style.alignSelf = 'flex-start';
+    msg.style.background = 'rgba(79,142,247,0.1)';
+    msg.style.borderLeft = '4px solid var(--blue)';
+    msg.style.color = 'var(--text)';
+  } else {
+    msg.style.alignSelf = 'flex-end';
+    msg.style.background = 'var(--blue)';
+    msg.style.color = 'white';
+  }
+  
+  msg.innerHTML = text;
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+// Support Ctrl+Enter to submit
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'Enter' && document.activeElement.id === 'userAnswerInput') {
+    submitAnswer();
+  }
+});

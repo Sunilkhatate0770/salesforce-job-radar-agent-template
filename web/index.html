@@ -69,6 +69,7 @@
     <div class="nav-item" onclick="showPage('vocab')">📖 Vocab & Phrases <span class="count">60 W</span></div>
     <div class="nav-item" onclick="showPage('salary')">💰 Salary & Negotiation <span class="count">Scripts</span></div>
     <div class="nav-item" onclick="showPage('mock')">🎯 Mock Interview <span class="count">3 Full</span></div>
+    <div class="nav-item" onclick="showPage('ai_interview')" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); color:#c4b5fd;">🤖 AI Mock Interview <span class="count" style="background:#8b5cf6;">Gemma 4</span></div>
   </div>
 
   <div class="nav-parent-section">
@@ -12273,38 +12274,57 @@ public class LoanStatusActionTest {
       <div class="stat-box"><div class="stat-value" id="courseRemainingTime">0h 0m</div><div class="stat-label">Total Left</div></div>
     </div>
   </div>
+  <div class="stats-row" style="margin-bottom: 2rem;">
     <div class="stat-box"><div class="stat-value" id="totalStudyTime">0h 0m</div><div class="stat-label">Total Study Time</div></div>
     <div class="stat-box"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">Total Sessions</div></div>
     <div class="stat-box"><div class="stat-value" id="totalTopics">0 / 0</div><div class="stat-label">Topics Studied</div></div>
     <div class="stat-box"><div class="stat-value" id="todayTime">0h 0m</div><div class="stat-label">Today's Time</div></div>
-    <div class="stat-box">
-      <div class="stat-value" id="currentlyStudying">—</div>
-      <div class="stat-label"><span class="active-indicator" id="activeLight" style="display:none;"></span>Currently Active</div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:10px; overflow-x:auto;">
+    <button class="tracker-tab active" onclick="switchTrackerTab('tab_suggestions')">💡 Suggestions</button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_chart')">📊 Time Distribution</button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_topics')">🗂 Topic Master</button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_history')">📅 Session Log</button>
+  </div>
+
+  <div id="tab_suggestions" class="tracker-content" style="display:block;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">💡 Smart Study Suggestions</h3>
+    <div id="suggestions"></div>
+  </div>
+
+  <div id="tab_chart" class="tracker-content" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text);">📈 Time Distribution</h3>
+      <button class="reset-btn" onclick="resetTracker()">⚠ Reset All Data</button>
     </div>
+    <div id="timeChart" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;"></div>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
-    <h3 style="font-size:1rem;font-weight:600;color:var(--text);">📈 Time Distribution</h3>
-    <button class="reset-btn" onclick="resetTracker()">⚠ Reset All Data</button>
+  <div id="tab_topics" class="tracker-content" style="display:none;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">🗂 Topic Completion Details</h3>
+    <div class="tracker-grid" id="trackerGrid"></div>
   </div>
 
-  <div id="timeChart" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;"></div>
-
-  <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">💡 Study Suggestions</h3>
-  <div id="suggestions"></div>
-
-  <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin:1.5rem 0 1rem;">🗂 Topic Details</h3>
-  <div class="tracker-grid" id="trackerGrid"></div>
-
-  <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin:1.5rem 0 1rem;">📅 Session History (Last 10)</h3>
-  <div id="sessionHistory" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;"></div>
+  <div id="tab_history" class="tracker-content" style="display:none;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">📅 Recent Session History</h3>
+    <div id="sessionHistory" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;"></div>
+  </div>
 </div><!-- end study_tracker -->
 
 
 <!-- STUDY HISTORY PAGE -->
 <div id="study_history" class="page">
-  <div class="page-title">📅 Master Study History</div>
-  <div class="page-sub">Day-by-day breakdown of your preparation journey.</div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:15px;">
+    <div>
+      <div class="page-title">📅 Master Study History</div>
+      <div class="page-sub" style="border:none; margin:0; padding:0;">Day-by-day breakdown of your preparation journey.</div>
+    </div>
+    <button id="syncHistoryBtn" onclick="syncHistoryWithFeedback()" class="tracker-tab active" style="background:var(--blue); color:white; border:none; padding:10px 20px; box-shadow:0 4px 15px rgba(79,142,247,0.3); display:flex; align-items:center; gap:10px; min-width:160px; justify-content:center;">
+      <span id="syncIcon" style="display:inline-block; transition: transform 0.5s;">🔄</span> 
+      <span id="syncText">Sync Dashboard</span>
+    </button>
+  </div>
   
   <div class="stats-row" style="margin-bottom:1.5rem;">
     <div class="stat-box"><div class="stat-value" id="historyAvgTime">0h 0m</div><div class="stat-label">Daily Average</div></div>
@@ -12313,25 +12333,43 @@ public class LoanStatusActionTest {
   </div>
 
   <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-      <h3 style="font-size:1.1rem; color:var(--text);">Select Period</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:10px;">
       <div style="display:flex; gap:10px;">
-        <select id="historyViewMode" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
-          <option value="timeline">Timeline View</option>
-          <option value="table">Table Report</option>
-          <option value="analytics">Analytics Charts</option>
-        </select>
-        <select id="historyPeriodFilter" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
-          <option value="today">Today Only</option>
-          <option value="yesterday">Yesterday</option>
-          <option value="current_month">Current Month (Live)</option>
-          <option value="last3">Last 3 Months</option>
-          <option value="year">Full Year (2026)</option>
-        </select>
+        <button class="history-tab active" onclick="switchHistoryTab('timeline')">📅 Timeline</button>
+        <button class="history-tab" onclick="switchHistoryTab('table')">📊 Table</button>
+        <button class="history-tab" onclick="switchHistoryTab('analytics')">📈 Analytics</button>
       </div>
+      <select id="historyPeriodFilter" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
+        <option value="today">Today Only</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="current_month" selected>Current Month (Live)</option>
+        <option value="last3">Last 3 Months</option>
+        <option value="year">Full Year (2026)</option>
+      </select>
     </div>
     <div id="historyTimeline">
       <!-- Content will be injected based on view mode -->
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY DETAIL MODAL -->
+<div id="historyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:650px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: auto; position: relative; top: 50%; transform: translateY(-50%);">
+    <div style="padding:1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+      <div>
+        <div id="modalDate" style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;"></div>
+        <div id="modalTitle" style="font-size:1.2rem; font-weight:700; color:var(--text);">Daily Study Report</div>
+      </div>
+      <button onclick="closeHistoryModal()" style="background:rgba(255,255,255,0.05); border:none; color:var(--muted); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+    
+    <div id="modalBody" style="padding:2rem; max-height:70vh; overflow-y:auto;">
+      <!-- Dynamic content injected here -->
+    </div>
+
+    <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); text-align:right;">
+      <button onclick="closeHistoryModal()" style="background:var(--blue); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Close Report</button>
     </div>
   </div>
 </div>
@@ -12358,6 +12396,59 @@ public class LoanStatusActionTest {
 
   <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">📝 Tracked Applications</h3>
   <div id="jobsListContainer"></div>
+</div>
+
+<!-- AI MOCK INTERVIEW PAGE -->
+<div id="ai_interview" class="page">
+  <div class="page-title">🤖 Gemma 4 AI Interview Room</div>
+  <div class="page-sub">Interactive practice sessions with real-time feedback from your local AI agent.</div>
+  
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; height:600px; display:flex; flex-direction:column; overflow:hidden;">
+    <!-- Interview Config -->
+    <div id="interviewSetup" style="padding:1.5rem; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+      <div style="display:flex; gap:20px; align-items:center;">
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Pick Interview Topic</label>
+          <select id="interviewTopic" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+            <option value="Apex & Technical">Apex & Technical Development</option>
+            <option value="LWC & Frontend">LWC & Frontend Engineering</option>
+            <option value="Architecture & Scenarios">Architecture & Complex Scenarios</option>
+            <option value="Behavioral & HR">Behavioral & STAR Method</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Difficulty Level</label>
+          <select id="interviewDifficulty" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+            <option value="Junior">Junior / Mid-Level</option>
+            <option value="Senior" selected>Senior Technical Architect</option>
+            <option value="Expert">Subject Matter Expert (Hard)</option>
+          </select>
+        </div>
+        <button onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; margin-top:1.5rem;">Start Session</button>
+      </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div id="interviewChat" style="flex:1; overflow-y:auto; padding:1.5rem; display:flex; flex-direction:column; gap:1.5rem;">
+      <div style="text-align:center; color:var(--muted); margin-top:100px;">
+        <div style="font-size:3rem; margin-bottom:1rem;">🤖</div>
+        <h3>Welcome to the Interview Room</h3>
+        <p>Your local Gemma 4 engine is ready to challenge you.</p>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div id="interviewInputArea" style="padding:1.5rem; border-top:1px solid var(--border); display:none;">
+      <div style="display:flex; gap:10px;">
+        <textarea id="userAnswerInput" placeholder="Type your answer here..." style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:1rem; min-height:80px; font-family:inherit; resize:none;"></textarea>
+        <button onclick="submitAnswer()" style="background:var(--green); color:black; border:none; padding:0 2rem; border-radius:8px; font-weight:700; cursor:pointer;">Submit<br>Answer</button>
+      </div>
+      <div style="font-size:0.7rem; color:var(--muted); margin-top:8px; display:flex; justify-content:space-between;">
+        <span>Press Ctrl+Enter to submit</span>
+        <span id="aiThinkingStatus" style="display:none; color:var(--blue);">🤖 Gemma is thinking...</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 </div><!-- end #main -->

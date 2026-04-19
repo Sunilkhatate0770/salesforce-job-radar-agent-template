@@ -184,7 +184,9 @@ const server = http.createServer(async (req, res) => {
 
   if (url === '/api/summary/daily' && method === 'GET') {
     try {
-      const summary = generateDailySummary();
+      const summaries = generateDailySummary();
+      const todayStr = new Date().toISOString().split('T')[0];
+      const summary = summaries[todayStr] || { date: todayStr, study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, jobs: { newCount: 0, topMatches: [] } };
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(summary));
     } catch (e) {
@@ -196,13 +198,11 @@ const server = http.createServer(async (req, res) => {
 
   if (url === '/api/summary/all' && method === 'GET') {
     try {
-      // Ensure "Today" is updated in real-time before fetching all
-      generateDailySummary();
-      
-      const summaryPath = path.join(CACHE_DIR, 'daily-summaries.json');
-      let summaries = {};
-      if (fs.existsSync(summaryPath)) {
-        summaries = JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+      // Rebuild and return directly to avoid file-read race conditions
+      const summaries = generateDailySummary();
+      console.log('[API] Sending summaries for dates:', Object.keys(summaries));
+      if (summaries['2026-04-19']) {
+          console.log('[API] Today Study breakdown:', Object.keys(summaries['2026-04-19'].study.breakdown));
       }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(summaries));
@@ -210,6 +210,43 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(500);
       res.end(JSON.stringify({ error: 'Failed to fetch history' }));
     }
+    return;
+  }
+
+  if (url === '/api/ai/interview' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { prompt, topic, difficulty } = JSON.parse(body);
+        
+        // Construct a specialized system prompt for the interview
+        const systemPrompt = `You are a Senior Salesforce Technical Interviewer. 
+        Topic: ${topic}. Difficulty: ${difficulty}.
+        Conduct a realistic interview. Ask one technical question at a time. 
+        When the user answers, provide brief feedback (Score 1-10) and then ask the next follow-up question.
+        Be professional and challenging. 
+        User Input: ${prompt}`;
+
+        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+          method: 'POST',
+          body: JSON.stringify({
+            model: 'gemma:2b', // or gemma:7b based on user's setup
+            prompt: systemPrompt,
+            stream: false
+          })
+        });
+
+        if (!ollamaRes.ok) throw new Error('Ollama not responding');
+        const aiData = await ollamaRes.json();
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ response: aiData.response }));
+      } catch (e) {
+        res.writeHead(500);
+        res.end(JSON.stringify({ error: 'AI engine unavailable. Make sure Ollama is running with Gemma.' }));
+      }
+    });
     return;
   }
 

@@ -248,7 +248,7 @@ pre.code .num{color:var(--purple);}
 .chart-bar-time{font-size:0.68rem;color:var(--muted);min-width:60px;font-family:'IBM Plex Mono',monospace;}
 
 /* FLOATING TIMER */
-#floatingTimer{position:fixed;top:12px;right:16px;z-index:9999;background:rgba(23,29,46,0.95);backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:14px;padding:8px 14px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;box-shadow:0 4px 20px rgba(0,0,0,0.4);transition:all 0.3s;cursor:default;}
+#floatingTimer{position:fixed;bottom:20px;right:24px;z-index:99999;background:rgba(23,29,46,0.95);backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:14px;padding:8px 14px;display:none;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;box-shadow:0 10px 30px rgba(0,0,0,0.6);transition:all 0.3s;cursor:default;}
 #floatingTimer:hover{border-color:var(--blue);box-shadow:0 4px 24px rgba(79,142,247,0.15);}
 #floatingTimer .ft-topic{font-size:0.68rem;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 #floatingTimer .ft-time{font-size:1rem;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;min-width:60px;text-align:center;}
@@ -379,3 +379,28 @@ pre.code .num{color:var(--purple);}
   padding: 2px 5px;
   border-radius: 4px;
 }
+
+/* TRACKER TABS */
+.tracker-tab { background: rgba(255,255,255,0.02); border: 1px solid var(--border); color: var(--muted); padding: 8px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
+.tracker-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); border-color: var(--border2); }
+.tracker-tab.active { color: var(--blue); background: rgba(79,142,247,0.1); border-color: var(--blue); box-shadow: 0 4px 12px rgba(79,142,247,0.1); }
+.tracker-content { animation: slideUpFade 0.3s ease-out; }
+@keyframes slideUpFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* CUSTOM SCROLLBAR */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--blue); }
+
+
+/* HISTORY TABS */
+.history-tab { background: transparent; border: none; color: var(--muted); padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+.history-tab:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.history-tab.active { background: var(--blue); color: white; box-shadow: 0 4px 10px rgba(79,142,247,0.2); }
+
+
+/* SYNC ANIMATION */
+.spin { animation: syncSpin 1s linear infinite; }
+@keyframes syncSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
