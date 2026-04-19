@@ -102,10 +102,13 @@ async function getStudyData() {
 
     const topics = {};
     (sessions || []).forEach(s => {
-      const tid = s.topic;
+      const tid = s.topic || s.topicId; // Handle both variants
       if (!tid) return;
+      
+      const duration = Number(s.duration || 0);
       if (!topics[tid]) topics[tid] = { totalSeconds: 0, sessions: 0, lastStudied: null };
-      topics[tid].totalSeconds += (s.duration || 0);
+      
+      topics[tid].totalSeconds += duration;
       topics[tid].sessions += 1;
       
       const sessDate = new Date(s.startTime || s.date);
@@ -114,7 +117,7 @@ async function getStudyData() {
       }
     });
     
-    console.log('[Cloud] Rebuilt Topics:', topics);
+    console.log('[Cloud] SUCCESS! Topics Rebuilt:', topics);
     return { topics, sessions, completedTasks };
   } catch(e) { 
     console.error('[Cloud] Sync Error:', e);
