@@ -1068,22 +1068,33 @@ function renderJobsList(jobs) {
   }
   
   container.innerHTML = jobs.map(job => `
-    <div class="job-card">
+    <div class="job-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem;">
       <div class="job-info">
-        <div class="job-title">${job.title}</div>
-        <div class="job-company">${job.company} · ${job.location}</div>
-        <div style="margin-top:0.5rem;">
+        <div class="job-title" style="font-size: 1.1rem; font-weight: 700; color: var(--text);">${job.title}</div>
+        <div class="job-company" style="font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem;">${job.company} · ${job.location}</div>
+        <div style="margin-top:0.8rem; display:flex; gap: 10px; align-items:center;">
           <span class="job-status-badge job-status-${job.status}">${job.status}</span>
-          <span style="font-size:0.7rem;color:var(--muted);margin-left:0.5rem;">Match: ${job.match_score}%</span>
+          <span style="font-size:0.75rem; font-weight: 700; color: ${job.match_score > 70 ? 'var(--green)' : 'var(--blue)'};">Match: ${job.match_score || 0}%</span>
         </div>
       </div>
-      <div class="job-actions">
-        <button class="btn-action" onclick="window.open('${job.apply_link}', '_blank')">Apply</button>
-        <button class="btn-action" onclick="updateJobStatus('${job.job_hash}', 'applied')">Mark Applied</button>
+      
+      ${job.resume_actions && job.resume_actions.length > 0 ? `
+      <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
+        <div style="font-size: 0.65rem; color: var(--blue); font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 1px; font-family: 'IBM Plex Mono', monospace;">🧠 GEMMA 4 AI ANALYSIS</div>
+        <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; color: rgba(255,255,255,0.8);">
+          ${job.resume_actions.map(action => `<li style="margin-bottom: 0.3rem;">${action}</li>`).join('')}
+        </ul>
+      </div>
+      ` : ''}
+
+      <div class="job-actions" style="margin-top: 1.2rem; display:flex; gap: 10px;">
+        <button class="btn-action" onclick="window.open('${job.apply_link}', '_blank')" style="background: var(--blue); border: none; padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-weight: 600; font-size: 0.8rem;">Apply Now</button>
+        <button class="btn-action" onclick="updateJobStatus('${job.job_hash}', 'applied')" style="background: transparent; border: 1px solid var(--blue); padding: 8px 16px; border-radius: 8px; color: var(--blue); cursor: pointer; font-weight: 600; font-size: 0.8rem;">Mark Applied</button>
       </div>
     </div>
   `).join('');
 }
+
 
 async function updateJobStatus(hash, status) {
   try {
