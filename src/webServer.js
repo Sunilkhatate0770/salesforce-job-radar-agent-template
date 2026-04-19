@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 const CACHE_DIR = path.join(process.cwd(), '.cache');
-const WEB_DIR = path.join(__dirname, '..', 'web');
+const WEB_DIR = path.join(process.cwd(), 'web');
 
 // MongoDB Connection
 let isMongoConnected = false;
@@ -25,8 +25,9 @@ if (process.env.MONGODB_URI) {
     .catch(err => console.error('[DB] MongoDB Connection Error:', err));
 }
 
-const server = http.createServer(async (req, res) => {
-  const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+// THE HANDLER (Exported for Vercel)
+export default async function handler(req, res) {
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const url = parsedUrl.pathname;
   const method = req.method;
 
@@ -303,9 +304,13 @@ const server = http.createServer(async (req, res) => {
 
   res.writeHead(404);
   res.end('Not Found');
-});
+}
 
-server.listen(PORT, () => {
-  console.log(`\n🚀 Dashboard server running at http://localhost:${PORT}`);
-  console.log(`📡 Job Radar API integrated with local dedupe storage\n`);
-});
+// Support local running
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const server = http.createServer(handler);
+  server.listen(PORT, () => {
+    console.log(`\n🚀 Dashboard server running at http://localhost:${PORT}`);
+    console.log(`📡 Job Radar API integrated with local dedupe storage\n`);
+  });
+}
