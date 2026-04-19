@@ -50,6 +50,12 @@ jobs:
 
       - name: Load environment variables
         run: |
+          EMAIL_TO_VALUE="${{ secrets.EMAIL_TO }}"
+          RESEND_TO_VALUE="${{ secrets.RESEND_TO }}"
+          if [ -z "$RESEND_TO_VALUE" ]; then
+            RESEND_TO_VALUE="$EMAIL_TO_VALUE"
+          fi
+
           echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}" >> $GITHUB_ENV
           echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> $GITHUB_ENV
           echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> $GITHUB_ENV
@@ -58,9 +64,10 @@ jobs:
           echo "SMTP_USER=${{ secrets.SMTP_USER }}" >> $GITHUB_ENV
           echo "SMTP_PASS=${{ secrets.SMTP_PASS }}" >> $GITHUB_ENV
           echo "EMAIL_FROM=${{ secrets.EMAIL_FROM }}" >> $GITHUB_ENV
-          echo "EMAIL_TO=${{ secrets.EMAIL_TO }}" >> $GITHUB_ENV
+          echo "EMAIL_TO=$EMAIL_TO_VALUE" >> $GITHUB_ENV
           echo "RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}" >> $GITHUB_ENV
           echo "RESEND_FROM=${{ secrets.RESEND_FROM }}" >> $GITHUB_ENV
+          echo "RESEND_TO=$RESEND_TO_VALUE" >> $GITHUB_ENV
           echo "RESEND_REPLY_TO=${{ secrets.RESEND_REPLY_TO }}" >> $GITHUB_ENV
           echo "ADZUNA_APP_ID=${{ secrets.ADZUNA_APP_ID }}" >> $GITHUB_ENV
           echo "ADZUNA_APP_KEY=${{ secrets.ADZUNA_APP_KEY }}" >> $GITHUB_ENV
@@ -72,11 +79,12 @@ jobs:
 
       - name: Validate email provider configuration
         run: |
+          RESEND_RECIPIENT="${RESEND_TO:-$EMAIL_TO}"
           if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ] || [ -z "$EMAIL_FROM" ] || [ -z "$EMAIL_TO" ]; then
-            if [ -z "$RESEND_API_KEY" ] || [ -z "$RESEND_FROM" ] || [ -z "$RESEND_TO" ]; then
+            if [ -z "$RESEND_API_KEY" ] || [ -z "$RESEND_FROM" ] || [ -z "$RESEND_RECIPIENT" ]; then
               echo "ERROR: No email provider configured. Set SMTP_* or RESEND_* secrets." >&2
               echo "  Required (SMTP): SMTP_USER, SMTP_PASS, EMAIL_FROM, EMAIL_TO" >&2
-              echo "  Or (Resend): RESEND_API_KEY, RESEND_FROM, RESEND_TO" >&2
+              echo "  Or (Resend): RESEND_API_KEY, RESEND_FROM, RESEND_TO or EMAIL_TO" >&2
               exit 1
             fi
           fi

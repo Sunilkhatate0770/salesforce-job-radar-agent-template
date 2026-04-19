@@ -6,6 +6,7 @@
   "main": "src/run.js",
   "scripts": {
     "start": "node src/run.js",
+    "web": "node src/webServer.js",
     "doctor": "node src/tools/doctor.js",
     "doctor:cloud": "node src/tools/cloudDoctor.js",
     "coverage:report": "node src/tools/coverageReport.js",

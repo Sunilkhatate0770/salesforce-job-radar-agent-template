@@ -408,32 +408,35 @@ function buildPrompt({ job, profile, analysis }) {
 
 async function getAiActions({ job, profile, analysis }) {
   if (!isTruthy(process.env.RESUME_AI_ENABLED)) return [];
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return [];
+  const ollamaHost = process.env.OLLAMA_HOST || "http://localhost:11434";
+  const model = process.env.RESUME_AI_MODEL || "gemma4:e4b";
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(`${ollamaHost}/api/generate`, {
       method: "POST",
       headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${apiKey}`
+        "content-type": "application/json"
       },
       body: JSON.stringify({
-        model: process.env.RESUME_AI_MODEL || "gpt-4.1-mini",
-        temperature: 0.2,
-        max_output_tokens: 220,
-        input: buildPrompt({ job, profile, analysis })
+        model: model,
+        prompt: buildPrompt({ job, profile, analysis }),
+        stream: false,
+        options: {
+          temperature: 0.2,
+          num_predict: 250,
+          num_ctx: 4096
+        }
       })
     });
 
     if (!response.ok) {
       const text = await response.text();
-      console.log(`⚠️ Resume AI suggestion failed: ${text.slice(0, 140)}`);
+      console.log(`⚠️ Local AI suggestion failed: ${text.slice(0, 140)}`);
       return [];
     }
 
     const data = await response.json();
-    const outputText = String(data?.output_text || "").trim();
+    const outputText = String(data?.response || "").trim();
     if (!outputText) return [];
 
     return outputText
@@ -442,7 +445,7 @@ async function getAiActions({ job, profile, analysis }) {
       .filter(Boolean)
       .slice(0, 3);
   } catch (error) {
-    console.log(`⚠️ Resume AI suggestion error: ${error.message}`);
+    console.log(`⚠️ Local AI suggestion error: ${error.message}`);
     return [];
   }
 }
