@@ -41,7 +41,7 @@ export function generateDailySummary(providedSessions = null) {
     const daySessions = studyData.sessions.filter(s => {
       if (!s.date) return false;
       const sDate = String(s.date).trim();
-      return sDate.startsWith(finalDate);
+      return sDate.includes(finalDate);
     });
     const dayJobs = (jobData.records || []).filter(r => {
       if (!r.date_added) return false;
@@ -67,12 +67,13 @@ export function generateDailySummary(providedSessions = null) {
       dayBreakdown[tid].totalSeconds += s.duration;
     });
 
-    summaries[dateStr] = {
-      date: dateStr,
+    summaries[finalDate] = {
+      date: finalDate,
       study: {
         totalSeconds: dayTotal,
         topTopic: Object.keys(dayBreakdown).sort((a,b) => dayBreakdown[b].totalSeconds - dayBreakdown[a].totalSeconds)[0] || 'None',
         sessionsCount: daySessions.length,
+        topics: Object.keys(dayBreakdown),
         breakdown: dayBreakdown 
       },
       jobs: {
