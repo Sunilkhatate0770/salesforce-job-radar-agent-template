@@ -1112,10 +1112,10 @@ function renderJobsList(jobs) {
 
 async function updateJobStatus(hash, status) {
   try {
-    const response = await apiFetch(`/api/jobs/${hash}/status`, {
+    const response = await apiFetch(`/api/jobs/status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ hash, status })
     });
     if (response.ok) {
       fetchJobsList();
@@ -1527,22 +1527,33 @@ async function submitAnswer() {
     const topic = document.getElementById('interviewTopic').value;
     const difficulty = document.getElementById('interviewDifficulty').value;
     
-    const res = await fetch('/api/ai/interview', {
+    const systemPrompt = `You are a Senior Salesforce Technical Interviewer. 
+Topic: ${topic}. Difficulty: ${difficulty}.
+Conduct a realistic interview. Ask one technical question at a time. 
+When the user answers, provide brief feedback (Score 1-10) and then ask the next follow-up question.
+Be professional and challenging. 
+User Input: ${answer}`;
+
+    const res = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ prompt: answer, topic, difficulty })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemma4:e4b', // Using the specified Gemma 4 model
+        prompt: systemPrompt,
+        stream: false
+      })
     });
+    
+    if (!res.ok) throw new Error('Local AI not responding. Ensure Ollama is running.');
     
     const data = await res.json();
     statusEl.style.display = 'none';
+    addChatMessage('ai', data.response);
     
-    if (data.error) {
-      addChatMessage('ai', '⚠️ ' + data.error);
-    } else {
-      addChatMessage('ai', data.response);
-    }
   } catch (e) {
     statusEl.style.display = 'none';
-    addChatMessage('ai', '⚠️ Failed to connect to local AI engine.');
+    addChatMessage('ai', '⚠️ Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
+    console.error('AI Interview Error:', e);
   }
 }
 
