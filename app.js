@@ -1061,11 +1061,14 @@ async function fetchJobRadarSummary() {
   }
 }
 
+window.allJobRecords = [];
+
 async function fetchJobsList() {
   try {
     const response = await apiFetch('/api/jobs');
     if (!response.ok) throw new Error('Unauthorized');
     const data = await response.json();
+    window.allJobRecords = data.records;
     renderJobsList(data.records);
   } catch (e) {
     console.error('Failed to fetch jobs', e);
@@ -1101,12 +1104,52 @@ function renderJobsList(jobs) {
       </div>
       ` : ''}
 
-      <div class="job-actions" style="margin-top: 1.2rem; display:flex; gap: 10px;">
+      <div class="job-actions" style="margin-top: 1.2rem; display:flex; flex-wrap:wrap; gap: 10px;">
         <button class="btn-action" onclick="window.open('${job.apply_link}', '_blank')" style="background: var(--blue); border: none; padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-weight: 600; font-size: 0.8rem;">Apply Now</button>
         <button class="btn-action" onclick="updateJobStatus('${job.job_hash}', 'applied')" style="background: transparent; border: 1px solid var(--blue); padding: 8px 16px; border-radius: 8px; color: var(--blue); cursor: pointer; font-weight: 600; font-size: 0.8rem;">Mark Applied</button>
+        <button class="btn-action" onclick="generateCoverLetter('${job.job_hash}')" style="background: transparent; border: 1px solid var(--green); padding: 8px 16px; border-radius: 8px; color: var(--green); cursor: pointer; font-weight: 600; font-size: 0.8rem; display:flex; align-items:center; gap:5px;"><span id="cl_icon_${job.job_hash}">✨</span> Auto Cover Letter</button>
       </div>
+      <div id="cl_output_${job.job_hash}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-left:3px solid var(--green); border-radius:8px; font-size:0.8rem; color:var(--text); white-space:pre-wrap; line-height:1.5;"></div>
     </div>
   `).join('');
+}
+
+async function generateCoverLetter(hash) {
+  const job = window.allJobRecords.find(j => j.job_hash === hash);
+  if (!job) return;
+
+  const btnIcon = document.getElementById(`cl_icon_${hash}`);
+  const outputEl = document.getElementById(`cl_output_${hash}`);
+  
+  if (btnIcon) btnIcon.textContent = '⏳';
+  outputEl.style.display = 'block';
+  outputEl.innerHTML = '<span style="color:var(--muted);">Gemma 4 is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
+
+  try {
+    const prompt = `You are an expert career coach. Write a short, punchy, and highly professional 3-paragraph cover letter for a Salesforce Developer applying to ${job.company} for the "${job.title}" role. 
+The candidate has the following skills that perfectly match the job: ${(job.matched_skills || []).join(', ')}. 
+Do not include placeholders like [Your Name] or [Date], just write the core body of the letter. Focus on impact and value.`;
+
+    const res = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemma4:e4b',
+        prompt: prompt,
+        stream: false
+      })
+    });
+    
+    if (!res.ok) throw new Error('Ollama not responding.');
+    const data = await res.json();
+    
+    outputEl.innerHTML = data.response;
+    if (btnIcon) btnIcon.textContent = '✅';
+    
+  } catch(e) {
+    outputEl.innerHTML = '<span style="color:var(--red);">⚠️ Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
+    if (btnIcon) btnIcon.textContent = '❌';
+  }
 }
 
 
@@ -1579,6 +1622,101 @@ function addChatMessage(role, text) {
   msg.innerHTML = text;
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
+  
+  if (role === 'ai') {
+    speakText(text);
+  }
+}
+
+let speechRec = null;
+let isRecording = false;
+
+function toggleVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
+    return;
+  }
+
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('userAnswerInput');
+
+  if (isRecording) {
+    if (speechRec) speechRec.stop();
+    return;
+  }
+
+  speechRec = new SpeechRecognition();
+  speechRec.continuous = true;
+  speechRec.interimResults = true;
+  speechRec.lang = 'en-US';
+
+  speechRec.onstart = function() {
+    isRecording = true;
+    if (micBtn) {
+      micBtn.style.background = 'var(--red)';
+      micBtn.style.color = 'white';
+      micBtn.style.boxShadow = '0 0 15px rgba(255, 59, 48, 0.5)';
+      micBtn.innerHTML = '🛑';
+    }
+    if (input) input.placeholder = "Listening... Speak your answer now.";
+  };
+
+  speechRec.onresult = function(event) {
+    let finalTranscript = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        finalTranscript += event.results[i][0].transcript;
+      }
+    }
+    if (finalTranscript) {
+      input.value += (input.value ? ' ' : '') + finalTranscript;
+    }
+  };
+
+  speechRec.onerror = function(e) {
+    console.error('Speech recognition error', e);
+    stopRecordingUI();
+  };
+
+  speechRec.onend = function() {
+    stopRecordingUI();
+  };
+
+  speechRec.start();
+}
+
+function stopRecordingUI() {
+  isRecording = false;
+  const micBtn = document.getElementById('micBtn');
+  const input = document.getElementById('userAnswerInput');
+  if (micBtn) {
+    micBtn.style.background = 'var(--card)';
+    micBtn.style.color = 'var(--text)';
+    micBtn.style.boxShadow = 'none';
+    micBtn.innerHTML = '🎤';
+  }
+  if (input) {
+    input.placeholder = "Type or speak your answer here...";
+  }
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); // Stop current speech if any
+  
+  // Strip HTML and Markdown for cleaner speech
+  const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/\*/g, '');
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  
+  // Try to pick a professional voice
+  const voices = window.speechSynthesis.getVoices();
+  const proVoice = voices.find(v => v.name.includes('Google') || v.name.includes('Natural')) || voices[0];
+  if (proVoice) utterance.voice = proVoice;
+  
+  utterance.rate = 1.05;
+  utterance.pitch = 0.95;
+  window.speechSynthesis.speak(utterance);
 }
 
 // Support Ctrl+Enter to submit
