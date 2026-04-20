@@ -1076,11 +1076,6 @@ function renderHistoryUI(container, histories, todayStr, yestStr) {
   if (avgEl) avgEl.textContent = formatTimeFull(dayCount > 0 ? totalSecs/dayCount : 0);
 }
 
-  if (totalEl) totalEl.textContent = formatTimeFull(totalSecs);
-  if (countEl) countEl.textContent = dayCount;
-  if (avgEl) avgEl.textContent = formatTimeFull(dayCount > 0 ? totalSecs/dayCount : 0);
-}
-
 function renderTimelineView(container, dates, histories, todayStr, yestStr) {
   let html = '<div style="display:flex; flex-direction:column; gap:15px; margin-top:1rem;">';
   dates.forEach((date, idx) => {
