@@ -28,8 +28,15 @@ async function getUserId(req) {
 }
 
 export default async function(req, res) {
-  const { slug } = req.query;
-  const path = slug.join('/');
+  let { slug } = req.query;
+  let path = '';
+  
+  if (slug && Array.isArray(slug)) {
+    path = slug.join('/');
+  } else {
+    // Fallback for direct rewrites
+    path = req.url.replace('/api/', '').split('?')[0];
+  }
   
   await connectDB();
 
