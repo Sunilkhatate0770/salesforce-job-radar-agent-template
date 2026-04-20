@@ -160,7 +160,11 @@ async function loadUserProfile() {
 
 function renderProfileMatchPage(profile) {
   const contentDiv = document.getElementById('profileMatchContent');
+  const syncCta = document.getElementById('syncCtaCards');
   if (!contentDiv) return;
+
+  // Hide large sync cards if profile exists to give "Success" feel
+  if (syncCta) syncCta.style.display = 'none';
 
   const skills = profile.skills || [];
   const certs = profile.certifications || [];
@@ -179,43 +183,53 @@ function renderProfileMatchPage(profile) {
 
   var html = '';
 
-  // Strength Meter
+  // NEW: Premium AI Career Insight Card
   html += `
-    <div style="display:flex; align-items:center; gap:25px; background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(59,130,246,0.05)); border:1px solid rgba(139,92,246,0.2); border-radius:16px; padding:20px; margin-bottom:24px;">
-      <div style="position:relative; width:80px; height:80px;">
-        <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform: rotate(-90deg);">
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3" />
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="url(#strengthGradient)" stroke-width="3" stroke-dasharray="${strength}, 100" />
-          <defs>
-            <linearGradient id="strengthGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#8b5cf6" />
-              <stop offset="100%" style="stop-color:#3b82f6" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:1.1rem; color:var(--text);">${strength}%</div>
+    <div style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.2); border-radius:16px; padding:20px; margin-bottom:24px; position:relative; overflow:hidden;">
+      <div style="position:absolute; right:-20px; top:-20px; font-size:6rem; opacity:0.05; transform:rotate(15deg);">🚀</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <div style="font-size:0.65rem; color:var(--blue); font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:4px;">INDUSTRIAL PROFILE SUMMARY</div>
+          <div style="font-size:1.4rem; font-weight:800; color:var(--text);">Career Readiness: ${strength > 80 ? 'Exceptional' : strength > 50 ? 'Strong' : 'Developing'}</div>
+        </div>
+        <button onclick="document.getElementById('syncCtaCards').style.display='grid'" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 12px; color:var(--muted); font-size:0.65rem; font-weight:600; cursor:pointer;">Update Profile</button>
       </div>
-      <div>
-        <div style="font-weight:700; color:#c4b5fd; font-size:0.95rem; margin-bottom:4px;">Profile Readiness Score</div>
-        <div style="font-size:0.75rem; color:var(--muted); line-height:1.5;">Your profile is <b>${strength}%</b> ready for <b>${profile.targetRole || 'Salesforce Developer'}</b> roles. Complete study topics for your missing skills to increase your score.</div>
-      </div>
+      <p style="font-size:0.85rem; color:rgba(255,255,255,0.8); line-height:1.6; margin:0;">
+        Your profile successfully aggregates data from <b>${Object.keys(platforms).length}</b> platforms. 
+        We have identified <b>${skills.length} core competencies</b> and <b>${missing.length} strategic gaps</b>. 
+        Our AI suggests focusing on ${missing.slice(0,2).join(' and ') || 'specialized certifications'} to reach 100% readiness.
+      </p>
     </div>
   `;
 
-  // Profile Summary Card
-  html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-bottom:20px;">';
-  
-  if (!platforms.linkedin || !platforms.naukri) {
-    html += `
-      <div style="margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-size:0.75rem; color:var(--muted);">Complete your master profile for better match accuracy:</div>
-        <div style="display:flex; gap:8px;">
-          ${!platforms.linkedin ? '<button onclick="syncProfile(\'LinkedIn\')" style="padding:6px 12px; background:rgba(0,119,181,0.2); border:1px solid #0077b5; border-radius:8px; color:#60a5fa; font-size:0.65rem; font-weight:700; cursor:pointer;">+ Sync LinkedIn</button>' : ''}
-          ${!platforms.naukri ? '<button onclick="syncProfile(\'Naukri\')" style="padding:6px 12px; background:rgba(255,117,85,0.2); border:1px solid #ff7555; border-radius:8px; color:#fb923c; font-size:0.65rem; font-weight:700; cursor:pointer;">+ Sync Naukri</button>' : ''}
+  // Strength Meter & Profile Summary
+  html += `
+    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:20px; margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px;">
+        <div style="position:relative; width:64px; height:64px; flex-shrink:0;">
+          <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform: rotate(-90deg);">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--blue)" stroke-width="3" stroke-dasharray="${strength}, 100" />
+          </svg>
+          <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-weight:800; font-size:0.9rem; color:var(--text);">${strength}%</div>
+        </div>
+        <div>
+          <div style="font-weight:700; color:var(--text); font-size:0.85rem;">Ready for ${profile.targetRole || 'Salesforce Developer'}</div>
+          <div style="font-size:0.65rem; color:var(--muted); margin-top:2px;">Target Achievement</div>
         </div>
       </div>
-    `;
-  }
+      
+      <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px; display:flex; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-weight:700; font-size:1.1rem; color:var(--text);">${profile.currentRole || 'Salesforce Professional'}</div>
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">${profile.experienceYears || 0} Years Exp &bull; ${certs.length} Certifications</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+          ${syncBadges}
+        </div>
+      </div>
+    </div>
+  `;
 
   html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">';
   html += '<div><div style="font-weight:700;font-size:1.1rem;color:var(--text);">' + (profile.currentRole || 'Salesforce Professional') + '</div>';
