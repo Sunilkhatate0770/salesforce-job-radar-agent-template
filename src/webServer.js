@@ -259,6 +259,40 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (url === '/api/profile/sync' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const { platform } = JSON.parse(body);
+        const { exec } = await import('child_process');
+        
+        exec(`node src/tools/syncProfile.js ${platform || 'LinkedIn'}`, (error, stdout, stderr) => {
+           if (error) {
+              res.writeHead(500, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: error.message }));
+           } else {
+              let studyPlan = 'No plan generated.';
+              try {
+                const planPath = path.resolve(process.cwd(), 'TAILORED_STUDY_PLAN.md');
+                if (fs.existsSync(planPath)) {
+                   studyPlan = fs.readFileSync(planPath, 'utf8');
+                }
+              } catch (e) {
+                console.error("Error reading study plan", e);
+              }
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true, studyPlan, logs: stdout }));
+           }
+        });
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+    return;
+  }
+
   if (url === '/api/study/reset' && method === 'POST') {
     try {
       const emptyTracker = { sessions: [], completedTasks: [], topics: {} };

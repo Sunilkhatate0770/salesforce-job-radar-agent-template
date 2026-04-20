@@ -13,3 +13,6 @@ test-create.txt
 
 .codex
 .vscode/
+
+# Ignore personal resumes
+*.pdf

@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
@@ -52,6 +53,10 @@
         </div>
     </div>
     <button onclick="logout()" style="width:100%; margin-top:12px; padding:6px; font-size:0.7rem; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:var(--text); cursor:pointer; transition: background 0.2s;">Sign Out</button>
+    <div style="display:flex; gap: 8px; margin-top:8px;">
+      <button onclick="syncProfile('LinkedIn')" style="flex:1; padding:6px; font-size:0.65rem; background:#0077b5; border:none; border-radius:6px; color:white; cursor:pointer;">Sync LinkedIn</button>
+      <button onclick="syncProfile('Naukri')" style="flex:1; padding:6px; font-size:0.65rem; background:#ff7555; border:none; border-radius:6px; color:white; cursor:pointer;">Sync Naukri</button>
+    </div>
   </div>
   <div class="sidebar-header">
     <div style="font-size:0.6rem; color:var(--blue); font-family:'IBM Plex Mono',monospace; margin-bottom:0.5rem; letter-spacing:2px; text-transform:uppercase;">Agent Dashboard</div>
@@ -70,6 +75,7 @@
     <div class="nav-parent-title">📊 DASHBOARD & PLANNING</div>
     <div class="nav-item active" onclick="showPage('schedule')">⏱ Daily Schedule <span class="count">Live</span></div>
     <div class="nav-item" onclick="showPage('study_tracker')">📈 Progress Tracker <span class="count">Data</span></div>
+    <div class="nav-item" onclick="showPage('profile_match')">🧠 Profile Matching <span class="count">AI</span></div>
     <div class="nav-item" onclick="showPage('study_history')">📅 Study History <span class="count">Archive</span></div>
     <div class="nav-item" onclick="showPage('job_radar')">📡 Job Radar Dashboard <span class="count">Radar</span></div>
   </div>
@@ -139,6 +145,15 @@
   <div class="page-title">Search Results</div>
   <div class="page-sub">Click any result to see the full answer</div>
   <div id="searchResults"></div>
+</div>
+
+<!-- PROFILE MATCHING PAGE -->
+<div id="profile_match" class="page">
+  <div class="page-title">Profile Study Matching</div>
+  <div class="page-sub">Sync your LinkedIn or Naukri profile to generate a tailored AI study plan</div>
+  <div id="profileMatchContent" style="margin-top: 20px; line-height: 1.6; font-size: 0.95rem; background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+    <p style="color: var(--muted); text-align: center;">Click "Sync LinkedIn" or "Sync Naukri" in the sidebar to load your profile matches.</p>
+  </div>
 </div>
 
 <!-- SCHEDULE PAGE -->

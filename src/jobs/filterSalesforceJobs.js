@@ -90,7 +90,7 @@ export function filterSalesforceJobs(jobs) {
     if (roleMode === "developer_strict" && (!isDeveloperRole || looksNonDeveloper)) {
       continue;
     }
-    if (roleMode === "developer_strict" && !hasSalesforceTitleSignal) continue;
+    if (roleMode === "developer_strict" && !hasSalesforceTitleOrSkills) continue;
 
     const expText = job.experience || "";
     const rangeMatch = expText.match(/(\d+)\s*[-–]\s*(\d+)/);
@@ -117,6 +117,15 @@ export function filterSalesforceJobs(jobs) {
         relevance = "🟡 Partial match (5–6 yrs)";
       } else if (max <= 3) {
         relevance = "🟢 Junior match (2–3 yrs)";
+      } else if (min > 6) {
+        relevance = "🟣 Senior match (7+ yrs)";
+      }
+    } else {
+      // Fallback for when experience isn't explicitly mentioned in numbers (common on LinkedIn)
+      if (hasDeveloperPhrase) {
+        relevance = "⭐ Strong match (Role Aligned)";
+      } else if (hasDeveloperSignal && hasSalesforceTitleOrSkills) {
+        relevance = "🟡 Partial match (Skill Aligned)";
       }
     }
 

@@ -65,6 +65,40 @@ async function apiFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+window.syncProfile = async function(platform) {
+  const btnL = document.querySelector('button[onclick="syncProfile(\'LinkedIn\')"]');
+  const btnN = document.querySelector('button[onclick="syncProfile(\'Naukri\')"]');
+  const ogL = btnL ? btnL.innerText : 'Sync LinkedIn';
+  const ogN = btnN ? btnN.innerText : 'Sync Naukri';
+  
+  if (platform === 'LinkedIn' && btnL) btnL.innerText = 'Syncing...';
+  if (platform === 'Naukri' && btnN) btnN.innerText = 'Syncing...';
+
+  try {
+    const res = await apiFetch('/api/profile/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(platform + ' Profile Synced Successfully!\nYour study plan is ready.');
+      const contentDiv = document.getElementById('profileMatchContent');
+      if (contentDiv && window.marked) {
+        contentDiv.innerHTML = marked.parse(data.studyPlan);
+      }
+      showPage('profile_match');
+    } else {
+      alert('Sync Failed: ' + data.error);
+    }
+  } catch (e) {
+    alert('Error syncing profile. Make sure the local server is running.');
+  }
+  
+  if (btnL) btnL.innerText = ogL;
+  if (btnN) btnN.innerText = ogN;
+};
+
 async function checkAuth() {
   const token = localStorage.getItem('google_auth_token');
   if (!token) {
@@ -101,6 +135,7 @@ var topicConfig = {
   'job_radar': { name: 'Job Radar Dashboard', recommended: 30, group: 'General', noTimer: true },
   'study_tracker': { name: 'Progress Tracker', recommended: 30, group: 'General', noTimer: true },
   'study_history': { name: 'Study History', recommended: 0, group: 'General', noTimer: true },
+  'profile_match': { name: 'Profile Matching', recommended: 10, group: 'General', noTimer: true },
   // Technical Interview Q&A
   'apex': { name: 'Apex Core', recommended: 120, group: 'Technical' },
   'soql': { name: 'SOQL Deep Dive', recommended: 90, group: 'Technical' },
