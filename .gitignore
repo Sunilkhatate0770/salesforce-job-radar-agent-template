@@ -14,5 +14,8 @@ test-create.txt
 .codex
 .vscode/
 
+# Agent browser profile (contains session cookies)
+.agent_profile/
+
 # Ignore personal resumes
 *.pdf
