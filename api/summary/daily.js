@@ -29,8 +29,14 @@ export default async function handler(req, res) {
     const userSessions = await StudySession.find({ userId }).lean();
     
     // Pass the actual array of sessions, NOT the string userId
-    const result = await generateDailySummary(userSessions);
-    res.status(200).json(result);
+    const summaries = await generateDailySummary(userSessions);
+    const todayStr = new Date().toISOString().split('T')[0];
+    const summary = summaries[todayStr] || { 
+      date: todayStr, 
+      study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, 
+      jobs: { newCount: 0, topMatches: [] } 
+    };
+    res.status(200).json(summary);
   } catch (e) {
     console.error('Error in Daily Summary:', e.message);
     res.status(500).json({ error: 'Failed to generate summary', details: e.message });

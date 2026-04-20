@@ -120,23 +120,28 @@ export default async function handler(req, res) {
         const payload = ticket.getPayload();
         const googleId = payload['sub'];
         
-        const user = await User.findOneAndUpdate(
-          { googleId },
-          { 
-            googleId,
-            email: payload['email'],
-            name: payload['name'],
-            picture: payload['picture'],
-            lastLogin: new Date()
-          },
-          { upsert: true, new: true }
-        );
+        let user = {
+          googleId,
+          email: payload['email'],
+          name: payload['name'],
+          picture: payload['picture'],
+          lastLogin: new Date()
+        };
+
+        if (isMongoConnected) {
+          user = await User.findOneAndUpdate(
+            { googleId },
+            user,
+            { upsert: true, new: true }
+          );
+        }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, user }));
       } catch (e) {
+        console.error('Google Auth Error:', e);
         res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Invalid token' }));
+        res.end(JSON.stringify({ error: 'Invalid token or DB error' }));
       }
       return;
     }
@@ -177,6 +182,17 @@ export default async function handler(req, res) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       }
+      else if (url.includes('summary/daily')) {
+        let sessions = null;
+        if (isMongoConnected) {
+          sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean();
+        }
+        const summaries = generateDailySummary(sessions);
+        const todayStr = new Date().toISOString().split('T')[0];
+        const summary = summaries[todayStr] || { date: todayStr, study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, jobs: { newCount: 0, topMatches: [] } };
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(summary));
+      }
       else {
         res.writeHead(404);
         res.end('Not Found');
@@ -184,24 +200,6 @@ export default async function handler(req, res) {
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  if (url.includes('summary/daily') && method === 'GET') {
-    try {
-      let sessions = null;
-      if (isMongoConnected) {
-        sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
-      }
-      const summaries = generateDailySummary(sessions);
-      const todayStr = new Date().toISOString().split('T')[0];
-      const summary = summaries[todayStr] || { date: todayStr, study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, jobs: { newCount: 0, topMatches: [] } };
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(summary));
-    } catch (e) {
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: 'Failed to generate summary' }));
     }
     return;
   }
