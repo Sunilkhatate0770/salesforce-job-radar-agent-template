@@ -24,10 +24,15 @@ export default async function handler(req, res) {
     const userId = ticket.getPayload()['sub'];
     
     await connectDB();
-    const result = await generateDailySummary(userId);
+    
+    // Fetch the user's sessions from MongoDB to generate their personalized summary
+    const userSessions = await StudySession.find({ userId }).lean();
+    
+    // Pass the actual array of sessions, NOT the string userId
+    const result = await generateDailySummary(userSessions);
     res.status(200).json(result);
   } catch (e) {
-    console.error('Auth Error in Daily:', e.message);
-    res.status(401).json({ error: 'Invalid token', details: e.message });
+    console.error('Error in Daily Summary:', e.message);
+    res.status(500).json({ error: 'Failed to generate summary', details: e.message });
   }
 }
