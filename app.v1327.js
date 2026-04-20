@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-20-T1551 (Industrial Sync Mastery)
+// Version: 2026-04-20-T1600 (Sync Armor)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-20-T1551 (v1329)');
+console.log('🚀 Dashboard Version: 2026-04-20-T1600 (v1330)');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -146,16 +146,23 @@ let cachedUserProfile = null;
 
 async function loadUserProfile() {
   try {
-    const res = await apiFetch('/api/profile/data');
+    // CACHE-BUST: Ensure we get fresh synced flags from the cloud
+    const res = await apiFetch('/api/profile/data?cb=' + Date.now());
     if (!res.ok) return;
     const data = await res.json();
+    
     if (data.exists && data.profile) {
       cachedUserProfile = data.profile;
+      
+      // Update All UI Components
       const matchBtn = document.getElementById('btnViewProfileMatch');
       if (matchBtn) matchBtn.style.display = 'block';
+      
       renderProfileMatchPage(data.profile);
+      updateSidebarProfileStatus(data.profile);
+      updateSyncModalUI(data.profile);
     }
-  } catch (e) { console.log('[Profile] No profile data available yet.'); }
+  } catch (e) { console.log('[Profile] Cloud profile fetch failed or unavailable.'); }
 }
 
 function renderProfileMatchPage(profile) {
