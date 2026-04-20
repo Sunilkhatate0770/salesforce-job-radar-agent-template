@@ -165,6 +165,9 @@ function renderProfileMatchPage(profile) {
 
   // Sync Sidebar Status
   updateSidebarProfileStatus(profile);
+  
+  // REAL-TIME: Update Sync Modal if it's open
+  updateSyncModalUI(profile);
 
   // Hide large sync cards if profile exists to give "Success" feel
   if (syncCta) syncCta.style.display = 'none';
@@ -2051,19 +2054,52 @@ window.addEventListener('storage', (e) => {
 
 function openSyncModal() {
   document.getElementById('syncModal').style.display = 'flex';
-  // Update modal labels based on current profile
-  if (cachedUserProfile) {
-    const p = cachedUserProfile.platforms || {};
-    if (p.linkedin && p.linkedin.synced) {
-        document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
-        document.getElementById('liSyncStatus').textContent = 'Update Data →';
-        document.getElementById('modalSyncLinkedIn').style.borderColor = 'rgba(0,119,181,0.5)';
-    }
-    if (p.naukri && p.naukri.synced) {
-        document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
-        document.getElementById('nkSyncStatus').textContent = 'Update Data →';
-        document.getElementById('modalSyncNaukri').style.borderColor = 'rgba(255,117,85,0.5)';
-    }
+  if (cachedUserProfile) updateSyncModalUI(cachedUserProfile);
+}
+
+function updateSyncModalUI(profile) {
+  const p = profile.platforms || {};
+  const liCard = document.getElementById('modalSyncLinkedIn');
+  const nkCard = document.getElementById('modalSyncNaukri');
+
+  if (p.linkedin && p.linkedin.synced) {
+      document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
+      document.getElementById('liSyncStatus').innerHTML = '✅ Linked';
+      if (liCard) {
+        liCard.style.borderColor = '#10b981';
+        liCard.style.background = 'rgba(16,185,129,0.05)';
+        liCard.style.pointerEvents = 'none';
+        liCard.style.opacity = '0.8';
+      }
+  } else {
+      document.getElementById('liSyncLabel').textContent = 'Not Linked';
+      document.getElementById('liSyncStatus').textContent = 'Sync Now →';
+      if (liCard) {
+        liCard.style.borderColor = 'rgba(0,119,181,0.2)';
+        liCard.style.background = 'rgba(0,119,181,0.05)';
+        liCard.style.pointerEvents = 'auto';
+        liCard.style.opacity = '1';
+      }
+  }
+
+  if (p.naukri && p.naukri.synced) {
+      document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
+      document.getElementById('nkSyncStatus').innerHTML = '✅ Linked';
+      if (nkCard) {
+        nkCard.style.borderColor = '#10b981';
+        nkCard.style.background = 'rgba(16,185,129,0.05)';
+        nkCard.style.pointerEvents = 'none';
+        nkCard.style.opacity = '0.8';
+      }
+  } else {
+      document.getElementById('nkSyncLabel').textContent = 'Not Linked';
+      document.getElementById('nkSyncStatus').textContent = 'Sync Now →';
+      if (nkCard) {
+        nkCard.style.borderColor = 'rgba(255,117,85,0.2)';
+        nkCard.style.background = 'rgba(255,117,85,0.05)';
+        nkCard.style.pointerEvents = 'auto';
+        nkCard.style.opacity = '1';
+      }
   }
 }
 
