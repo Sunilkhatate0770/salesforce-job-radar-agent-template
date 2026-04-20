@@ -72,13 +72,13 @@ window.syncProfile = async function(platform) {
   
   if (isCloud) {
     if (platform === 'LinkedIn') {
-      // FULL PAGE REDIRECT to LinkedIn Cloud Portal
-      window.location.href = '/linkedin-login.html';
+      // OPEN IN NEW TAB to keep dashboard active
+      window.open('/linkedin-login.html', '_blank');
       return;
     }
     if (platform === 'Naukri') {
-      // REDIRECT to a dedicated Naukri Login Bridge page
-      window.location.href = '/naukri-login.html';
+      // OPEN IN NEW TAB to keep dashboard active
+      window.open('/naukri-login.html', '_blank');
       return;
     }
   }
