@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-20-T1703 (Elite Sync Upgrade)
+// Version: 2026-04-20-T1715 (Identity & Icon Polish)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-20-T1703 (v1337)');
+console.log('🚀 Dashboard Version: 2026-04-20-T1715 (v1338)');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -62,9 +62,20 @@ function renderUserProfile(user) {
   const dropName = document.getElementById('floatFullTitle');
   const dropEmail = document.getElementById('floatEmailTitle');
   
+  // High-Res Image Logic: Ensure we use the largest available Google photo
+  let profilePic = user.picture;
+  if (profilePic && profilePic.includes('googleusercontent.com')) {
+    profilePic = profilePic.replace(/=s\d+-c/, '=s120-c'); // Force 120px high-res crop
+  }
+
   if (container) container.style.display = 'block';
-  if (nameLabel) nameLabel.textContent = user.name.split(' ')[0]; // Just first name for pill
-  if (avatarImg) avatarImg.src = user.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff`;
+  if (nameLabel) nameLabel.textContent = user.name.split(' ')[0]; 
+  
+  if (avatarImg) {
+    avatarImg.src = profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff&bold=true`;
+    avatarImg.style.boxShadow = '0 0 10px rgba(59,130,246,0.5)';
+  }
+  
   if (dropName) dropName.textContent = user.name;
   if (dropEmail) dropEmail.textContent = user.email;
 }
