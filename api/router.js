@@ -34,10 +34,27 @@ export default async function(req, res) {
   try {
     // 1. AUTH ENDPOINTS
     if (path === 'auth/google' && req.method === 'POST') {
-      const { token } = req.body;
-      const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
-      const payload = ticket.getPayload();
-      return res.status(200).json({ success: true, user: { name: payload.name, email: payload.email, picture: payload.picture } });
+      try {
+        let body = req.body;
+        // Safety: Manual parse if Vercel body-parser is skipped
+        if (typeof body === 'string') body = JSON.parse(body);
+        
+        const { token } = body;
+        if (!token) return res.status(400).json({ success: false, error: 'Token missing' });
+
+        const ticket = await client.verifyIdToken({ 
+          idToken: token, 
+          audience: process.env.GOOGLE_CLIENT_ID 
+        });
+        const payload = ticket.getPayload();
+        return res.status(200).json({ 
+          success: true, 
+          user: { name: payload.name, email: payload.email, picture: payload.picture } 
+        });
+      } catch (authError) {
+        console.error('🔥 [Auth Error]:', authError.message);
+        return res.status(500).json({ success: false, error: 'Authentication failed: ' + authError.message });
+      }
     }
 
     // --- LINKEDIN OAUTH (CLOUD) ---
