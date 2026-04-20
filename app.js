@@ -824,7 +824,10 @@ function generateSuggestions(data) {
     suggestions.push({ icon:'✅', text:'<b>Almost there!</b> '+inProgress.map(function(t){return t.name+' ('+Math.round(t.pct)+'%)'}).join(', ')+'. Few more sessions needed.', priority:'LOW', cls:'priority-low' });
   }
   var ts = 0;
-  Object.keys(data.topics).forEach(function(k){ ts += data.topics[k].totalSeconds || 0; });
+  Object.keys(data.topics).forEach(function(k){ 
+    const td = data.topics[k];
+    if (td && typeof td.totalSeconds !== 'undefined') ts += td.totalSeconds;
+  });
   var th = ts / 3600;
   if (th < 5) suggestions.push({ icon:'⏰', text:'<b>'+Math.round(th*10)/10+' hours total.</b> Aim for 30+ hours.', priority:'HIGH', cls:'priority-high' });
   else if (th < 20) suggestions.push({ icon:'📊', text:'<b>Great!</b> '+Math.round(th*10)/10+' hours. Keep going!', priority:'LOW', cls:'priority-low' });
