@@ -188,6 +188,19 @@ function renderProfileMatchPage(profile) {
 
   // Profile Summary Card
   html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;margin-bottom:20px;">';
+  
+  if (!platforms.linkedin || !platforms.naukri) {
+    html += `
+      <div style="margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:0.75rem; color:var(--muted);">Complete your master profile for better match accuracy:</div>
+        <div style="display:flex; gap:8px;">
+          ${!platforms.linkedin ? '<button onclick="syncProfile(\'LinkedIn\')" style="padding:6px 12px; background:rgba(0,119,181,0.2); border:1px solid #0077b5; border-radius:8px; color:#60a5fa; font-size:0.65rem; font-weight:700; cursor:pointer;">+ Sync LinkedIn</button>' : ''}
+          ${!platforms.naukri ? '<button onclick="syncProfile(\'Naukri\')" style="padding:6px 12px; background:rgba(255,117,85,0.2); border:1px solid #ff7555; border-radius:8px; color:#fb923c; font-size:0.65rem; font-weight:700; cursor:pointer;">+ Sync Naukri</button>' : ''}
+        </div>
+      </div>
+    `;
+  }
+
   html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">';
   html += '<div><div style="font-weight:700;font-size:1.1rem;color:var(--text);">' + (profile.currentRole || 'Salesforce Professional') + '</div>';
   html += '<div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">' + (profile.experienceYears || 0) + ' years experience &bull; ' + skills.length + ' skills &bull; ' + certs.length + ' certifications</div>';
