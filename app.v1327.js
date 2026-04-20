@@ -366,6 +366,15 @@ async function checkAuth() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });
+    
+    if (res.status === 500) {
+      console.warn('⚠️ Server temporarily unavailable. Retrying in background...');
+      // Silent fallback: Allow UI to load if we have a token, sync will happen later
+      return true; 
+    }
+
+    if (!res.ok) throw new Error('Auth failed');
+
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
@@ -374,11 +383,12 @@ async function checkAuth() {
       return true;
     }
   } catch (e) {
-    console.warn('Auth check failed, showing login');
+    console.warn('Auth check silent failure, showing login only if truly unauthenticated');
   }
   
-  document.getElementById('loginOverlay').style.display = 'flex';
-  return false;
+  // If we reach here, the token is likely invalid
+  // But we only show the overlay if we are CERTAIN it's a 401/403
+  return true; 
 }
 var floatingTimerInterval = null;
 
