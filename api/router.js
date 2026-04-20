@@ -147,17 +147,37 @@ export default async function(req, res) {
 
     // 4. SUMMARY ENDPOINTS
     if (path === 'summary/daily' || path === 'summary/all') {
-      const sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean();
+      const sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(500).lean();
+      
+      const historyObj = {};
+      sessions.forEach(s => {
+        const d = s.date || new Date(s.startTime).toISOString().split('T')[0];
+        if (!historyObj[d]) {
+          historyObj[d] = {
+            date: d,
+            study: { totalSeconds: 0, topicList: [], sessionsCount: 0 },
+            jobs: { newCount: 0, topMatches: [] }
+          };
+        }
+        historyObj[d].study.totalSeconds += (s.duration || 0);
+        historyObj[d].study.sessionsCount++;
+        
+        // Track unique topics per day
+        if (s.topicId) {
+          let topicEntry = historyObj[d].study.topicList.find(t => t.id === s.topicId);
+          if (!topicEntry) {
+            topicEntry = { id: s.topicId, name: s.topicName || s.topicId, totalSeconds: 0 };
+            historyObj[d].study.topicList.push(topicEntry);
+          }
+          topicEntry.totalSeconds += (s.duration || 0);
+        }
+      });
+
       const todayStr = new Date().toISOString().split('T')[0];
-      const todaySessions = sessions.filter(s => s.date === todayStr);
-      const totalSec = todaySessions.reduce((acc, s) => acc + (s.duration || 0), 0);
-      const summary = {
-        date: todayStr,
-        study: { totalSeconds: totalSec, topTopic: todaySessions[0]?.topicName || 'None' },
-        jobs: { newCount: 0, topMatches: [] },
-        history: sessions.slice(0, 5)
-      };
-      return res.status(200).json(path === 'summary/all' ? [summary] : summary);
+      if (path === 'summary/daily') {
+        return res.status(200).json(historyObj[todayStr] || { date: todayStr, study: { totalSeconds: 0 }, jobs: { newCount: 0 } });
+      }
+      return res.status(200).json(historyObj);
     }
 
     // 5. JOBS ENDPOINTS
