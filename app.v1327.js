@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-20-T1600 (Sync Armor)
+// Version: 2026-04-20-T1610 (Industrial Data Integrity)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-20-T1600 (v1330)');
+console.log('🚀 Dashboard Version: 2026-04-20-T1610 (v1331)');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -208,7 +208,7 @@ function renderProfileMatchPage(profile) {
         <button onclick="document.getElementById('syncCtaCards').style.display='grid'" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 12px; color:var(--muted); font-size:0.65rem; font-weight:600; cursor:pointer;">Update Profile</button>
       </div>
       <p style="font-size:0.85rem; color:rgba(255,255,255,0.8); line-height:1.6; margin:0;">
-        Your profile successfully aggregates data from <b>${Object.keys(platforms || {}).length}</b> platforms. 
+        Your profile successfully aggregates data from <b>${Object.values(platforms || {}).filter(p => p.synced).length}</b> platforms. 
         We have identified <b>${skills.length} core competencies</b> and <b>${missing.length} strategic gaps</b>. 
         Our AI suggests focusing on ${missing.slice(0,2).join(' and ') || 'specialized certifications'} to reach 100% readiness.
       </p>
