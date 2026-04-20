@@ -18,6 +18,8 @@
     "resume:packs:process": "node src/tools/processResumePackQueue.js",
     "resume:parse": "node src/tools/parseResume.js",
     "profile:sync": "node src/tools/syncProfile.js",
+    "sync:linkedin": "node src/tools/syncProfile.js LinkedIn",
+    "sync:naukri": "node src/tools/syncProfile.js Naukri",
     "cloud:sync": "node scripts/render-cloud-env.js sync-examples",
     "tracker": "node src/tools/tracker.js",
     "tracker:summary": "node src/tools/tracker.js summary",
