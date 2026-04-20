@@ -163,6 +163,9 @@ function renderProfileMatchPage(profile) {
   const syncCta = document.getElementById('syncCtaCards');
   if (!contentDiv) return;
 
+  // Sync Sidebar Status
+  updateSidebarProfileStatus(profile);
+
   // Hide large sync cards if profile exists to give "Success" feel
   if (syncCta) syncCta.style.display = 'none';
 
@@ -195,7 +198,7 @@ function renderProfileMatchPage(profile) {
         <button onclick="document.getElementById('syncCtaCards').style.display='grid'" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 12px; color:var(--muted); font-size:0.65rem; font-weight:600; cursor:pointer;">Update Profile</button>
       </div>
       <p style="font-size:0.85rem; color:rgba(255,255,255,0.8); line-height:1.6; margin:0;">
-        Your profile successfully aggregates data from <b>${Object.keys(platforms).length}</b> platforms. 
+        Your profile successfully aggregates data from <b>${Object.keys(platforms || {}).length}</b> platforms. 
         We have identified <b>${skills.length} core competencies</b> and <b>${missing.length} strategic gaps</b>. 
         Our AI suggests focusing on ${missing.slice(0,2).join(' and ') || 'specialized certifications'} to reach 100% readiness.
       </p>
@@ -2045,6 +2048,52 @@ window.addEventListener('storage', (e) => {
     syncDashboard();
   }
 });
+
+function openSyncModal() {
+  document.getElementById('syncModal').style.display = 'flex';
+  // Update modal labels based on current profile
+  if (cachedUserProfile) {
+    const p = cachedUserProfile.platforms || {};
+    if (p.linkedin && p.linkedin.synced) {
+        document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
+        document.getElementById('liSyncStatus').textContent = 'Update Data →';
+        document.getElementById('modalSyncLinkedIn').style.borderColor = 'rgba(0,119,181,0.5)';
+    }
+    if (p.naukri && p.naukri.synced) {
+        document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
+        document.getElementById('nkSyncStatus').textContent = 'Update Data →';
+        document.getElementById('modalSyncNaukri').style.borderColor = 'rgba(255,117,85,0.5)';
+    }
+  }
+}
+
+function closeSyncModal() {
+  document.getElementById('syncModal').style.display = 'none';
+}
+
+function updateSidebarProfileStatus(profile) {
+  const platforms = profile.platforms || {};
+  const count = Object.keys(platforms).length;
+  const countEl = document.getElementById('syncPlatformCount');
+  const statusEl = document.getElementById('sidebarSyncStatus');
+  
+  if (countEl) countEl.textContent = count + ' Linked';
+  
+  if (statusEl) {
+    if (count === 0) {
+        statusEl.innerHTML = '<div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">No platforms linked yet</div>';
+    } else {
+        let badges = '';
+        if (platforms.linkedin && platforms.linkedin.synced) {
+            badges += '<div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(0,119,181,0.08); border:1px solid rgba(0,119,181,0.2); border-radius:10px; font-size:0.72rem; color:#60a5fa;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> LinkedIn Linked</div>';
+        }
+        if (platforms.naukri && platforms.naukri.synced) {
+            badges += '<div style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(255,117,85,0.08); border:1px solid rgba(255,117,85,0.2); border-radius:10px; font-size:0.72rem; color:#fb923c;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg> Naukri Linked</div>';
+        }
+        statusEl.innerHTML = badges;
+    }
+  }
+}
 
 // Lifecycle
 window.addEventListener('beforeunload', function() { stopTracking(); });
