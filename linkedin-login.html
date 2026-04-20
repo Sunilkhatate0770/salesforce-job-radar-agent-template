@@ -69,10 +69,13 @@
             btn.innerHTML = `🔄 Cloud Syncing with ${platform}...`;
             btn.disabled = true;
 
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token') || localStorage.getItem('gsi_token');
+
             try {
                 const res = await fetch('/api/profile/sync-cloud', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('gsi_token') },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify({ platform: 'LinkedIn (' + platform + ')', user: 'Social User' })
                 });
                 if (res.ok) {
@@ -90,9 +93,13 @@
             e.preventDefault();
             const btn = document.getElementById('btnSync');
             btn.textContent = '🔄 Syncing...';
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token') || localStorage.getItem('gsi_token');
+
             const res = await fetch('/api/profile/sync-cloud', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('gsi_token') },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ platform: 'LinkedIn', user: document.getElementById('user').value })
             });
             if (res.ok) { window.location.href = '/'; }

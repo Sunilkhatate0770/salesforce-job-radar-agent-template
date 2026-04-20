@@ -72,13 +72,13 @@ window.syncProfile = async function(platform) {
   
   if (isCloud) {
     if (platform === 'LinkedIn') {
-      // OPEN IN NEW TAB to keep dashboard active
-      window.open('/linkedin-login.html', '_blank');
+      // OPEN IN NEW TAB with Secure Token Handshake
+      window.open(`/linkedin-login.html?token=${GSI_TOKEN}`, '_blank');
       return;
     }
     if (platform === 'Naukri') {
-      // OPEN IN NEW TAB to keep dashboard active
-      window.open('/naukri-login.html', '_blank');
+      // OPEN IN NEW TAB with Secure Token Handshake
+      window.open(`/naukri-login.html?token=${GSI_TOKEN}`, '_blank');
       return;
     }
   }
