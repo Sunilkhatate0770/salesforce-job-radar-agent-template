@@ -456,9 +456,10 @@ function startFloatingTimerInterval() {
   }, 1000);
 }
 
-async function updateCourseTargets() {
+window.updateCourseTargets = function() {
   try {
-    const data = await getStudyData();
+    const data = globalStudyData;
+    if (!data || !data.topics) return;
     
     let totalRecommendedMin = 0;
     for (let id in topicConfig) {
