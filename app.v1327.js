@@ -72,26 +72,13 @@ window.syncProfile = async function(platform) {
   
   if (isCloud) {
     if (platform === 'LinkedIn') {
-      const width = 600, height = 700;
-      const left = (window.innerWidth / 2) - (width / 2);
-      const top = (window.innerHeight / 2) - (height / 2);
-      window.open('/api/auth/linkedin', 'LinkedInLogin', `width=${width},height=${height},top=${top},left=${left}`);
+      // FULL PAGE REDIRECT for LinkedIn OAuth
+      window.location.href = '/api/auth/linkedin';
       return;
     }
     if (platform === 'Naukri') {
-      const url = prompt("Please enter your Naukri Profile Public URL or Username for Cloud Sync:");
-      if (!url) return;
-      
-      const res = await apiFetch('/api/profile/sync-naukri', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileUrl: url })
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert('✅ Naukri Cloud Sync Success! Your profile is now being analyzed by Gemini AI.');
-        syncDashboard();
-      }
+      // REDIRECT to a dedicated Naukri Login Bridge page
+      window.location.href = '/naukri-login.html';
       return;
     }
   }
