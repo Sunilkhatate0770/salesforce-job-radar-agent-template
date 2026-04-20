@@ -66,13 +66,14 @@ async function apiFetch(url, options = {}) {
 }
 
 window.syncProfile = async function(platform) {
-  const btnL = document.querySelector('button[onclick="syncProfile(\'LinkedIn\')"]');
-  const btnN = document.querySelector('button[onclick="syncProfile(\'Naukri\')"]');
-  const ogL = btnL ? btnL.innerText : 'Sync LinkedIn';
-  const ogN = btnN ? btnN.innerText : 'Sync Naukri';
+  const btnL = document.getElementById('btnSyncLinkedIn');
+  const btnN = document.getElementById('btnSyncNaukri');
+  const statusEl = document.getElementById('profileSyncStatus');
+  const matchBtn = document.getElementById('btnViewProfileMatch');
   
-  if (platform === 'LinkedIn' && btnL) btnL.innerText = 'Syncing...';
-  if (platform === 'Naukri' && btnN) btnN.innerText = 'Syncing...';
+  // Show loading state
+  if (platform === 'LinkedIn' && btnL) { btnL.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Syncing...'; btnL.style.opacity = '0.7'; }
+  if (platform === 'Naukri' && btnN) { btnN.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">⟳</span> Syncing...'; btnN.style.opacity = '0.7'; }
 
   try {
     const res = await apiFetch('/api/profile/sync', {
@@ -82,21 +83,34 @@ window.syncProfile = async function(platform) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(platform + ' Profile Synced Successfully!\nYour study plan is ready.');
+      // Update study plan content
       const contentDiv = document.getElementById('profileMatchContent');
       if (contentDiv && window.marked) {
         contentDiv.innerHTML = marked.parse(data.studyPlan);
       }
+      
+      // Show success status
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '✓ ' + platform + ' profile synced successfully';
+        setTimeout(() => { statusEl.style.display = 'none'; }, 8000);
+      }
+      
+      // Show "View Study Plan" button
+      if (matchBtn) matchBtn.style.display = 'block';
+      
+      // Navigate to profile match page
       showPage('profile_match');
     } else {
       alert('Sync Failed: ' + data.error);
     }
   } catch (e) {
-    alert('Error syncing profile. Make sure the local server is running.');
+    alert('Error syncing profile. Make sure the local server (npm run web) is running and Ollama is active.');
   }
   
-  if (btnL) btnL.innerText = ogL;
-  if (btnN) btnN.innerText = ogN;
+  // Restore button states
+  if (btnL) { btnL.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> LinkedIn'; btnL.style.opacity = '1'; }
+  if (btnN) { btnN.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg> Naukri'; btnN.style.opacity = '1'; }
 };
 
 async function checkAuth() {
@@ -622,16 +636,21 @@ async function fetchDailySummary() {
     
     if (summary) {
       card.style.display = 'block';
-      dateEl.textContent = summary.date;
+      if (dateEl) dateEl.textContent = summary.date || new Date().toISOString().split('T')[0];
       
-      const studyHrs = (summary.study.totalSeconds / 3600).toFixed(1);
-      const jobsCount = summary.jobs.newCount;
-      const topJob = summary.jobs.topMatches[0] ? summary.jobs.topMatches[0].title : 'Searching...';
+      const study = summary.study || {};
+      const jobs = summary.jobs || {};
+      const totalSec = study.totalSeconds || 0;
+      const studyHrs = (totalSec / 3600).toFixed(1);
+      const topTopic = study.topTopic || 'None';
+      const jobsCount = jobs.newCount || 0;
+      const topMatches = jobs.topMatches || [];
+      const topJob = topMatches.length > 0 && topMatches[0].title ? topMatches[0].title : 'Searching...';
       
       content.innerHTML = `
-        🚀 You've studied for <b>${studyHrs} hours</b> today, focusing primarily on <b>${summary.study.topTopic}</b>.
+        🚀 You've studied for <b>${studyHrs} hours</b> today, focusing primarily on <b>${topTopic}</b>.
         <br>📡 The Job Radar discovered <b>${jobsCount} new opportunities</b> today. 
-        ${summary.jobs.topMatches.length > 0 ? `<br>⭐ Top Match: <b>${topJob}</b>` : ''}
+        ${topMatches.length > 0 ? `<br>⭐ Top Match: <b>${topJob}</b>` : ''}
         <br><span style="color:var(--green); font-size:0.7rem; margin-top:5px; display:inline-block;">✓ Daily state synced to cloud database</span>
       `;
     }

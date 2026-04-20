@@ -403,4 +403,20 @@ pre.code .num{color:var(--purple);}
 /* SYNC ANIMATION */
 .spin { animation: syncSpin 1s linear infinite; }
 @keyframes syncSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
 
+/* PROFILE MATCH PAGE */
+#profileMatchContent h1, #profileMatchContent h2, #profileMatchContent h3 {
+  color: var(--text); margin-top: 1.5rem; margin-bottom: 0.5rem;
+}
+#profileMatchContent h1 { font-size: 1.3rem; background: linear-gradient(135deg,var(--blue),var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+#profileMatchContent h2 { font-size: 1.1rem; color: var(--blue); }
+#profileMatchContent h3 { font-size: 0.95rem; color: var(--cyan); }
+#profileMatchContent ul, #profileMatchContent ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+#profileMatchContent li { font-size: 0.82rem; color: #b8c8e8; line-height: 1.8; }
+#profileMatchContent p { font-size: 0.82rem; color: #b0c0e0; line-height: 1.8; margin-bottom: 0.6rem; }
+#profileMatchContent strong, #profileMatchContent b { color: var(--text); }
+#profileMatchContent code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px; font-size: 0.78rem; color: var(--cyan); font-family: 'IBM Plex Mono', monospace; }
+#profileMatchContent pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 0.8rem 0; }
+#profileMatchContent pre code { background: none; padding: 0; }
