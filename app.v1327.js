@@ -885,13 +885,13 @@ function switchHistoryTab(mode) {
 
 async function syncDashboard() {
   try {
-    await Promise.all([
-      updateTrackerUI(),
-      fetchDailySummary(),
-      fetchJobsList(),
-      renderHistory(),
-      loadUserProfile()
-    ]);
+    console.log('🔄 Initiating resilient dashboard sync...');
+    // Execute individually so one crash doesn't block others
+    await updateTrackerUI().catch(e => console.error('UI Tracker fail', e));
+    await fetchDailySummary().catch(e => console.error('Daily Summary fail', e));
+    await fetchJobs().catch(e => console.error('Jobs fail', e));
+    await renderHistory().catch(e => console.error('History fail', e));
+    await loadUserProfile().catch(e => console.error('Profile fail', e));
   } catch(e) { console.error('Dashboard sync failed', e); }
 }
 
