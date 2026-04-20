@@ -2038,6 +2038,14 @@ function closeHistoryModal() {
   document.getElementById('historyModal').style.display = 'none';
 }
 
+// BROADCAST HANDSHAKE: Auto-refresh dashboard when sync tab closes
+window.addEventListener('storage', (e) => {
+  if (e.key === 'profile_sync_success') {
+    console.log('🔄 Profile sync detected from external tab. Refreshing...');
+    syncDashboard();
+  }
+});
+
 // Lifecycle
 window.addEventListener('beforeunload', function() { stopTracking(); });
 document.addEventListener('visibilitychange', function() {

@@ -57,20 +57,22 @@
             <button type="submit" class="btn-submit" id="btnSync">Sign In</button>
         </form>
 
+        <div id="statusMessage" style="text-align:center; margin-top:15px; font-size:0.85rem;"></div>
+
         <div class="footer">
             <a href="https://www.linkedin.com/checkpoint/rp/request-password-reset">Forgot password?</a><br><br>
-            <a href="/">← Back to Dashboard</a>
+            <a href="javascript:window.close()">← Close and Return</a>
         </div>
     </div>
     <script>
         async function socialLogin(platform) {
             const btn = event.currentTarget;
             const originalText = btn.innerHTML;
-            btn.innerHTML = `🔄 Cloud Syncing with ${platform}...`;
+            btn.innerHTML = `🔄 Syncing ${platform}...`;
             btn.disabled = true;
 
             const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token') || localStorage.getItem('gsi_token');
+            const token = urlParams.get('token') || localStorage.getItem('google_auth_token');
 
             try {
                 const res = await fetch('/api/profile/sync-cloud', {
@@ -79,30 +81,45 @@
                     body: JSON.stringify({ platform: 'LinkedIn (' + platform + ')', user: 'Social User' })
                 });
                 if (res.ok) {
-                    btn.innerHTML = `✅ ${platform} Sync Success!`;
-                    setTimeout(() => { window.location.href = '/'; }, 1500);
+                    btn.innerHTML = `✅ ${platform} Linked!`;
+                    btn.style.background = '#10b981';
+                    localStorage.setItem('profile_sync_success', Date.now());
+                    setTimeout(() => { window.close(); }, 2000);
                 }
             } catch (e) {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
-                alert('Social sync failed. Please try manual login.');
+                alert('Social sync failed.');
             }
         }
 
         document.getElementById('authForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSync');
+            const originalText = btn.textContent;
             btn.textContent = '🔄 Syncing...';
+            btn.disabled = true;
             
             const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token') || localStorage.getItem('gsi_token');
+            const token = urlParams.get('token') || localStorage.getItem('google_auth_token');
 
-            const res = await fetch('/api/profile/sync-cloud', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ platform: 'LinkedIn', user: document.getElementById('user').value })
-            });
-            if (res.ok) { window.location.href = '/'; }
+            try {
+                const res = await fetch('/api/profile/sync-cloud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ platform: 'LinkedIn', user: document.getElementById('user').value })
+                });
+                if (res.ok) {
+                    btn.textContent = '✅ Success!';
+                    btn.style.background = '#10b981';
+                    localStorage.setItem('profile_sync_success', Date.now());
+                    setTimeout(() => { window.close(); }, 2000);
+                }
+            } catch (e) {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert('Sync failed.');
+            }
         });
     </script>
 </body>
