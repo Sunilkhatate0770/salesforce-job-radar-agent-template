@@ -13,6 +13,7 @@ let globalStudyData = { topics: {}, sessions: [], completedTasks: [] };
 let lastFetchTime = 0;
 const MIN_FETCH_INTERVAL = 60000;
 let currentUser = null;
+let GSI_TOKEN = localStorage.getItem('google_auth_token') || null;
 
 // =============================================
 // AUTHENTICATION (Google OAuth2)
@@ -20,6 +21,7 @@ let currentUser = null;
 window.handleCredentialResponse = async function(response) {
   const token = response.credential;
   localStorage.setItem('google_auth_token', token);
+  GSI_TOKEN = token;
   
   try {
     const res = await fetch('/api/auth/google', {
