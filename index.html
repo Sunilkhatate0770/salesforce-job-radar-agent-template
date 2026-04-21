@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salesforce Prep Guide v1380</title>
+  <title>Salesforce Prep Guide v1381</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0b0d12">
   <meta name="mobile-web-app-capable" content="yes">
@@ -336,13 +336,15 @@
 
 <!-- PROFILE MATCHING PAGE -->
 <div id="profile_match" class="page" style="display:none;">
-  <div class="page-title" style="display:flex; align-items:center; gap:12px;">
-    <span style="width:42px; height:42px; background:linear-gradient(135deg,#8b5cf6,#3b82f6); border-radius:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v1a7 7 0 0 1-14 0v-1"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
-    </span>
-    AI Profile Matching & Study Plan
+  <div class="page-header">
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+      <span style="width:42px; height:42px; background:linear-gradient(135deg,#8b5cf6,#3b82f6); border-radius:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+      </span>
+      AI Profile Matching & Study Plan
+    </div>
+    <div class="page-sub">Powered by Gemma 4 Local AI Engine — Sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
   </div>
-  <div class="page-sub">Powered by Gemma 4 Local AI Engine — Sync your LinkedIn or Naukri profile to generate a personalized study roadmap. (v1375)</div>
   
   <!-- PREMIUM SYNC ARCHITECTURE (v1373) -->
   <div id="syncCtaCards" class="sync-cta-grid">
@@ -384,12 +386,18 @@
     </div>
     <div id="profileMatchContent" style="font-size:0.82rem; line-height:1.8; color:var(--muted);">
       <div style="text-align:center; padding:40px 20px;">
-        <div style="font-size:2.5rem; margin-bottom:12px; opacity:0.4;">≡ƒöù</div>
+        <div style="width:64px; height:64px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px;">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px; height:32px; color:var(--muted); opacity:0.5;"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
         <div style="font-weight:600; color:var(--text); margin-bottom:6px;">No Profile Synced Yet</div>
         <div style="font-size:0.75rem; max-width:400px; margin:0 auto; margin-bottom:20px; color:var(--muted);">Click one of the buttons above or use the options below to sync your profile. Our AI will analyze your skills and generate a tailored study roadmap.</div>
         <div style="display:flex; justify-content:center; gap:12px;">
-          <button onclick="syncProfile('LinkedIn')" style="padding:10px 20px; background:#0077b5; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem;">ΓÜí Sync LinkedIn</button>
-          <button onclick="syncProfile('Naukri')" style="padding:10px 20px; background:#ff7555; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem;">ΓÜí Sync Naukri</button>
+          <button onclick="syncProfile('LinkedIn')" style="padding:10px 20px; background:#0077b5; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> Sync LinkedIn
+          </button>
+          <button onclick="syncProfile('Naukri')" style="padding:10px 20px; background:#ff7555; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg> Sync Naukri
+          </button>
         </div>
       </div>
     </div>
@@ -398,8 +406,13 @@
 
 <!-- BOOKMARKS PAGE (v1340) -->
 <div id="bookmarks_page" class="page">
-  <div class="page-title" style="color:var(--amber);">Γ¡É My Bookmarks</div>
-  <div class="page-sub">Your curated collection of important questions for quick revision.</div>
+  <div class="page-header">
+    <div class="page-title" style="color:var(--amber); display:flex; align-items:center; gap:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+      My Bookmarked Questions
+    </div>
+    <div class="page-sub">Your curated collection of important questions for quick revision.</div>
+  </div>
   <div id="bookmarksContent"></div>
 </div>
 
@@ -412,8 +425,10 @@
 
 <!-- SCHEDULE PAGE -->
 <div id="schedule" class="page active">
-  <div class="page-title">Daily Study Schedule</div>
-  <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
+  <div class="page-header">
+    <div class="page-title">Daily Study Schedule</div>
+    <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
+  </div>
   <div class="summary-bar">
     <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
     <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
@@ -434,8 +449,10 @@
 
 <!-- APEX PAGE -->
 <div id="apex" class="page">
-  <div class="page-title">Apex Core ΓÇö Interview Questions</div>
-  <div class="page-sub">22 questions with complete answers. Click any question to expand the full answer.</div>
+  <div class="page-header">
+    <div class="page-title">Apex Core &mdash; Interview Questions</div>
+    <div class="page-sub">22 questions with complete answers. Click any question to expand the full answer.</div>
+  </div>
 
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
@@ -13003,6 +13020,6 @@ public class LoanStatusActionTest {
 
 </div><!-- end #main -->
 
-<script src="app.v1380.js"></script>
+<script src="app.v1381.js"></script>
 </body>
 </html>
