@@ -18,19 +18,22 @@
   --code-bg: #0e1320;
 }
 * {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
   margin: 0;
   padding: 0;
 }
-body {
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden !important; /* Absolute kill for horizontal scroll */
   background: var(--bg);
   color: var(--text);
   font-family: 'Plus Jakarta Sans', sans-serif;
+  margin: 0;
+}
+body {
   display: flex;
-  min-height: 100vh;
-  font-size: clamp(14px, 1vw + 12px, 16px);
-  overflow-x: hidden; /* Prevent horizontal scroll */
-  width: 100vw;
+  font-size: 15px;
 }
 
 /* SIDEBAR */
@@ -72,51 +75,56 @@ body {
 /* MAIN */
 #main {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden; /* Hard kill horizontal scroll */
   height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden !important;
   position: relative;
-  background: var(--bg);
   display: flex;
   flex-direction: column;
 }
 
-/* MASTER HEADER (v1344) */
+/* MASTER HEADER (v1344 Steel-Grid) */
 #mainHeader {
   position: sticky;
   top: 0;
-  z-index: 2000;
-  height: 70px;
-  background: rgba(11, 13, 18, 0.9);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* Hamburger Left, Profile Right */
-  padding: 0 25px;
   width: 100%;
+  height: 70px;
+  background: rgba(11, 13, 18, 0.95);
+  backdrop-filter: blur(25px);
+  border-bottom: 1px solid var(--border);
+  z-index: 2000;
+  display: grid;
+  grid-template-columns: 60px 1fr 100px; /* Explicit zones: [Menu] [Title] [Profile] */
+  align-items: center;
+  padding: 0 10px;
 }
 
 .mobile-toggle {
-  width: 40px;
-  height: 40px;
+  grid-column: 1;
+  width: 42px;
+  height: 42px;
   display: none; /* Desktop hidden */
   align-items: center;
   justify-content: center;
-  background: var(--card);
+  background: var(--card2);
   border: 1px solid var(--border2);
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
-  color: var(--text);
-  transition: all 0.2s;
 }
-.mobile-toggle:hover { border-color: var(--blue); color: var(--blue); background: rgba(79,142,247,0.05); }
 
-/* FLOATING PROFILE (Integrated into Header v1344) */
+#headerTitle {
+  grid-column: 2;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
 .floating-profile {
+  grid-column: 3;
+  justify-self: end;
   cursor: pointer;
-  position: relative; /* Now relative to Header flex */
-  z-index: 2100;
 }
 
 /* PAGES */
@@ -357,55 +365,41 @@ pre.code .num{color:var(--purple);}
   }
   
   #mainHeader {
-    position: fixed;
+    position: fixed; /* Lock to viewport top on mobile */
     left: 0;
     right: 0;
-    padding: 0 15px;
-    height: 65px;
-    display: flex;
-    justify-content: space-between; /* Force items to edges */
+    height: 70px;
+    grid-template-columns: 50px 1fr 70px; /* Tighter zones for mobile */
   }
   
   .mobile-toggle {
     display: flex;
-    z-index: 10;
+  }
+  
+  #headerTitle {
+    display: block !important;
+    font-size: 0.85rem;
+    opacity: 0.7;
   }
   
   .page {
-    padding-top: 7rem !important; /* Total clearance */
-    width: 100%;
-    margin: 0;
-    overflow-x: hidden;
-  }
-  
-  #headerTitle { 
-    display: block !important; 
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    opacity: 0.9;
-    font-weight: 800;
-    pointer-events: none; /* Let clicks pass to header if needed */
+    padding: 85px 1rem 2rem 1rem !important; /* High-precision clearance */
+    width: 100vw !important;
+    overflow-x: hidden !important;
   }
   
   #floatingProfileContainer {
-    margin: 0 !important;
-    width: auto !important;
-    background: none !important;
-    border: none !important;
-    padding: 0 !important;
     display: flex !important;
-    z-index: 10;
-    order: 2; /* Force to right */
+    justify-content: flex-end;
   }
   
   .profile-pill {
-    padding: 5px 8px !important;
-    background: rgba(255,255,255,0.05) !important;
+    padding: 4px 6px !important;
+    background: rgba(255,255,255,0.06) !important;
+    border-radius: 10px !important;
   }
-
-  .profile-name-label { display: none; }
+  
+  .profile-name-label { display: none; } /* Kill name to avoid overlap */
 }
 
 /* JOB RADAR DASHBOARD ADDITIONS */
