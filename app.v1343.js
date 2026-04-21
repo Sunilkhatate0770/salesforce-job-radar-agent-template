@@ -2709,10 +2709,16 @@ function renderRevisionAlerts() {
   container.innerHTML = html;
 }
 
-// Close sidebar when clicking a nav item on mobile
+// Close sidebar when clicking a nav item or overlay on mobile (v1343)
 document.addEventListener('click', function(e) {
-  if (e.target.closest('.nav-item') && window.innerWidth <= 768) {
-    setTimeout(toggleMobileSidebar, 150);
+  const isNavItem = e.target.closest('.nav-item');
+  const isOverlay = e.target.id === 'sidebarOverlay';
+  
+  if ((isNavItem || isOverlay) && window.innerWidth <= 768) {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+      toggleMobileSidebar();
+    }
   }
 });
 

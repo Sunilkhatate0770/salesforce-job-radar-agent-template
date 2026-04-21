@@ -260,14 +260,7 @@ pre.code .num{color:var(--purple);}
 #floatingTimer .ft-dot.paused{background:var(--amber);animation:none;}
 
 
-@media(max-width:700px){
-  #sidebar{width:200px;min-width:200px;}
-  .page{padding:1rem;}
-  .tracker-grid{grid-template-columns:1fr;}
-  .stats-row{flex-direction:column;}
-  #floatingTimer{top:auto;bottom:12px;right:12px;}
-  #floatingTimer .ft-topic{display:none;}
-}
+/* Consolidated Media Queries moved to end (v1343) */
 
 /* JOB RADAR DASHBOARD ADDITIONS */
 .job-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;}
@@ -560,17 +553,54 @@ pre.code .num{color:var(--purple);}
   z-index: -1;
 }
 
+/* RESPONSIVE DESIGN ENGINE (v1343 Refactor) */
+@media (max-width: 1024px) {
+  #sidebar { width: 280px; }
+  .tracker-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+}
+
 @media (max-width: 768px) {
+  body { overflow-x: hidden; }
   .mobile-toggle { display: flex; }
   #sidebar {
     position: fixed;
-    left: -260px;
-    z-index: 1600;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 10000;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
   }
   #sidebar.mobile-open {
     left: 0;
   }
+  .page { padding: 4.5rem 1rem 2rem 1rem; }
+  .page-title { font-size: 1.25rem; }
+  
+  .tracker-grid { grid-template-columns: 1fr; }
+  .stats-row { flex-direction: column; }
+  .summary-bar { flex-direction: column; gap: 0.5rem; }
+  
+  .job-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .job-actions { width: 100%; justify-content: flex-start; }
+  
+  #floatingTimer { 
+    bottom: 15px; 
+    right: 15px; 
+    padding: 6px 10px; 
+  }
+  #floatingTimer .ft-topic { display: none; }
+  
+  .timetable-container { padding-left: 1.5rem; }
+  .timetable-item { padding: 1rem; }
+}
+
+@media (max-width: 480px) {
+  .page-title { font-size: 1.1rem; }
+  .qa-q-text { font-size: 0.85rem; }
+  .ans-p { font-size: 0.8rem; }
+  pre.code { font-size: 0.7rem; padding: 0.8rem; }
 }
 
 /* STREAK BADGE */
