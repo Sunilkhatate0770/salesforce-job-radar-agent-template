@@ -2472,3 +2472,26 @@ pre.code .num {
     gap: 12px !important;
   }
 }
+
+/* QA Block Responsiveness v1378 */
+.qa-question {
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+.qa-q-text {
+  flex: 1 !important;
+  min-width: 200px !important;
+}
+
+@media (max-width: 480px) {
+  .qa-q-label {
+    order: 2 !important;
+  }
+  .qa-chevron {
+    order: 3 !important;
+  }
+  .page-title {
+    font-size: 1.3rem !important;
+  }
+}
