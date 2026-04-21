@@ -987,9 +987,10 @@ function formatTime(totalSeconds) {
   return `${s}s`;
 }
 
-// Version: 2026-04-21-T1830 (Icon & Precision Fix v1376)
+// Version: 2026-04-21-T1845 (v1382)
 // =============================================
-console.log('%c Dashboard Version: 2026-04-21-T1830 (v1376)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
+const VERSION = '2026-04-21-T1845 (v1382)';
+console.log('%c Dashboard ' + VERSION, 'color: #3b82f6; font-weight: bold; font-size: 14px;');
 
 function formatTimeFull(totalSeconds) {
   var h = Math.floor(totalSeconds / 3600);
@@ -2579,7 +2580,7 @@ function renderStreakBadge() {
   const floatVal = document.getElementById('floatStreakVal');
   
   const current = studyStreak.current || 0;
-  const flameSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
+  const flameSvg = `<svg viewBox="0 0 24 24" fill="var(--orange)" stroke="var(--orange)" stroke-width="2" style="width:14px;height:14px; vertical-align:middle; filter:drop-shadow(0 0 5px rgba(249,115,22,0.4));"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`;
   
   // Update Sidebar
   if (sidebarBadge) {
@@ -2665,7 +2666,7 @@ function renderBookmarkButtons() {
     if (!btn) {
       btn = document.createElement('span');
       btn.className = 'bookmark-btn';
-      btn.style.cssText = 'cursor:pointer;font-size:1rem;flex-shrink:0;margin-left:4px;transition:transform 0.2s;';
+      btn.style.cssText = 'cursor:pointer; display:flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; flex-shrink:0; margin-left:4px; transition:all 0.2s;';
       btn.onclick = function(e) {
         e.stopPropagation();
         const page = qEl.closest('.page');
@@ -2674,8 +2675,14 @@ function renderBookmarkButtons() {
       };
       qEl.insertBefore(btn, qEl.querySelector('.qa-chevron'));
     }
-    btn.textContent = isBookmarked(qText) ? '⭐' : '☆';
-    btn.title = isBookmarked(qText) ? 'Remove bookmark' : 'Bookmark this question';
+    
+    const active = isBookmarked(qText);
+    btn.innerHTML = active ? 
+      `<svg viewBox="0 0 24 24" fill="var(--amber)" stroke="var(--amber)" stroke-width="2" style="width:14px;height:14px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>` :
+      `<svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="width:14px;height:14px;opacity:0.5;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+    
+    btn.style.background = active ? 'rgba(244,197,66,0.1)' : 'transparent';
+    btn.title = active ? 'Remove bookmark' : 'Bookmark this question';
   });
 }
 
@@ -2687,24 +2694,33 @@ function showBookmarks() {
   if (userBookmarks.length === 0) {
     container.innerHTML = `
       <div style="text-align:center; padding:60px 20px;">
-        <div style="font-size:3rem; margin-bottom:16px; opacity:0.3;">☆</div>
+        <div style="width:64px; height:64px; margin:0 auto 20px; opacity:0.1; color:var(--text);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        </div>
         <div style="font-weight:700; color:var(--text); margin-bottom:8px;">No Bookmarks Yet</div>
-        <p style="font-size:0.82rem; color:var(--muted); max-width:400px; margin:0 auto;">Click the ☆ icon on any question to bookmark it for quick revision. Your bookmarks are saved locally.</p>
+        <p style="font-size:0.82rem; color:var(--muted); max-width:400px; margin:0 auto;">Click the star icon on any question to bookmark it for quick revision. Your bookmarks are saved in the cloud.</p>
       </div>`;
     return;
   }
   
-  let html = `<div style="font-size:0.75rem; color:var(--muted); margin-bottom:16px;">${userBookmarks.length} bookmarked question${userBookmarks.length !== 1 ? 's' : ''}</div>`;
+  let html = `<div style="font-size:0.75rem; color:var(--muted); margin-bottom:16px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">${userBookmarks.length} SAVED QUESTIONS</div>`;
   userBookmarks.forEach((b, i) => {
     const topicName = topicConfig[b.topic] ? topicConfig[b.topic].name : b.topic;
     html += `
-      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:flex-start; gap:12px; cursor:pointer; transition:all 0.2s;" onclick="showPage('${b.topic}')" onmouseenter="this.style.borderColor='var(--blue)'" onmouseleave="this.style.borderColor='var(--border)'">
-        <span style="font-size:1.1rem; flex-shrink:0; margin-top:2px;">⭐</span>
-        <div style="flex:1; min-width:0;">
-          <div style="font-weight:600; font-size:0.88rem; color:var(--text); line-height:1.5;">${b.q}</div>
-          <div style="font-size:0.7rem; color:var(--muted); margin-top:4px; font-family:'IBM Plex Mono',monospace;">${topicName}</div>
+      <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:12px; display:flex; align-items:flex-start; gap:16px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden;" onclick="showPage('${b.topic}')" onmouseenter="this.style.borderColor='var(--blue)'; this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='rgba(255,255,255,0.02)'">
+        <div style="color:var(--amber); flex-shrink:0; margin-top:2px;">
+          <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </div>
-        <span onclick="event.stopPropagation(); toggleBookmark('${b.q.replace(/'/g, "\\'")}', '${b.topic}'); showBookmarks();" style="cursor:pointer; font-size:0.75rem; color:var(--red); padding:4px 8px; border-radius:6px; background:rgba(240,106,106,0.1);">✕</span>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:0.95rem; color:var(--text); line-height:1.5; margin-bottom:6px;">${b.q}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.65rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:10px; font-weight:700; text-transform:uppercase;">${topicName}</span>
+            <span style="font-size:0.65rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;">Saved: ${new Date(b.date).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <button onclick="event.stopPropagation(); toggleBookmark('${b.q.replace(/'/g, "\\'")}', '${b.topic}'); showBookmarks();" style="cursor:pointer; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:6px; color:#ef4444; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseenter="this.style.background='var(--red)'; this.style.color='white'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>`;
   });
   container.innerHTML = html;
