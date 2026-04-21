@@ -2405,3 +2405,16 @@ pre.code .num {
   align-items: center;
   gap: 4px;
 }
+/* Hide Sync & Auth in Sidebar on Desktop (Premium Cleanup) */
+#masterProfileStatus,
+#sidebarSignOutBtn,
+#btnViewProfileMatch {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  #masterProfileStatus,
+  #sidebarSignOutBtn {
+    display: block !important;
+  }
+}
