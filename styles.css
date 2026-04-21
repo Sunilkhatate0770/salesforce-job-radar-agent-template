@@ -312,16 +312,16 @@ pre.code .num{color:var(--purple);}
     position: relative !important;
     top: 0 !important;
     right: 0 !important;
-    margin: 4.5rem 1rem 1rem 1rem !important;
+    margin: 5rem 1rem 1rem 1rem !important; /* Proper clearance for glass header */
     width: calc(100% - 2rem) !important;
     order: -1;
     display: flex !important;
     justify-content: flex-end;
     align-items: center;
     background: rgba(255,255,255,0.03);
-    padding: 0.8rem;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.05);
+    padding: 10px 15px;
+    border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.08);
     z-index: 1100;
   }
   
@@ -508,9 +508,9 @@ pre.code .num{color:var(--purple);}
 
 /* SURGICAL PROFILE SHIFT */
 .floating-profile {
-  position: fixed;
-  top: 15px;
-  right: 15px;
+  position: absolute;
+  top: 25px;
+  right: 25px;
   z-index: 2000;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
