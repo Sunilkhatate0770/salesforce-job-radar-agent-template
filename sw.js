@@ -1,9 +1,9 @@
-const CACHE_NAME = 'sf-prep-v1371';
+const CACHE_NAME = 'sf-prep-v1372';
 const ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
-  '/app.v1371.js',
+  '/app.v1372.js',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/marked/marked.min.js'
