@@ -63,7 +63,12 @@ const studyTopicSchema = new mongoose.Schema({
   priority: { type: String, enum: ['critical', 'high', 'medium'], default: 'medium' },
   reason: String,              // "Required for FDE certification"
   estimatedHours: Number,      // 10
-  completed: { type: Boolean, default: false }
+  completed: { type: Boolean, default: false },
+  // Spaced Repetition (v1342)
+  confidence: { type: Number, default: 0 },
+  nextReview: Date,
+  interval: { type: Number, default: 0 },
+  easeFactor: { type: Number, default: 2.5 }
 }, { _id: false });
 
 const userProfileSchema = new mongoose.Schema({

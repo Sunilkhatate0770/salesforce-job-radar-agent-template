@@ -115,6 +115,29 @@ export default async function(req, res) {
       const result = await UserProfile.findOneAndUpdate({ userId }, update, { upsert: true, new: true });
       return res.status(200).json({ success: true, bookmarks: result.bookmarks });
     }
+
+    if (path === 'profile/save-retention' && req.method === 'POST') {
+      const { topicId, stats } = req.body;
+      const result = await UserProfile.findOneAndUpdate(
+        { userId, "studyPlanTopics.topicId": topicId },
+        { $set: { 
+          "studyPlanTopics.$.confidence": stats.confidence,
+          "studyPlanTopics.$.nextReview": stats.nextReview,
+          "studyPlanTopics.$.interval": stats.interval,
+          "studyPlanTopics.$.easeFactor": stats.easeFactor
+        }},
+        { new: true }
+      );
+      
+      if (!result) {
+        await UserProfile.findOneAndUpdate(
+          { userId },
+          { $push: { studyPlanTopics: { topicId, ...stats } } },
+          { upsert: true }
+        );
+      }
+      return res.status(200).json({ success: true });
+    }
     
     // --- CLOUD SYNC ENGINE (LinkedIn/Naukri) ---
     if (path === 'profile/sync-cloud' && req.method === 'POST') {

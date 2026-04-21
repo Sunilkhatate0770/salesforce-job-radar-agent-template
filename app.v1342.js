@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-21-T1055 (PWA Enabled)
+// Version: 2026-04-21-T1100 (Retention Intelligence)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-21-T1055 (v1341)');
+console.log('🚀 Dashboard Version: 2026-04-21-T1100 (v1342)');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -16,6 +16,8 @@ let currentUser = null;
 let GSI_TOKEN = localStorage.getItem('google_auth_token') || null;
 let userBookmarks = JSON.parse(localStorage.getItem('sf_bookmarks') || '[]');
 let studyStreak = JSON.parse(localStorage.getItem('sf_study_streak') || '{"current":0,"best":0,"lastDate":""}');
+let userRetention = JSON.parse(localStorage.getItem('sf_retention_v1') || '{}');
+let currentRetentionTopicId = null;
 
 // =============================================
 // AUTHENTICATION (Google OAuth2)
@@ -253,6 +255,21 @@ async function loadUserProfile() {
         renderBookmarkButtons();
         const countEl = document.getElementById('bookmarkCount');
         if (countEl) countEl.textContent = userBookmarks.length;
+      }
+      // Cloud Sync Retention (v1342)
+      if (data.profile.studyPlanTopics) {
+        data.profile.studyPlanTopics.forEach(t => {
+          if (t.nextReview) {
+            userRetention[t.topicId] = {
+              confidence: t.confidence,
+              nextReview: t.nextReview,
+              interval: t.interval,
+              easeFactor: t.easeFactor
+            };
+          }
+        });
+        localStorage.setItem('sf_retention_v1', JSON.stringify(userRetention));
+        renderRevisionAlerts();
       }
     }
   } catch (e) { console.log('[Profile] Cloud profile fetch failed or unavailable.'); }
@@ -2493,11 +2510,18 @@ function renderStreakBadge() {
   badge.style.display = studyStreak.current > 0 ? 'inline-flex' : 'none';
 }
 
-// Hook into stopTracking to update streaks
+// Hook into stopTracking to update streaks and retention (v1342)
 const _originalStopTracking = stopTracking;
 stopTracking = async function() {
+  const tid = currentTrackedPage;
   await _originalStopTracking();
   updateStudyStreak();
+  
+  // Show confidence modal for Retention Intelligence (v1342)
+  if (topicConfig[tid] && !topicConfig[tid].noTimer) {
+    currentRetentionTopicId = tid;
+    document.getElementById('confidenceModal').style.display = 'flex';
+  }
 };
 
 // =============================================
@@ -2612,6 +2636,80 @@ function toggleMobileSidebar() {
   }
 }
 
+// =============================================
+// RETENTION INTELLIGENCE (v1342)
+// =============================================
+async function saveRetention(q) {
+  const topicId = currentRetentionTopicId;
+  if (!topicId) return;
+  
+  document.getElementById('confidenceModal').style.display = 'none';
+  
+  // SM-2 Algorithm (Simplified for Industrial Study)
+  let stats = userRetention[topicId] || { interval: 0, easeFactor: 2.5 };
+  
+  if (q >= 3) {
+    if (stats.interval === 0) stats.interval = 1;
+    else if (stats.interval === 1) stats.interval = 6;
+    else stats.interval = Math.round(stats.interval * stats.easeFactor);
+    
+    stats.easeFactor = stats.easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+    if (stats.easeFactor < 1.3) stats.easeFactor = 1.3;
+  } else {
+    stats.interval = 1;
+    stats.easeFactor = 2.5;
+  }
+  
+  const nextReview = new Date();
+  nextReview.setDate(nextReview.getDate() + stats.interval);
+  
+  stats.confidence = q;
+  stats.nextReview = nextReview.toISOString();
+  
+  userRetention[topicId] = stats;
+  localStorage.setItem('sf_retention_v1', JSON.stringify(userRetention));
+  
+  // Cloud Sync (v1342)
+  if (GSI_TOKEN) {
+    apiFetch('/api/profile/save-retention', {
+      method: 'POST',
+      body: JSON.stringify({ topicId, stats })
+    }).catch(e => console.error('Retention cloud sync failed', e));
+  }
+  
+  console.log(`🧠 Spaced Repetition: Topic [${topicId}] scheduled for ${stats.interval} days.`);
+  renderRevisionAlerts();
+}
+
+function renderRevisionAlerts() {
+  const container = document.getElementById('revisionAlerts');
+  if (!container) return;
+  
+  const today = new Date();
+  const due = Object.entries(userRetention).filter(([id, s]) => {
+    return new Date(s.nextReview) <= today;
+  });
+  
+  if (due.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+  
+  let html = `<div style="font-size:0.7rem; color:var(--purple); font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+    <span class="active-indicator" style="background:var(--purple);"></span> RECOMMENDED REVISIONS
+  </div>`;
+  
+  due.forEach(([id, s]) => {
+    const name = topicConfig[id] ? topicConfig[id].name : id;
+    html += `
+      <div onclick="showPage('${id}')" style="background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2); border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(167,139,250,0.15)'" onmouseleave="this.style.background='rgba(167,139,250,0.08)'">
+        <div style="font-size:0.8rem; font-weight:600; color:var(--text);">${name}</div>
+        <div style="font-size:0.65rem; color:var(--purple); font-family:'IBM Plex Mono',monospace;">Due Now</div>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
 // Close sidebar when clicking a nav item on mobile
 document.addEventListener('click', function(e) {
   if (e.target.closest('.nav-item') && window.innerWidth <= 768) {
@@ -2625,6 +2723,7 @@ document.addEventListener('click', function(e) {
 window.addEventListener('DOMContentLoaded', function() {
   renderStreakBadge();
   setTimeout(renderBookmarkButtons, 500);
+  renderRevisionAlerts(); // v1342
 
   // Register Service Worker (v1341 PWA)
   if ('serviceWorker' in navigator) {
