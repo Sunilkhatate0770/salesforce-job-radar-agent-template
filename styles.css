@@ -2111,10 +2111,8 @@ pre.code .num {
     left: 0;
   }
 
-  #userProfile {
-    margin-top: 40px !important;
-    /* Give space for close button */
-    padding: 20px 15px !important;
+  #sidebar-header-row {
+    padding: 10px 15px !important;
   }
 
   .page {
