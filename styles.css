@@ -431,6 +431,128 @@ body {
   position: relative;
 }
 
+/* PREMIUM SYNC ARCHITECTURE (v1373) */
+.sync-cta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 45%, 500px), 1fr));
+  gap: 24px;
+  margin: 24px 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sync-card-premium {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 280px;
+}
+
+.sync-card-premium:hover {
+  border-color: var(--blue);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+}
+
+.sync-card-premium::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--blue);
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+
+.sync-card-premium:hover::before {
+  opacity: 1;
+}
+
+.sync-card-premium.naukri::before {
+  background: var(--amber);
+}
+
+.sync-icon-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.sync-card-premium.linkedin .sync-icon-box {
+  background: linear-gradient(135deg, #0077b5, #005f8d);
+}
+
+.sync-card-premium.naukri .sync-icon-box {
+  background: linear-gradient(135deg, #ff7555, #e5593a);
+}
+
+.sync-title {
+  font-weight: 800;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.sync-card-premium.linkedin .sync-title { color: #60a5fa; }
+.sync-card-premium.naukri .sync-title { color: #fb923c; }
+
+.sync-desc {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  max-width: 220px;
+}
+
+.sync-btn-premium {
+  width: 100%;
+  max-width: 200px;
+  padding: 12px 24px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: white;
+}
+
+.sync-card-premium.linkedin .sync-btn-premium {
+  background: linear-gradient(135deg, #0077b5, #005f8d);
+  box-shadow: 0 4px 12px rgba(0, 119, 181, 0.3);
+}
+
+.sync-card-premium.naukri .sync-btn-premium {
+  background: linear-gradient(135deg, #ff7555, #e5593a);
+  box-shadow: 0 4px 12px rgba(255, 117, 85, 0.3);
+}
+
+.sync-btn-premium:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
 .page.active {
   display: block;
 }
