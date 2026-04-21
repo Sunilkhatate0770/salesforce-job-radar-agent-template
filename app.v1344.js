@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-21-T1105 (Global Job Radar)
+// Version: 2026-04-21-T1130 (Global Job Radar)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-21-T1105 (v1343)');
+console.log('%c 🚀 Dashboard Version: 2026-04-21-T1130 (v1344)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;

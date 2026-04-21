@@ -71,12 +71,47 @@ body {
   flex: 1;
   overflow-y: auto;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
   position: relative;
+  background: var(--bg);
 }
-#main::-webkit-scrollbar { width: 6px; }
-#main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+/* MASTER HEADER (v1344) */
+#mainHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2000;
+  height: 65px;
+  background: rgba(11, 13, 18, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  transition: all 0.3s ease;
+}
+
+.mobile-toggle {
+  width: 40px;
+  height: 40px;
+  display: none; /* Desktop hidden */
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text);
+  transition: all 0.2s;
+}
+.mobile-toggle:hover { border-color: var(--blue); color: var(--blue); background: rgba(79,142,247,0.05); }
+
+/* FLOATING PROFILE (Integrated into Header v1344) */
+.floating-profile {
+  cursor: pointer;
+  position: relative; /* Now relative to Header flex */
+  z-index: 2100;
+}
 
 /* PAGES */
 .page {
@@ -292,7 +327,7 @@ pre.code .num{color:var(--purple);}
 #floatingTimer .ft-dot.paused{background:var(--amber);animation:none;}
 
 
-/* TABLET & MOBILE ADAPTIVE OVERRIDES (v1343 Universal) */
+/* TABLET & MOBILE ADAPTIVE OVERRIDES (v1344 Final) */
 @media (max-width: 1024px) {
   #sidebar { width: 280px; min-width: 280px; }
 }
@@ -305,53 +340,43 @@ pre.code .num{color:var(--purple);}
     bottom: 0;
     width: 280px;
     z-index: 10000;
+    background: var(--surface);
     transition: left 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    border-right: 1px solid var(--border);
   }
   
-  #floatingProfileContainer {
-    position: relative !important;
-    top: 0 !important;
-    right: 0 !important;
-    margin: 5rem 1rem 1rem 1rem !important; /* Proper clearance for glass header */
-    width: calc(100% - 2rem) !important;
-    order: -1;
-    display: flex !important;
-    justify-content: flex-end;
-    align-items: center;
-    background: rgba(255,255,255,0.03);
-    padding: 10px 15px;
-    border-radius: 15px;
-    border: 1px solid rgba(255,255,255,0.08);
-    z-index: 1100;
+  #sidebar.mobile-open {
+    left: 0;
+    box-shadow: 20px 0 80px rgba(0,0,0,0.8);
   }
   
-  .page {
-    padding-top: 1rem !important;
-  }
-  
-  .page-title {
-    margin-top: 0.5rem;
-    padding-right: 0 !important;
-    line-height: 1.3;
-    width: 100%;
-  }
-
-  #main::before {
-    content: '';
+  #mainHeader {
     position: fixed;
-    top: 0;
     left: 0;
     right: 0;
+    padding: 0 15px;
     height: 60px;
-    background: rgba(11, 13, 18, 0.85);
-    backdrop-filter: blur(20px);
-    z-index: 1000;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  
+  .mobile-toggle {
+    display: flex; /* Show toggle on mobile */
   }
   
   .page {
-    padding-top: 5rem; /* Space for mobile menu button */
+    padding-top: 5.5rem !important; /* Clearance for fixed header */
   }
+  
+  #headerTitle { display: block !important; }
+  
+  #floatingProfileContainer {
+    margin: 0 !important;
+    width: auto !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  .profile-name-label { display: none; } /* Compact mode */
 }
 
 /* JOB RADAR DASHBOARD ADDITIONS */
@@ -506,15 +531,7 @@ pre.code .num{color:var(--purple);}
 #profileMatchContent pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 0.8rem 0; }
 #profileMatchContent pre code { background: none; padding: 0; }
 
-/* SURGICAL PROFILE SHIFT */
-.floating-profile {
-  position: absolute;
-  top: 25px;
-  right: 25px;
-  z-index: 2000;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Legacy profile shift removed in v1344 */
 
 .profile-pill {
   background: rgba(15, 23, 42, 0.8);
