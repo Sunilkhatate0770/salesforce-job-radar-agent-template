@@ -355,7 +355,7 @@ pre.code .num{color:var(--purple);}
     left: 0;
     right: 0;
     padding: 0 15px;
-    height: 60px;
+    height: 65px;
   }
   
   .mobile-toggle {
@@ -363,10 +363,17 @@ pre.code .num{color:var(--purple);}
   }
   
   .page {
-    padding-top: 5.5rem !important; /* Clearance for fixed header */
+    padding-top: 6.5rem !important; /* Increased clearance to eliminate overlap */
   }
   
-  #headerTitle { display: block !important; }
+  #headerTitle { 
+    display: block !important; 
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    opacity: 0.8;
+  }
   
   #floatingProfileContainer {
     margin: 0 !important;
@@ -374,6 +381,7 @@ pre.code .num{color:var(--purple);}
     background: none !important;
     border: none !important;
     padding: 0 !important;
+    display: flex !important;
   }
   
   .profile-name-label { display: none; } /* Compact mode */
