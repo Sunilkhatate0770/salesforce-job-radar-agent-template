@@ -40,6 +40,11 @@ export default async function(req, res) {
   
   await connectDB();
 
+  // GLOBAL BODY PARSER (v1354)
+  if (req.method === 'POST' && req.body && typeof req.body === 'string') {
+    try { req.body = JSON.parse(req.body); } catch(e) { console.error('Body parse fail:', e); }
+  }
+
   try {
     // 1. AUTH ENDPOINTS
     if (path === 'auth/google' && req.method === 'POST') {
