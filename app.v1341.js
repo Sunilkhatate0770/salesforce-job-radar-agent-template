@@ -1,8 +1,8 @@
 // =============================================
 // STUDY TIME TRACKER - with Pause/Play
-// Version: 2026-04-20-T1732 (Study Command Center)
+// Version: 2026-04-21-T1055 (PWA Enabled)
 // =============================================
-console.log('🚀 Dashboard Version: 2026-04-20-T1732 (v1340)');
+console.log('🚀 Dashboard Version: 2026-04-21-T1055 (v1341)');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -2625,4 +2625,13 @@ document.addEventListener('click', function(e) {
 window.addEventListener('DOMContentLoaded', function() {
   renderStreakBadge();
   setTimeout(renderBookmarkButtons, 500);
+
+  // Register Service Worker (v1341 PWA)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('✅ PWA: Service Worker Registered', reg.scope))
+        .catch(err => console.error('❌ PWA: Service Worker Registration Failed', err));
+    });
+  }
 });
