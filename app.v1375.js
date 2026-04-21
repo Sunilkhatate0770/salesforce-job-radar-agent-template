@@ -1,6 +1,6 @@
-// Version: 2026-04-21-T1625 (Mobile Response Stabilization)
+// Version: 2026-04-21-T1625 (Mobile Response Stabilization v1375)
 // =============================================
-console.log('%c Dashboard Version: 2026-04-21-T1625 (v1374)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
+console.log('%c Dashboard Version: 2026-04-21-T1625 (v1375)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;

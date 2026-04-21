@@ -200,6 +200,8 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom)); /* Stabilize footer visibility */
+  scroll-behavior: smooth;
 }
 
 /* MASTER HEADER (v1346 Tri-Zone Flex) */
@@ -391,12 +393,12 @@ body {
 .page {
   display: none;
   padding: var(--fluid-pad);
+  padding-bottom: 4rem; /* Extra buffer for mobile */
   width: 100%;
   max-width: var(--page-max-w);
   margin: 0 auto;
   box-sizing: border-box;
   overflow-x: hidden;
-  /* Center on large screens */
 }
 
 /* RESPONSIVE PROFILE GRID (v1369) */
@@ -2278,6 +2280,8 @@ pre.code .num {
     z-index: 10000;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-y: auto;
   }
 
   #sidebar.mobile-open {
