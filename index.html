@@ -1,9 +1,9 @@
-<!DOCTYPE html> <!-- Pulse: v1365 - 2026-04-21-T1400 -->
+<!DOCTYPE html> <!-- Pulse: v1366 - 2026-04-21-T1410 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salesforce Prep Guide v1365</title>
+  <title>Salesforce Prep Guide v1366</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0b0d12">
   <meta name="mobile-web-app-capable" content="yes">
@@ -12536,7 +12536,10 @@ public class LoanStatusActionTest {
 <!-- STUDY TIME TRACKER -->
 <!-- ========================================== -->
 <div id="study_tracker" class="page">
-  <div class="page-title">≡ƒôè Study Time Tracker</div>
+  <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+    Study Time Tracker
+  </div>
   <div class="page-sub">Automatically tracks time spent on each topic. Data persists in your browser. Open any section to start tracking.</div>
 
   <div id="dailyInsightCard" class="suggestion-card" style="border-left-color:var(--blue); display:none; margin-bottom:1.5rem;">
@@ -12586,40 +12589,76 @@ public class LoanStatusActionTest {
   </div>
 
   <div style="display:flex; gap:10px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:10px; overflow-x:auto;">
-    <button class="tracker-tab active" onclick="switchTrackerTab('tab_suggestions')">≡ƒÆí Suggestions</button>
-    <button class="tracker-tab" onclick="switchTrackerTab('tab_chart')">≡ƒôè Time Distribution</button>
-    <button class="tracker-tab" onclick="switchTrackerTab('tab_topics')">≡ƒùé Topic Master</button>
-    <button class="tracker-tab" onclick="switchTrackerTab('tab_history')">≡ƒôà Session Log</button>
-    <button class="tracker-tab" style="color:var(--green);" onclick="switchTrackerTab('tab_leaderboard')">≡ƒÅå Global Leaderboard</button>
+    <button class="tracker-tab active" onclick="switchTrackerTab('tab_suggestions')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M9 21h6M9 18h6M10 15c-2.33-1.57-4-3.7-4-7 0-3.3 2.7-6 6-6s6 2.7 6 6c0 3.3-1.67 5.43-4 7"></path></svg>
+      Suggestions
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_chart')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+      Distribution
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_topics')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      Topics
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_history')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Sessions
+    </button>
+    <button class="tracker-tab" style="color:var(--green); display:flex; align-items:center; gap:6px;" onclick="switchTrackerTab('tab_leaderboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>
+      Leaderboard
+    </button>
   </div>
 
   <div id="tab_suggestions" class="tracker-content" style="display:block;">
-    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">≡ƒÆí Smart Study Suggestions</h3>
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--amber);"><path d="M9 21h6M9 18h6M10 15c-2.33-1.57-4-3.7-4-7 0-3.3 2.7-6 6-6s6 2.7 6 6c0 3.3-1.67 5.43-4 7"></path></svg>
+      Smart Study Suggestions
+    </h3>
     <div id="suggestions"></div>
   </div>
 
   <div id="tab_chart" class="tracker-content" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
-      <h3 style="font-size:1rem;font-weight:600;color:var(--text);">≡ƒôê Time Distribution</h3>
-      <button class="reset-btn" onclick="resetTracker()">ΓÜá Reset All Data</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+        Time Distribution
+      </h3>
+      <button class="reset-btn" onclick="resetTracker()" style="display:flex; align-items:center; gap:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"></path></svg>
+        Reset All Data
+      </button>
     </div>
     <div id="timeChart" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;"></div>
   </div>
 
   <div id="tab_topics" class="tracker-content" style="display:none;">
-    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">≡ƒùé Topic Completion Details</h3>
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      Topic Completion Details
+    </h3>
     <div class="tracker-grid" id="trackerGrid"></div>
   </div>
 
   <div id="tab_history" class="tracker-content" style="display:none;">
-    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem;">≡ƒôà Recent Session History</h3>
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Recent Session History
+    </h3>
     <div id="sessionHistory" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;"></div>
   </div>
 
   <div id="tab_leaderboard" class="tracker-content" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem;">
-      <h3 style="font-size:1rem;font-weight:600;color:var(--text);">≡ƒÅå Global Top Scholars</h3>
-      <button class="reset-btn" onclick="fetchLeaderboard()" style="color:var(--blue); border-color:var(--blue);">≡ƒöä Refresh Ranks</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--amber);"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>
+        Global Top Scholars
+      </h3>
+      <button class="reset-btn" onclick="fetchLeaderboard()" style="color:var(--blue); border-color:var(--blue); display:flex; align-items:center; gap:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+        Refresh Ranks
+      </button>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
       <div id="leaderboardList" style="display:flex; flex-direction:column; gap:10px;">
@@ -12634,11 +12673,16 @@ public class LoanStatusActionTest {
 <div id="study_history" class="page">
   <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:15px;">
     <div>
-      <div class="page-title">≡ƒôà Master Study History</div>
+      <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;color:var(--blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Master Study History
+      </div>
       <div class="page-sub" style="border:none; margin:0; padding:0;">Day-by-day breakdown of your preparation journey.</div>
     </div>
     <button id="syncHistoryBtn" onclick="syncHistoryWithFeedback()" class="tracker-tab active" style="background:var(--blue); color:white; border:none; padding:10px 20px; box-shadow:0 4px 15px rgba(79,142,247,0.3); display:flex; align-items:center; gap:10px; min-width:160px; justify-content:center;">
-      <span id="syncIcon" style="display:inline-block; transition: transform 0.5s;">≡ƒöä</span> 
+      <span id="syncIcon" style="display:flex; align-items:center; justify-content:center; transition: transform 0.5s;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+      </span> 
       <span id="syncText">Sync Dashboard</span>
     </button>
   </div>
@@ -12932,6 +12976,6 @@ public class LoanStatusActionTest {
 
 </div><!-- end #main -->
 
-<script src="app.v1365.js"></script>
+<script src="app.v1366.js"></script>
 </body>
 </html>
