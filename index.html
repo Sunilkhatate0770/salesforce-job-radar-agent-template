@@ -1,9 +1,9 @@
-<!DOCTYPE html> <!-- Pulse: v1360 - 2026-04-21-T1350 -->
+<!DOCTYPE html> <!-- Pulse: v1361 - 2026-04-21-T1355 -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Salesforce Prep Guide v1360</title>
+  <title>Salesforce Prep Guide v1361</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0b0d12">
   <meta name="mobile-web-app-capable" content="yes">
@@ -183,8 +183,9 @@
   </div>
 
   <div style="margin: 20px 15px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
-    <button onclick="triggerJobScan()" id="btnScanJobs" style="width:100%; display:flex; align-items:center; justify-content:center; gap:10px; padding:12px; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.3); border-radius:12px; color:var(--blue); font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))';this.style.transform='scale(1.02)'" onmouseleave="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1))';this.style.transform='scale(1)'">
-      <span style="font-size:1.1rem;">≡ƒôí</span> INITIATE GLOBAL JOB SCAN
+    <button onclick="triggerJobScan()" id="btnScanJobs" style="width:100%; display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.3); border-radius:12px; color:var(--blue); font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))';this.style.transform='scale(1.02)'" onmouseleave="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1))';this.style.transform='scale(1)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07M4.93 4.93a10 10 0 0 0 0 14.14"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      INITIATE GLOBAL JOB SCAN
     </button>
     <div id="scanStatusText" style="font-size:0.6rem; color:var(--muted); text-align:center; margin-top:8px;">Ready to scan</div>
     
@@ -421,7 +422,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are Salesforce Governor Limits? Give the most important ones by number.</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Governor limits are runtime limits enforced by the Salesforce platform to ensure no single Apex execution consumes too many shared resources across the multitenant environment. These limits apply per transaction ΓÇö meaning per trigger execution, per Apex class call, per batch execute() chunk, etc.</p>
@@ -448,7 +449,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is bulkification and how do you implement it correctly?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Bulkification means writing Apex code that handles <b>batches of records</b> efficiently instead of processing one record at a time. This is critical because Salesforce can pass up to 200 records to a trigger in a single execution. If your code runs a SOQL query inside a loop over 200 records, you hit 200 SOQL calls ΓÇö which exceeds the 100-query limit.</p>
@@ -486,7 +487,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain List, Set, and Map in Apex ΓÇö when do you use each?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -517,7 +518,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are the different types of Apex exceptions and how do you handle them?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Common built-in exception types:</b></p>
@@ -562,7 +563,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between Database.insert() and just using insert keyword?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>insert keyword:</b> all-or-nothing. If even ONE record fails validation, the entire list rolls back and a DmlException is thrown.</p>
@@ -589,7 +590,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are @AuraEnabled, @InvocableMethod, @RemoteAction, @future annotations ΓÇö explain each?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <ul class="ans-list">
@@ -617,7 +618,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain abstract class vs interface in Apex ΓÇö when do you use each?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -656,7 +657,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you write a test class properly ΓÇö @isTest, @TestSetup, Test.startTest()?</span>
       <span class="qa-q-label lbl-apex">APEX</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Test classes in Salesforce require <b>75% overall code coverage</b> to deploy to production. But good test classes verify behavior, not just coverage.</p>
@@ -719,7 +720,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is SOQL injection and how do you prevent it? Show vulnerable code and the fix.</span>
       <span class="qa-q-label lbl-apex">SOQL</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">SOQL injection is a security vulnerability where a malicious user inputs text that manipulates a dynamic SOQL query to expose unauthorized data ΓÇö similar to SQL injection in traditional databases.</p>
@@ -753,7 +754,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Write a SOQL query to get all Contacts with their Account name and parent Account. Explain relationship queries.</span>
       <span class="qa-q-label lbl-apex">SOQL</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Salesforce has two types of relationship queries:</p>
@@ -800,7 +801,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain aggregate functions in SOQL ΓÇö GROUP BY, HAVING, AggregateResult</span>
       <span class="qa-q-label lbl-apex">SOQL</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// COUNT, SUM, MIN, MAX, AVG - aggregate functions</span>
@@ -838,7 +839,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is WITH SECURITY_ENFORCED and WITH USER_MODE ΓÇö what is the difference?</span>
       <span class="qa-q-label lbl-apex">SOQL</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Both enforce field-level security in SOQL queries, but they work differently:</p>
@@ -872,7 +873,7 @@
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is SOQL FOR UPDATE ΓÇö row locking? When do you use it?</span>
       <span class="qa-q-label lbl-apex">SOQL</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">FOR UPDATE locks the queried records in the database, preventing other transactions from modifying them until your current transaction completes. It is pessimistic locking ΓÇö assume conflict and prevent it.</p>
@@ -909,7 +910,7 @@ update loans; <span class="cmt">// Lock released after DML completes</span></pre
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Walk me through your trigger handler pattern ΓÇö show complete code</span>
       <span class="qa-q-label lbl-apex">TRIGGERS</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">The trigger handler pattern separates the trigger (routing) from the business logic (handler class). The trigger file should have ZERO business logic ΓÇö it only calls the handler. The handler class has methods for each trigger event.</p>
@@ -984,7 +985,7 @@ trigger ContactTrigger on Contact (
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you prevent recursive triggers? What are the pitfalls?</span>
       <span class="qa-q-label lbl-apex">TRIGGERS</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Recursive trigger = trigger fires, performs DML on same object, which fires the trigger again ΓåÆ infinite loop ΓåÆ CPU limit exceeded.</p>
@@ -1026,7 +1027,7 @@ trigger AccountTrigger on Account (after update) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between before and after trigger ΓÇö when do you use each?</span>
       <span class="qa-q-label lbl-apex">TRIGGERS</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -1071,7 +1072,7 @@ trigger AccountTrigger on Account (after update) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between Future, Queueable, Batch, and Scheduled Apex? When do you use each?</span>
       <span class="qa-q-label lbl-apex">ASYNC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -1126,7 +1127,7 @@ trigger AccountTrigger on Account (after update) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is Mixed DML error and how do you fix it?</span>
       <span class="qa-q-label lbl-apex">ASYNC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Mixed DML occurs when you try to do DML on a <b>setup object</b> (like User, Profile, PermissionSet) AND a <b>non-setup object</b> (like Account, Contact) <b>in the same transaction</b>. Salesforce does not allow this.</p>
@@ -1171,7 +1172,7 @@ insert a;  <span class="cmt">// Non-setup DML in same transaction = ERROR</span>
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between @api, @track, and @wire ΓÇö explain with code</span>
       <span class="qa-q-label lbl-lwc">LWC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -1227,7 +1228,7 @@ insert a;  <span class="cmt">// Non-setup DML in same transaction = ERROR</span>
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you communicate between LWC components ΓÇö all 3 patterns with code</span>
       <span class="qa-q-label lbl-lwc">LWC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Pattern 1: Parent ΓåÆ Child (via @api property or method call)</b></p>
@@ -1303,7 +1304,7 @@ handleLoanUpdate(message) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">LWC lifecycle hooks ΓÇö what fires in what order?</span>
       <span class="qa-q-label lbl-lwc">LWC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Order of lifecycle hooks:</b> constructor ΓåÆ connectedCallback ΓåÆ render ΓåÆ renderedCallback</p>
@@ -1355,7 +1356,7 @@ handleLoanUpdate(message) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Wire vs Imperative Apex ΓÇö when do you use each? Show both patterns.</span>
       <span class="qa-q-label lbl-lwc">LWC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -1423,7 +1424,7 @@ async handleSaveLoan() {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you make an authenticated REST API callout in Apex? Show complete code with Named Credentials.</span>
       <span class="qa-q-label lbl-intg">INTEGRATION</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// Named Credential: Created in Setup ΓåÆ Security ΓåÆ Named Credentials</span>
@@ -1513,7 +1514,7 @@ async handleSaveLoan() {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Why can't you make callouts from triggers? How do you work around it?</span>
       <span class="qa-q-label lbl-intg">INTEGRATION</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Triggers run synchronously within a database transaction. If a callout is made during a transaction and the external system takes 30 seconds, the database transaction locks those records for 30 seconds ΓÇö this is a major problem in a multitenant environment.</p>
@@ -1563,7 +1564,7 @@ trigger LoanTrigger on Loan__c (after insert) {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are Platform Events? How do you publish and subscribe? Show complete code.</span>
       <span class="qa-q-label lbl-intg">PLATFORM EVENTS</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Platform Events are a messaging solution built on Salesforce's streaming infrastructure. They enable event-driven architecture ΓÇö loosely coupled components communicate through events rather than direct calls. The publisher doesn't know who the subscribers are.</p>
@@ -1789,7 +1790,7 @@ notification.send(new Set&lt;String&gt;{loan.OwnerId}); // send to loan officer<
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain the Salesforce security model layers from top to bottom</span>
       <span class="qa-q-label lbl-sec">SECURITY</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Salesforce security is layered ΓÇö each layer controls a different level of access:</p>
@@ -1808,7 +1809,7 @@ notification.send(new Set&lt;String&gt;{loan.OwnerId}); // send to loan officer<
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is OWD? Explain each setting and when you use it.</span>
       <span class="qa-q-label lbl-sec">SECURITY</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">OWD (Organization-Wide Default) is the <b>baseline record access level</b> for every object. It sets the most restrictive access level, and you then open up access using Role Hierarchy, Sharing Rules, or Manual Sharing.</p>
@@ -1827,7 +1828,7 @@ notification.send(new Set&lt;String&gt;{loan.OwnerId}); // send to loan officer<
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is with sharing, without sharing, inherited sharing ΓÇö explain with code</span>
       <span class="qa-q-label lbl-sec">SECURITY</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -1866,7 +1867,7 @@ notification.send(new Set&lt;String&gt;{loan.OwnerId}); // send to loan officer<
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you enforce FLS in Apex? What is stripInaccessible?</span>
       <span class="qa-q-label lbl-sec">SECURITY</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// Method 1: Manual FLS check before DML</span>
@@ -1916,7 +1917,7 @@ notification.send(new Set&lt;String&gt;{loan.OwnerId}); // send to loan officer<
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain the Strategy Pattern in Apex ΓÇö show code with a real Salesforce example</span>
       <span class="qa-q-label lbl-apex">PATTERNS</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">The Strategy Pattern defines a family of algorithms, encapsulates each one, and makes them interchangeable. The client (caller) works with an interface and doesn't know which concrete implementation it's using.</p>
@@ -2331,7 +2332,7 @@ proc.validate(loan); // safe ΓÇö worst case is a no-op</pre>
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between LWC and Aura ΓÇö give 5 key differences</span>
       <span class="qa-q-label lbl-lwc">AURA vs LWC</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -2987,7 +2988,7 @@ component.set('v.isLoading', true);  // write</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between Database.Stateful and without Database.Stateful in Batch Apex? When does it matter?</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">By default, each execute() chunk of a batch job runs in a fresh, isolated transaction. All instance variables are reset between chunks. <b>Database.Stateful</b> changes this ΓÇö instance variables are preserved across all execute() calls for the lifetime of the batch job.</p>
@@ -3029,7 +3030,7 @@ component.set('v.isLoading', true);  // write</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain Apex CPU time optimisation ΓÇö what consumes CPU and how do you reduce it?</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">CPU time limit is 10,000ms synchronous / 60,000ms async. It measures actual Apex execution time ΓÇö not waiting for SOQL or callouts (those don't count toward CPU). The most common causes of CPU limit errors:</p>
@@ -3074,7 +3075,7 @@ component.set('v.isLoading', true);  // write</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is Apex Managed Sharing ΓÇö when and how do you implement it?</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Apex Managed Sharing allows you to programmatically grant record access beyond what OWD and sharing rules provide, using a custom RowCause. This is more powerful than manual sharing because it persists across record ownership changes and can be fully automated.</p>
@@ -3117,7 +3118,7 @@ component.set('v.isLoading', true);  // write</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain the difference between addError() on a field vs on the record ΓÇö and when you use each</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// addError() on the RECORD - shows error at the top of the page</span>
@@ -3150,7 +3151,7 @@ loan.addError(<span class="str">'&lt;b&gt;TRID Violation:&lt;/b&gt; Closing date
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is Queueable chaining ΓÇö how do you chain 3 jobs and handle failures in the chain?</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// Chain: CreditCheck ΓåÆ OFACScreening ΓåÆ DocuSignTrigger</span>
@@ -3203,7 +3204,7 @@ System.enqueueJob(<span class="kw">new</span> <span class="cls">CreditCheckJob</
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are custom metadata types vs custom settings vs custom objects ΓÇö when do you use each?</span>
-      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -3243,7 +3244,7 @@ System.enqueueJob(<span class="kw">new</span> <span class="cls">CreditCheckJob</
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you optimise a slow LWC component ΓÇö what are the common performance problems?</span>
-      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Common LWC performance problems and fixes:</b></p>
@@ -3285,7 +3286,7 @@ handlePrevPage() { <span class="kw">if</span>(this.currentPage > <span class="nu
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you test LWC components using Jest ΓÇö show a complete test example</span>
-      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// __tests__/loanCard.test.js</span>
@@ -3353,7 +3354,7 @@ describe('c-loan-card', () => {
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the Shadow DOM in LWC ΓÇö how does it affect CSS styling?</span>
-      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Shadow DOM is a web standard that encapsulates a component's internal DOM and CSS. It creates a boundary ΓÇö styles defined inside a component do NOT leak out to the parent, and parent styles do NOT reach inside a child component. LWC uses a synthetic Shadow DOM (and native in some contexts).</p>
@@ -3768,7 +3769,7 @@ export default class LoanActionPanel extends LightningElement {
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you implement retry logic for a failed API callout in Apex?</span>
-      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="kw">public class</span> <span class="cls">RetryableCalloutService</span> {
@@ -3824,7 +3825,7 @@ export default class LoanActionPanel extends LightningElement {
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How do you expose an Apex class as a REST API endpoint ΓÇö complete code</span>
-      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <pre class="code"><span class="cmt">// URL: https://[instance]/services/apexrest/v1/loans/</span>
@@ -4207,7 +4208,7 @@ public class S3UploadService {
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between Workflow Rules, Process Builder, and Flow ΓÇö which do you use today?</span>
-      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -4224,7 +4225,7 @@ public class S3UploadService {
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is an approval process ΓÇö explain all components and a real use case</span>
-      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">An Approval Process is a declarative tool that automates a sequence of steps for approving a record. When a record meets certain criteria, it enters the approval process and must be approved (or rejected) by designated users before it moves forward.</p>
@@ -4253,7 +4254,7 @@ System.debug(<span class="str">'Submitted: '</span> + result.isSuccess() + <span
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are Record Types ΓÇö when do you use them vs picklist values?</span>
-      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Record Types allow you to offer different business processes, page layouts, and picklist values for different users on the same object. A Record Type is assigned to a profile or permission set ΓÇö users with that assignment see those page layouts and picklist options.</p>
@@ -4359,7 +4360,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Design a notification system in Salesforce that sends emails, SMS, and push notifications based on loan status changes ΓÇö how would you architect this?</span>
-      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Step 1 ΓÇö Identify the trigger:</b> Record-Triggered Flow or After Update trigger on Loan__c fires when Status__c changes.</p>
@@ -4374,7 +4375,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">A batch job that processes 2 million loan records is timing out. How do you diagnose and fix it?</span>
-      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Step 1 ΓÇö Diagnose first:</b> Check the AsyncApexJob record to see which chunk failed. Enable debug logs for the batch user. Look at which line hits the time limit ΓÇö use Limits.getCpuTime() at different points to narrow it down.</p>
@@ -4400,7 +4401,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How would you migrate 500,000 records from a legacy system into Salesforce without affecting production users?</span>
-      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Strategy: Phased migration with validation gates</b></p>
@@ -4682,7 +4683,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 1: Starting every answer with "So..." or "Basically..."</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> "So basically" signals an unconfident, casual answer coming. It also wastes 2 seconds before you have said anything meaningful. Senior developers are expected to answer directly and precisely.</p>
@@ -4695,7 +4696,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 2: Answering without giving a concrete example from your work</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> Textbook answers without examples sound like you memorised a definition but may never have actually used the concept. Senior developers are hired for real experience, not theoretical knowledge.</p>
@@ -4708,7 +4709,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 3: Speaking too fast when nervous</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> Fast speech in an interview signals nervousness to the interviewer. It also makes you harder to understand, especially on a video call where audio quality may not be perfect. And it causes you to skip important details and make your answers shallower than they should be.</p>
@@ -4726,7 +4727,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 4: Saying "we did this" instead of "I did this"</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> Interviewers cannot hire a team ΓÇö they are hiring you. When you say "we built this" for everything, the interviewer wonders what YOUR specific contribution actually was. This is especially critical for your solo project ΓÇö the Loan Officer Campaign Platform ΓÇö where you did everything yourself.</p>
@@ -4739,7 +4740,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 5: Ending answers with "...yeah" or letting the answer trail off</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> When your answer trails off with "...yeah" or "...so that's basically it" or "...yeah that's all," it signals you are not sure you said enough. It invites the interviewer to judge whether your answer was complete. A strong, decisive close signals confidence.</p>
@@ -4758,7 +4759,7 @@ Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
   <div class="qa-block">
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Mistake 6: Not asking clarifying questions on design/scenario questions</span>
-      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">Γû╝</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p"><b>Why it hurts you:</b> When an interviewer asks "Design a loan notification system," jumping straight into one design without asking clarifying questions shows junior thinking. Senior developers always clarify requirements before designing.</p>
@@ -12493,8 +12494,8 @@ public class LoanStatusActionTest {
     <div class="tip-box"><div class="tip-label">Analogy</div><p>"Think of it like: Agent = company policy, Topic = department rules, Action = specific procedure."</p></div>
   </div></div>
 
-  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">≡ƒÅü Pre-Interview Cheat Sheet ΓÇö Your 5 Key Differentiators + Power Phrases</span><span class="qa-q-label lbl-fde-cheat">CHEAT SHEET</span><span class="qa-chevron">Γû╝</span></div><div class="qa-answer">
-    <div class="fde-hero-box"><h3>≡ƒÄ» Your 5 Key Differentiators ΓÇö Weave Into Every Answer</h3>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Pre-Interview Cheat Sheet &mdash; Your 5 Key Differentiators + Power Phrases</span><span class="qa-q-label lbl-fde-cheat">CHEAT SHEET</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <div class="fde-hero-box"><h3>Your 5 Key Differentiators &mdash; Weave Into Every Answer</h3>
       <ul class="ans-list">
         <li><b>1. Mortgage compliance (TRID/FCRA/RESPA)</b> ΓåÆ directly maps to agent guardrail design</li>
         <li><b>2. Apex @InvocableMethod mastery</b> ΓåÆ core pattern for ALL Agentforce actions</li>
@@ -12778,7 +12779,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is Agentforce and how does it differ from Einstein Bots?</span>
       <span class="qa-q-label lbl-fde">CORE</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Agentforce is an evolution from intent-based bots to **autonomous agents**. Unlike bots that follow strict "If-Then" trees, Agentforce uses the **Atlas Reasoning Engine** to determine which "Action" to take based on the user's goal.</p>
@@ -12799,7 +12800,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Explain the Data Cloud "Ingest to Action" flow.</span>
       <span class="qa-q-label lbl-fde">DATA CLOUD</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <ol>
@@ -12821,7 +12822,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">How does the Atlas Reasoning Engine work?</span>
       <span class="qa-q-label lbl-fde">REASONING</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">Atlas works in a loop: **Query Analysis -> Plan Building -> Execution -> Result Evaluation**. It retrieves relevant metadata (Actions, Flows) and data (Data Cloud) to build a prompt, then interprets the LLM response to see if the goal is met or if more actions are needed.</p>
@@ -12837,7 +12838,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What are the key features of the Einstein Trust Layer?</span>
       <span class="qa-q-label lbl-fde">TRUST</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <p class="ans-p">The Trust Layer sits between the Agent and the LLM. It ensures:</p>
@@ -12860,7 +12861,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">What is the difference between Calculated Insights and Streaming Insights?</span>
       <span class="qa-q-label lbl-fde">DATA CLOUD</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <table class="comparison-table">
@@ -12882,7 +12883,7 @@ public class LoanStatusActionTest {
     <div class="qa-question" onclick="toggleQA(this)">
       <span class="qa-q-text">Quick Fire: Must-Know FDE Limits & Terms</span>
       <span class="qa-q-label lbl-fde-cheat">CHEAT SHEET</span>
-      <span class="qa-chevron">Γû╝</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
     </div>
     <div class="qa-answer">
       <div class="fde-hero-box">
@@ -12917,6 +12918,6 @@ public class LoanStatusActionTest {
 
 </div><!-- end #main -->
 
-<script src="app.v1360.js"></script>
+<script src="app.v1361.js"></script>
 </body>
 </html>
