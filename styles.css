@@ -99,6 +99,15 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.stat-value {
+  font-size: clamp(1.2rem, 4vw, 2.2rem);
+  font-weight: 800;
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
 .sidebar-header h2 {
   font-size: 0.85rem;
   font-weight: 700;
