@@ -1,13 +1,30 @@
+:root {
+  --bg: #0b0d12;
+  --surface: #111520;
+  --card: #171d2e;
+  --card2: #1c2438;
+  --border: #252f4a;
+  --border2: #2e3b5e;
+  --blue: #4f8ef7;
+  --green: #3dd68c;
+  --amber: #f4c542;
+  --red: #f06a6a;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --pink: #f472b6;
+  --text: #dce6f8;
+  --muted: #6b7da0;
+  --dim: #3a4668;
+  --code-bg: #0e1320;
+  --header-h: clamp(60px, 8vh, 75px);
+  --sidebar-w: 270px;
+  --page-max-w: 1400px;
+  --fluid-pad: clamp(1rem, 4vw, 3rem);
+}
 * {
   box-sizing: border-box !important;
   margin: 0;
   padding: 0;
-}
-:root {
-  --header-h: clamp(60px, 8vh, 75px); /* Dynamic header height */
-  --sidebar-w: 270px;
-  --page-max-w: 1400px;
-  --fluid-pad: clamp(1rem, 4vw, 3rem);
 }
 html, body {
   width: 100%;
