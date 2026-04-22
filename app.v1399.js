@@ -23,7 +23,7 @@ let sessionFeedbackProvided = new Set();
 // DYNAMIC CONTENT DATA (MASTER REGISTRY v1399)
 // =============================================
 // NOTE: Core topics (Apex, LWC, etc.) are hardcoded in index.html for maximum depth.
-// This registry serves as the agile layer for company-specific and advanced modules.
+var TOPIC_DATA = {
   // --- COMPANY SPECIFIC PREP ---
   'deloitte': {
     title: 'Deloitte Salesforce Interview (2026)',
