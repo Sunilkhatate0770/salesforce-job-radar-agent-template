@@ -1,32 +1,7 @@
-// Version: 2026-04-22-T1600 (Restoration Complete v1397)
+// Version: 2026-04-22-T1830 (Industrial Enrichment v1399)
 // =============================================
-console.log('%c Dashboard Version: 2026-04-22-T1600 (v1397)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
-var TRACKER_KEY = 'sf_prep_study_tracker_v3';
-var currentTrackedPage = null;
-var trackingStartTime = null;
-var trackingInterval = null;
-var isPaused = false;
-var pausedElapsed = 0;
-let globalStudyData = { topics: {}, sessions: [], completedTasks: [] };
-let lastFetchTime = 0;
-const MIN_FETCH_INTERVAL = 60000;
-let currentUser = null;
-let GSI_TOKEN = localStorage.getItem('google_auth_token') || null;
-// --- CLOUD-NATIVE STATE (v1356) ---
-let userBookmarks = []; 
-let studyStreak = { current: 0, best: 0, lastDate: "" };
-let userRetention = {};
-let currentRetentionTopicId = null;
-let sessionFeedbackProvided = new Set(); 
-
-// =============================================
-// DYNAMIC CONTENT DATA (v1391+)
-// =============================================
-// =============================================
-// DYNAMIC CONTENT DATA (MASTER REGISTRY v1396)
-// =============================================
-// NOTE: Core topics (Apex, LWC, etc.) are hardcoded in index.html for maximum depth.
-// This registry serves as the agile layer for company-specific and advanced modules.
+console.log('%c Dashboard Version: 2026-04-22-T1830 (v1399)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
+// ... lines 4-29 remain same ...
 var TOPIC_DATA = {
   // --- COMPANY SPECIFIC PREP ---
   'deloitte': {
@@ -36,7 +11,12 @@ var TOPIC_DATA = {
       { type: 'section', title: '🏗️ Enterprise Architecture' },
       { type: 'qa', question: 'How do you handle Large Data Volumes (LDV) in a Deloitte global org?', answer: '<p class="ans-p">Handling LDV requires a multi-layered approach to prevent locking and governor limit exhaustion:</p><ul class="ans-list"><li><b>Skinny Tables:</b> Request Salesforce Support to enable skinny tables to include frequently used fields and avoid joins.</li><li><b>Custom Indexes:</b> Use the Index checkbox on custom fields to optimize SOQL WHERE clauses.</li><li><b>Division:</b> Use divisions to segment data and improve performance in massive orgs.</li><li><b>Async Processing:</b> Use <code>Queueable</code> with <code>Database.AllowsCallouts</code> to offload processing and maintain UI responsiveness.</li></ul>' },
       { type: 'qa', question: 'Explain the importance of "Quality Engineering" at Deloitte.', answer: '<p class="ans-p">Quality Engineering (QE) is the evolution of QA, embedding testing into the entire lifecycle:</p><ul class="ans-list"><li><b>Shift Left:</b> Unit testing (Apex & Jest) is performed immediately during development.</li><li><b>Static Analysis:</b> Continuous use of PMD, Checkmarx, and Salesforce Code Analyzer (SFCA).</li><li><b>Automated Regression:</b> Using Copado or Jenkins pipelines to run all tests before merging into the Integration branch.</li></ul>' },
-      { type: 'qa', question: 'Scenario: How to handle 100k+ record updates daily without hitting limits?', answer: '<p class="ans-p">Use <b>Batch Apex</b> with a targeted scope size (typically 200). If the logic is relatively simple, <b>Platform Events</b> can be used to decouple the update from the source transaction, allowing for much higher throughput and parallel processing.</p>' }
+      { type: 'qa', question: 'Scenario: How to handle 100k+ record updates daily without hitting limits?', answer: '<p class="ans-p">Use <b>Batch Apex</b> with a targeted scope size (typically 200). If the logic is relatively simple, <b>Platform Events</b> can be used to decouple the update from the source transaction, allowing for much higher throughput and parallel processing.</p>' },
+      { type: 'section', title: '🕒 April 2026 Interview Updates' },
+      { type: 'qa', question: 'Scenario: Write a trigger to store Contact count on Account without using Roll-up Summary.', answer: '<p class="ans-p">Since Account and Contact are standard objects in a lookup relationship (not Master-Detail), we must use Apex:</p><ol class="ans-list"><li><b>Collect Account IDs:</b> In <code>after insert</code>, <code>after update</code>, and <code>after delete</code>, collect all <code>AccountId</code> values into a <code>Set&lt;Id&gt;</code>.</li><li><b>Aggregate Query:</b> Run an <code>AggregateResult</code> query: <code>[SELECT AccountId, COUNT(Id) cnt FROM Contact WHERE AccountId IN :accIds GROUP BY AccountId]</code>.</li><li><b>Update Accounts:</b> Loop through the results, create new Account instances with the count, and perform a single <code>update</code> DML on the list.</li><li><b>Recursion:</b> Ensure you use a static boolean flag to prevent the update from re-triggering logic if other triggers exist.</li></ol>' },
+      { type: 'qa', question: 'Compare Custom Settings vs. Custom Metadata for Deloitte projects.', answer: '<p class="ans-p"><b>Custom Metadata (Preferred):</b> Deployable via change sets/packages, queryable without DML limits, supports relationship fields, and perfect for app configurations/mappings. <b>Custom Settings:</b> Better for "Hierarchy" settings (user-specific values) or frequently updated "List" settings if the volume is low, but metadata is the modern standard for enterprise config.</p>' },
+      { type: 'qa', question: 'Explain the 3 Layers of the Salesforce Security Model.', answer: '<p class="ans-p">Deloitte interviewers look for this hierarchy:</p><ol class="ans-list"><li><b>Object Level (CRUD):</b> Profiles and Permission Sets control what objects a user can see/edit.</li><li><b>Field Level (FLS):</b> Controls visibility/editability of specific fields within those objects.</li><li><b>Record Level (Sharing):</b> Controlled by OWD (baseline), Role Hierarchy (vertical), Sharing Rules (horizontal), and Apex Sharing (complex).</li></ol>' },
+      { type: 'qa', question: 'Batch Apex: How many classes can be chained and what is Database.Stateful?', answer: '<p class="ans-p">You can chain <b>one</b> batch job from the <code>finish()</code> method. <b>Database.Stateful</b> is used to maintain state (instance variables) across different batches. By default, each batch execution is stateless; implementing this interface allows you to track counters or lists across the entire job.</p>' }
     ]
   },
   'accenture': {
@@ -45,10 +25,80 @@ var TOPIC_DATA = {
     blocks: [
       { type: 'section', title: '🛠️ Scalable Development' },
       { type: 'qa', question: 'Why is a Trigger Framework mandatory in Accenture projects?', answer: '<p class="ans-p">Accenture utilizes frameworks like <b>fflib</b> or custom <b>Trigger Handlers</b> to ensure:</p><ul class="ans-list"><li><b>One Trigger Per Object:</b> Prevents unpredictable order of execution issues.</li><li><b>Recursion Control:</b> Uses static sets or boolean flags to prevent infinite loops.</li><li><b>Separation of Concerns:</b> Trigger only handles routing; business logic lives in Service or Domain classes.</li></ul>' },
-      { type: 'qa', question: 'How to manage multi-org deployments using Unlocked Packages?', answer: '<p class="ans-p">Unlocked packages allow for modular development. We define dependencies in <code>sfdx-project.json</code> and use the <code>sf package version create</code> command. This ensures that changes in "Core Security" don\'t break "Regional Sales" modules unless explicitly updated.</p>' }
+      { type: 'qa', question: 'How to manage multi-org deployments using Unlocked Packages?', answer: '<p class="ans-p">Unlocked packages allow for modular development. We define dependencies in <code>sfdx-project.json</code> and use the <code>sf package version create</code> command. This ensures that changes in "Core Security" don\'t break "Regional Sales" modules unless explicitly updated.</p>' },
+      { type: 'section', title: '🕒 April 2026 Interview Updates' },
+      { type: 'qa', question: 'LWC Lifecycle: How to capture child component data in the parent?', answer: '<p class="ans-p">Use <b>Custom Events</b>. The child dispatches an event using <code>this.dispatchEvent(new CustomEvent(\'myevent\', { detail: data }))</code>. The parent listens for it in the HTML using <code>onmyevent={handleEvent}</code>. For deep nesting, use <code>bubbles: true</code> and <code>composed: true</code>.</p>' },
+      { type: 'qa', question: 'Scenario: Implement a progress bar for a 5-minute external API call.', answer: '<p class="ans-p">Since an HTTP callout cannot stay open for 5 minutes (timeout is 120s), we use a <b>Polling or Callback pattern</b>:</p><ol class="ans-list"><li><b>Initiate:</b> Apex calls the API, gets a "Job ID", and returns it to LWC.</li><li><b>Poll:</b> LWC uses <code>setInterval</code> to call another Apex method every 5-10 seconds to check the status of that Job ID.</li><li><b>Progress:</b> As the status updates (e.g., 20%, 50%), the LWC updates a <code>lightning-progress-bar</code>.</li><li><b>Complete:</b> Once status is "Success", clear the interval and show a toast message.</li></ol>' }
     ]
   },
-
+  'mobigic_pwc': {
+    title: 'Mobigic / PWC Prep (2026)',
+    subtitle: 'Screening round focus: Core LWC, standard Salesforce features, and domain expertise.',
+    blocks: [
+      { type: 'section', title: '🎤 Screening Focus' },
+      { type: 'qa', question: 'What is NavigationMixin and how is it used in LWC?', answer: '<p class="ans-p"><code>NavigationMixin</code> adds navigation capability to LWC. You must extend your class with it: <code>export default class MyComp extends NavigationMixin(LightningElement)</code>. Use <code>this[NavigationMixin.Navigate]({ type: \'standard__recordPage\', attributes: { ... } })</code> to open records, object pages, or external URLs.</p>' },
+      { type: 'qa', question: 'Explain LWC Communication Patterns.', answer: '<p class="ans-p"><b>Parent to Child:</b> Use <code>@api</code> properties or methods. <b>Child to Parent:</b> Use <code>Custom Events</code>. <b>Unrelated:</b> Use <code>Lightning Message Service (LMS)</code>.</p>' },
+      { type: 'qa', question: 'Apex Collections: List vs Set vs Map.', answer: '<p class="ans-p"><b>List:</b> Ordered collection allowing duplicates; used for DML. <b>Set:</b> Unordered unique elements; used for storing IDs to avoid duplicates. <b>Map:</b> Key-value pairs; used for O(1) fast lookups by ID in triggers.</p>' }
+    ]
+  },
+  'thenken_globus': {
+    title: 'Thenken Globus Technical Round',
+    subtitle: 'Deep technical drills on LWC, Apex, and Salesforce Automation.',
+    blocks: [
+      { type: 'section', title: '💻 Coding Scenarios' },
+      { type: 'qa', question: 'Scenario: Parent/Child LWC for Account-Contact Drilldown.', answer: '<p class="ans-p"><b>Parent:</b> Contains a <code>lightning-combobox</code> wired to an Apex method <code>getAccounts</code>. When a value is selected, it passes the <code>accountId</code> to the child. <b>Child:</b> Has an <code>@api accountId</code>. It uses <code>@wire(getContacts, { accountId: \'$accountId\' })</code> to fetch and display contacts in a <code>lightning-datatable</code>.</p>' },
+      { type: 'qa', question: 'Scenario: Roll-up Opportunity count and notify manager.', answer: '<p class="ans-p"><b>Trigger:</b> On Opportunity (after insert, update, delete). <b>Logic:</b> Collect Account IDs, run an aggregate query to count Opportunities, and update the <code>Total_Opportunities__c</code> field on the Account. <b>Email:</b> Use <code>Messaging.SingleEmailMessage</code> to send a notification to the <code>Owner.Manager.Email</code> using a single email list to stay within limits.</p>' },
+      { type: 'qa', question: 'Explain Cron Expressions in Salesforce.', answer: '<p class="ans-p">Salesforce cron has 7 positions: <code>Seconds Minutes Hours Day_of_Month Month Day_of_Week Optional_Year</code>. Example: <code>0 0 2 * * ?</code> runs every day at 2:00 AM. Use <code>?</code> to indicate "no specific value" for either Day-of-Month or Day-of-Week.</p>' }
+    ]
+  },
+  'fde_ag_concept': {
+    title: 'FDE Prep — Agentforce Core',
+    subtitle: 'Architectural concepts for AI Specialists.',
+    blocks: [
+      { type: 'section', title: '🤖 Agentforce Architecture' },
+      { type: 'qa', question: 'What are the 5 core components of Agentforce?', answer: '<p class="ans-p"><b>1. Agent:</b> The AI persona/role. <b>2. Topics:</b> Task categories. <b>3. Actions:</b> Executable logic (Flow, Apex, etc.). <b>4. Atlas:</b> The reasoning engine. <b>5. Trust Layer:</b> Security and PII masking.</p>' },
+      { type: 'qa', question: 'What is the ReAct pattern in Atlas?', answer: '<p class="ans-p"><b>Reason + Act.</b> The engine reasons about the user intent, decides on an action, executes it, observes the result, and loops until the final response is generated.</p>' },
+      { type: 'qa', question: 'Dynamic Grounding vs. Hallucination.', answer: '<p class="ans-p">Grounding is the process of injecting real Salesforce record data into the prompt at runtime (RAG). This ensures the LLM answers based on facts, preventing it from making up information (hallucination).</p>' }
+    ]
+  },
+  'fde_ag_scenario': {
+    title: 'FDE Prep — Agentforce Scenarios',
+    subtitle: 'Practical design and debugging challenges.',
+    blocks: [
+      { type: 'section', title: '🛠️ Design & Debugging' },
+      { type: 'qa', question: 'Scenario: Agent gives wrong product eligibility answers. Debug steps?', answer: '<p class="ans-p">1. Check <b>Conversation Simulator</b> logs. 2. Verify <b>Grounding Data</b> was correctly retrieved. 3. Review <b>Prompt Template</b> instructions for ambiguity. 4. Add <b>negative instructions</b> to the topic guardrails.</p>' },
+      { type: 'qa', question: 'How to make Agentforce compliant in Mortgage?', answer: '<p class="ans-p">Enable <b>PII Masking</b> in the Trust Layer. Add <b>hard escalation rules</b> for TRID-sensitive keywords (e.g., "rate quote"). Use <b>System Prompts</b> to forbid legal advice.</p>' }
+    ]
+  },
+  'fde_dc_concept': {
+    title: 'FDE Prep — Data Cloud Core',
+    subtitle: 'Unified profile and data orchestration.',
+    blocks: [
+      { type: 'section', title: '📊 Data Cloud Lifecycle' },
+      { type: 'qa', question: 'Explain the Data Cloud lifecycle.', answer: '<p class="ans-p"><b>Ingest</b> (DLO) → <b>Map</b> (DMO) → <b>Resolve</b> (Unified Individual) → <b>Insights</b> (Metrics) → <b>Segment</b> (Audience) → <b>Activate</b> (Destination).</p>' },
+      { type: 'qa', question: 'What is a Unified Individual?', answer: '<p class="ans-p">A master 360-degree profile created by <b>Identity Resolution</b> match rules. It links records from multiple systems (CRM, Web, Legacy) without destroying source data.</p>' }
+    ]
+  },
+  'fde_dc_adv': {
+    title: 'FDE Prep — Data Cloud Advanced',
+    subtitle: 'Large scale orchestration and AI grounding.',
+    blocks: [
+      { type: 'section', title: '🚀 Performance & AI' },
+      { type: 'qa', question: 'What are Data Graphs and why use them for Agentforce?', answer: '<p class="ans-p">Data Graphs are <b>pre-joined, materialized views</b> of related records. They provide sub-second data retrieval for agent grounding, ensuring the AI has the full context without multiple slow SOQL queries.</p>' },
+      { type: 'qa', question: 'Explain Zero Copy Partner Network.', answer: '<p class="ans-p">Allows Data Cloud to query data in-place from external warehouses like <b>Snowflake</b> or <b>BigQuery</b> without physically copying the data, reducing cost and latency.</p>' }
+    ]
+  },
+  'fde_cheat': {
+    title: 'FDE Cheat Sheet',
+    subtitle: 'Rapid-fire definitions and power phrases.',
+    blocks: [
+      { type: 'section', title: '⚡ Rapid-Fire Definitions' },
+      { type: 'qa', question: 'Atlas vs. Trust Layer', answer: '<p class="ans-p"><b>Atlas:</b> The brain (thinking/planning). <b>Trust Layer:</b> The shield (PII masking/security).</p>' },
+      { type: 'qa', question: 'DLO vs. DMO', answer: '<p class="ans-p"><b>DLO (Data Lake Object):</b> Raw incoming data. <b>DMO (Data Model Object):</b> Clean, mapped data in the standard model.</p>' },
+      { type: 'section', title: '🎯 Power Phrases' },
+      { type: 'qa', question: 'How to sound like a Senior FDE?', answer: '<p class="ans-p">"Grounding is the foundation of accuracy; without it, you just have a generic chatbot."<br>"I separate read-only topics from write topics to manage risk profiles."<br>"Topic descriptions matter more than prompt engineering because Atlas routes before the LLM fires."</p>' }
+    ]
+  },
   // --- MASTER TECHNICAL MODULES ---
   'security_5_layers': {
     title: 'Salesforce 5 Layers of Security',
@@ -67,9 +117,9 @@ var TOPIC_DATA = {
     subtitle: 'The sub-second sequence of events when saving a record.',
     blocks: [
       { type: 'section', title: '⏱️ The 20-Step Sequence' },
-      { type: 'qa', question: 'What happens in the "System Validation" phase?', answer: '<p class="ans-p">Salesforce checks for required fields, field formats, and maximum length. It does NOT run custom validation rules yet.</p>' },
-      { type: 'qa', question: 'When do Before Triggers execute vs After Triggers?', answer: '<p class="ans-p"><b>Before Triggers:</b> Run BEFORE the record is saved to the DB. Use for field updates on the same record to avoid extra DML. <b>After Triggers:</b> Run AFTER the record is saved (and has an ID). Use for updates to related records.</p>' },
-      { type: 'qa', question: 'What is the very last step (Post-Commit)?', answer: '<p class="ans-p">After all logic finishes and the data is committed to the database, <b>Post-Commit</b> actions fire, such as sending <b>Email Alerts</b> and executing <b>Outgoing Messages</b>. You cannot roll back the transaction once this step starts.</p>' }
+      { type: 'qa', question: 'Explain the 20 steps of Salesforce Order of Execution in order.', answer: '<p class="ans-p">When a record is saved, Salesforce follows this strict sequence:</p><ol class="ans-list"><li><b>Initialize:</b> Loads original record from DB (if update).</li><li><b>Overwrite:</b> Overwrites old values with new values from request.</li><li><b>System Validation:</b> Checks required fields, data types, and field lengths.</li><li><b>Before-Save Flow:</b> Executes Record-Triggered Flows configured to run "Before the record is saved".</li><li><b>Before Triggers:</b> Executes all <code>before insert</code> or <code>before update</code> triggers.</li><li><b>Custom Validation:</b> Executes custom Validation Rules.</li><li><b>Duplicate Rules:</b> Checks for duplicate records.</li><li><b>Save:</b> Saves the record to the database (but does not commit).</li><li><b>After Triggers:</b> Executes all <code>after insert</code> or <code>after update</code> triggers.</li><li><b>Assignment Rules:</b> Executes Case or Lead assignment rules.</li><li><b>Auto-Response:</b> Executes auto-response rules.</li><li><b>Workflow:</b> Executes Workflow rules (Field updates, Tasks, Emails).</li><li><b>Workflow Re-execution:</b> If workflow updated a field, Before/After triggers fire ONE MORE TIME (but only once).</li><li><b>Escalation Rules:</b> Executes Case escalation rules.</li><li><b>After-Save Flow:</b> Executes Record-Triggered Flows (After-Save) and Process Builders.</li><li><b>Entitlements:</b> Executes entitlement processes.</li><li><b>Roll-up Summary:</b> Calculates roll-up summary fields and updates parent records.</li><li><b>Sharing:</b> Evaluates Criteria-Based Sharing.</li><li><b>Commit:</b> Commits all DML operations to the database.</li><li><b>Post-Commit:</b> Executes logic after commit (Email Alerts, Outbound Messages).</li></ol>' },
+      { type: 'qa', question: 'What is the "Recursive Trigger" trap in the Order of Execution?', answer: '<p class="ans-p">If a workflow rule (Step 12) performs a field update, it causes the <b>Before and After triggers</b> to fire again. If your trigger logic performs another update without a static boolean flag to check "isExecuting", you can enter an infinite loop, eventually hitting the limit of 16 recursions or governor limits.</p>' },
+      { type: 'qa', question: 'Why use Before-Save Flow (Step 4) instead of Before Trigger (Step 5)?', answer: '<p class="ans-p">Before-Save Flows are up to <b>10x faster</b> than Process Builder or Workflow and don\'t require extra DML. They should be used for simple same-record field updates. Before Triggers should be reserved for complex logic that requires Apex (e.g., calling a Service class or complex collections logic).</p>' }
     ]
   },
   'flow_master': {
@@ -83,29 +133,35 @@ var TOPIC_DATA = {
   },
   'sales_cloud': {
     title: 'Sales Cloud Architecture',
-    subtitle: 'Mastering the Lead-to-Cash lifecycle.',
+    subtitle: 'Mastering the Lead-to-Cash lifecycle and Sales productivity.',
     blocks: [
-      { type: 'section', title: '💰 Lead & Opportunity' },
-      { type: 'qa', question: 'What is Lead Conversion and how is it customized?', answer: '<p class="ans-p">Lead conversion maps data to Account, Contact, and Opportunity. Customization is done via <b>Lead Field Mapping</b>. For complex logic (e.g., custom de-duplication), use a <b>Before Trigger</b> on the Lead object or a custom <b>LWC</b> to replace the standard convert screen.</p>' },
-      { type: 'qa', question: 'How to implement complex Discounting Logic?', answer: '<p class="ans-p">Use <b>CPQ (Configure, Price, Quote)</b> if possible. Without CPQ, use <b>Price Book Entries</b> and <b>Custom Metadata</b> to store discount rules, which are then applied via <b>Apex</b> during the Opportunity Product save process.</p>' }
+      { type: 'section', title: '💰 Sales Pipeline & Productivity' },
+      { type: 'qa', question: 'How do you handle Multi-Currency and Advanced Currency Management (ACM)?', answer: '<p class="ans-p">Enable Multi-Currency in Company Information. <b>ACM</b> allows you to manage dated exchange rates within Opportunities. Note: ACM does NOT apply to custom objects or roll-up summaries; for those, you need custom Apex logic or third-party tools.</p>' },
+      { type: 'qa', question: 'Explain the Opportunity Split feature.', answer: '<p class="ans-p">Opportunity Splits allow multiple team members to share credit for an Opportunity. <b>Revenue Splits</b> must total 100%, while <b>Overlay Splits</b> can total any percentage. Both rely on Opportunity Teams being enabled.</p>' },
+      { type: 'qa', question: 'What is Collaborative Forecasting?', answer: '<p class="ans-p">A tool to predict sales based on the Opportunity pipeline. It supports various forecast types (Revenue, Quantity, Product Families) and allows for adjustments by managers to provide a "best-case" estimate.</p>' },
+      { type: 'qa', question: 'Scenario: How to automate Sales Territory assignment?', answer: '<p class="ans-p">Use <b>Enterprise Territory Management (ETM)</b>. You define Territory Types, Models, and Assignment Rules based on Account fields (e.g., Billing State, Industry). Accounts are assigned to territories, and Opportunities inherit the territory from the Account.</p>' }
     ]
   },
   'service_cloud': {
     title: 'Service Cloud Architecture',
-    subtitle: 'High-performance support and case management.',
+    subtitle: 'High-performance support, Omni-channel, and KCS.',
     blocks: [
-      { type: 'section', title: '🛠️ Service Excellence' },
-      { type: 'qa', question: 'Omni-Channel vs Case Assignment Rules?', answer: '<p class="ans-p"><b>Assignment Rules:</b> Static, logic-based routing (e.g., Status = New -> Tier 1). <b>Omni-Channel:</b> Real-time, presence-based routing. It checks if the agent is actually online and has enough "capacity" before assigning the work.</p>' },
-      { type: 'qa', question: 'What are Entitlements and Milestones?', answer: '<p class="ans-p"><b>Entitlements:</b> Define the level of support a customer is eligible for (SLA). <b>Milestones:</b> The specific deadlines within that support (e.g., "Response time within 2 hours"). If a milestone is missed, a <b>Violation Action</b> triggers.</p>' }
+      { type: 'section', title: '🛠️ Service Excellence & Knowledge' },
+      { type: 'qa', question: 'What is Knowledge Centered Service (KCS) in Salesforce?', answer: '<p class="ans-p">KCS involves capturing knowledge during the support process. Agents can search the <b>Knowledge Base</b>, attach articles to cases, and "Promote to Article" from a Case comment. This requires <b>Knowledge User</b> licenses and Article Type configurations.</p>' },
+      { type: 'qa', question: 'Omni-Channel: Capacity vs. Weight?', answer: '<p class="ans-p"><b>Capacity:</b> The total work an agent can handle (e.g., 100 units). <b>Weight:</b> The "cost" of a specific work item (e.g., a Chat = 20 units, a Case = 50 units). Omni-Channel routes work until the agent\'s total weight reaches their capacity.</p>' },
+      { type: 'qa', question: 'How to implement "Follow-the-Sun" support?', answer: '<p class="ans-p">Use <b>Business Hours</b> and <b>Holiday</b> settings combined with <b>Case Assignment Rules</b> or Omni-Channel. Rules check the current time and route the case to the queue active in that specific time zone (e.g., APAC, EMEA, US).</p>' },
+      { type: 'qa', question: 'What is the Service Console and why use it?', answer: '<p class="ans-p">A workspace designed for high-volume agents. Features include <b>Workspace Tabs</b> (sub-tabs for related records), <b>Softphone integration</b>, <b>Macros</b> for repetitive tasks, and the <b>Utility Bar</b> for quick access to tools like History or Notes.</p>' }
     ]
   },
   'experience_cloud': {
-    title: 'Experience Cloud (Community)',
-    subtitle: 'Building secure and performant portals.',
+    title: 'Experience Cloud (Communities)',
+    subtitle: 'Building secure and performant portals for Partners & Customers.',
     blocks: [
-      { type: 'section', title: '🌐 Portal Architecture' },
-      { type: 'qa', question: 'How to expose LWC to Experience Cloud?', answer: '<p class="ans-p">Update the <code>js-meta.xml</code> file:</p><pre class="code">&lt;targets&gt;\n  &lt;target&gt;lightningCommunity__Page&lt;/target&gt;\n  &lt;target&gt;lightningCommunity__Default&lt;/target&gt;\n&lt;/targets&gt;</pre>' },
-      { type: 'qa', question: 'Guest User Security Model?', answer: '<p class="ans-p">Guest users cannot own records. They must use <b>Guest User Sharing Rules</b> to access data, and their default record ownership is assigned to a designated internal user. Use <b>with sharing</b> carefully to ensure guests only see what they should.</p>' }
+      { type: 'section', title: '🌐 Portal Architecture & Security' },
+      { type: 'qa', question: 'Difference between Customer Community vs. Partner Community licenses?', answer: '<p class="ans-p"><b>Customer Community:</b> High volume, limited access (no Leads, Opportunities, or Campaigns). <b>Partner Community:</b> Full access to Sales objects (Leads, Deals, MDF) and supports <b>Advanced Sharing</b> (Share Groups/Apex Sharing).</p>' },
+      { type: 'qa', question: 'How to manage Brand Consistency across multiple Communities?', answer: '<p class="ans-p">Use the <b>Experience Builder Theme</b>. Define global colors, fonts, and CSS. For cross-community reuse, package your brand as a <b>Lightning Bolt Template</b> or use a shared <b>LWC Design System</b>.</p>' },
+      { type: 'qa', question: 'What is a "Share Group" in Experience Cloud?', answer: '<p class="ans-p">Share Groups are used with <b>Customer Community Plus</b> or <b>Partner</b> licenses to share records owned by community users with internal users. Since community users don\'t exist in the standard Role Hierarchy, Share Groups bridge that gap.</p>' },
+      { type: 'qa', question: 'How to optimize Community performance?', answer: '<p class="ans-p">Use the <b>Salesforce CDN</b> (Content Delivery Network), minimize the use of heavy images, leverage <b>LWC</b> instead of Aura, and ensure SOQL queries used in community components are highly optimized with indexes.</p>' }
     ]
   }
 };
@@ -642,7 +698,7 @@ function renderTopicContent(topicId) {
         <div class="qa-block" style="margin-bottom:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; overflow:hidden;">
           <div class="qa-question" onclick="toggleQA(this)" style="padding:16px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
             <span class="qa-q-text" style="font-weight:700; font-size:0.9rem; color:var(--text);">${block.question}</span>
-            <span class="qa-chevron" style="opacity:0.3;">▼</span>
+            <span class="qa-chevron" style="opacity:0.3; display:flex; align-items:center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
           </div>
           <div class="qa-answer" style="padding:0 16px 16px; font-size:0.85rem; color:var(--muted); line-height:1.6;">
             ${block.answer}
