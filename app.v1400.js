@@ -3223,8 +3223,10 @@ function switchRadarSubTab(tab) {
     btn.style.borderBottomColor = 'var(--blue)';
   }
 
-  document.getElementById('radar-pipeline-view').style.display = tab === 'pipeline' ? 'block' : 'none';
-  document.getElementById('radar-insights-view').style.display = tab === 'insights' ? 'block' : 'none';
+  const pipelineView = document.getElementById('radar-pipeline-view');
+  const insightsView = document.getElementById('radar-insights-view');
+  if (pipelineView) pipelineView.style.display = tab === 'pipeline' ? 'block' : 'none';
+  if (insightsView) insightsView.style.display = tab === 'insights' ? 'block' : 'none';
   if (tab === 'insights') renderInsights();
 }
 
@@ -3484,14 +3486,21 @@ function updateAnalytics() {
 function checkOfferComparison() {
   const offers = pipelineJobs.filter(j => j.status === 'offer');
   const panel = document.getElementById('offer-comparison');
+  if (!panel) return;
+
   if (offers.length >= 2) {
     panel.style.display = 'block';
-    document.getElementById('offer-matrix-container').innerHTML = `
-      <table style="width:100%; border-collapse:collapse; min-width:600px;">
-        <thead><tr style="border-bottom:2px solid var(--border); color:var(--muted); font-size:0.7rem; text-transform:uppercase;"><th style="padding:12px; text-align:left;">Company</th><th style="padding:12px; text-align:left;">Salary</th><th style="padding:12px; text-align:left;">Fit</th></tr></thead>
-        <tbody>${offers.map(o => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:12px; font-weight:700;">${o.company}</td><td style="padding:12px; color:var(--green);">${o.sal}</td><td style="padding:12px;">⚡ ${o.score}%</td></tr>`).join('')}</tbody>
-      </table>`;
-  } else panel.style.display = 'none';
+    const container = document.getElementById('offer-matrix-container');
+    if (container) {
+      container.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; min-width:600px;">
+          <thead><tr style="border-bottom:2px solid var(--border); color:var(--muted); font-size:0.7rem; text-transform:uppercase;"><th style="padding:12px; text-align:left;">Company</th><th style="padding:12px; text-align:left;">Salary</th><th style="padding:12px; text-align:left;">Fit</th></tr></thead>
+          <tbody>${offers.map(o => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:12px; font-weight:700;">${o.company}</td><td style="padding:12px; color:var(--green);">${o.sal}</td><td style="padding:12px;">⚡ ${o.score}%</td></tr>`).join('')}</tbody>
+        </table>`;
+    }
+  } else {
+    panel.style.display = 'none';
+  }
 }
 
 function showToast(msg) {
