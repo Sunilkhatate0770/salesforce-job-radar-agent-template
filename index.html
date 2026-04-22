@@ -128,6 +128,7 @@
     <div class="nav-item" onclick="showPage('profile_match')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Profile Matching <span class="count">AI</span></div>
     <div class="nav-item" onclick="showPage('study_history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Study History <span class="count">Archive</span></div>
     <div class="nav-item" onclick="showPage('job_radar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Job Radar Dashboard <span class="count">Radar</span></div>
+    <div class="nav-item" onclick="showPage('job_radar_dev')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Job Radar Development <span class="count">Dev</span></div>
     <div class="nav-item" onclick="showBookmarks()" style="border-left-color:var(--amber); color:var(--text);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> Bookmarked Q&A <span class="count" id="bookmarkCount" style="background:rgba(244,197,66,0.2); color:var(--amber);">0</span></div>
   </div>
 
@@ -175,10 +176,14 @@
   <div class="nav-parent-section">
     <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> AGENTFORCE & FDE MASTERY</div>
     <div class="nav-item" onclick="showPage('fde_ag_concept')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Agentforce Core <span class="count">8 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_ag_scenario')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg> Agentforce Scenarios <span class="count">10 Q</span></div>
     <div class="nav-item" onclick="showPage('fde_atlas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Atlas Deep Dive <span class="count">6 Q</span></div>
     <div class="nav-item" onclick="showPage('fde_trust')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Trust Layer <span class="count">5 Q</span></div>
     <div class="nav-item" onclick="showPage('fde_dc_concept')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Data Cloud Core <span class="count">8 Q</span></div>
     <div class="nav-item" onclick="showPage('fde_dc_adv')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg> Data Cloud Advanced <span class="count">7 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_integration')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> FDE Integration <span class="count">12 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_apex')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> FDE Apex in Agents <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_behavioral')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> FDE Behavioral <span class="count">STAR</span></div>
     <div class="nav-item" onclick="showPage('fde_cheat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Cheat Sheet <span class="count">7 Q</span></div>
   </div>
 
@@ -12838,6 +12843,7 @@ public class LoanStatusActionTest {
   <div class="radar-tabs" style="display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 1rem; margin-top: 1rem;">
     <button id="tab-pipeline" class="radar-tab-btn active" onclick="switchRadarSubTab('pipeline')" style="background:none; border:none; padding:12px 20px; color:var(--text); font-weight:700; cursor:pointer; border-bottom: 2px solid var(--blue);">Pipeline Board</button>
     <button id="tab-insights" class="radar-tab-btn" onclick="switchRadarSubTab('insights')" style="background:none; border:none; padding:12px 20px; color:var(--muted); font-weight:700; cursor:pointer; border-bottom: 2px solid transparent;">Insights & Analytics</button>
+    <button id="tab-development" class="radar-tab-btn" onclick="switchRadarSubTab('development')" style="background:none; border:none; padding:12px 20px; color:var(--muted); font-weight:700; cursor:pointer; border-bottom: 2px solid transparent;">Development Board</button>
   </div>
 
   <div id="radar-pipeline-view">
@@ -12934,6 +12940,32 @@ public class LoanStatusActionTest {
     </div>
   </div>
 
+  <!-- JOB RADAR DEVELOPMENT SUB-VIEW (v1401) -->
+  <div id="radar-development-view" style="display:none; animation: fadeIn 0.4s ease;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-top:1.5rem;">
+      <h3 style="font-size:1.1rem; color:var(--text); margin-bottom:1rem; display:flex; align-items:center; gap:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--blue);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        Development Analytics & Roadmap
+      </h3>
+      <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Tracking your technical growth and readiness for Salesforce Developer roles.</p>
+      
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
+        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
+          <h4 style="font-size:0.8rem; color:var(--blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Skill Proficiency</h4>
+          <div id="skillProficiencyList" style="display:flex; flex-direction:column; gap:12px;">
+             <div style="font-size:0.8rem; color:var(--muted);">Initializing skill data...</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
+          <h4 style="font-size:0.8rem; color:var(--green); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Ready for Deployment</h4>
+          <div id="readyForDeploymentList" style="display:flex; flex-direction:column; gap:12px;">
+             <div style="font-size:0.8rem; color:var(--muted);">Analyzing role readiness...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Market Trends Section (Bottom) -->
   <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
     <h3 style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:1.2rem; display:flex; align-items:center; gap:8px;">
@@ -12973,6 +13005,25 @@ public class LoanStatusActionTest {
     <div class="log-panel-footer">
       <button onclick="exportLog()" class="panel-action-btn">⬇️ Export CSV</button>
       <button onclick="clearLog()" class="panel-action-btn danger">🗑️ Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB RADAR DEVELOPMENT PAGE -->
+<div id="job_radar_dev" class="page">
+  <div class="page-header">
+    <div class="page-title">🚀 Job Radar Development</div>
+    <div class="page-sub">Comprehensive technical analysis and preparation for advanced Salesforce roles.</div>
+  </div>
+  <div style="padding: 40px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; text-align: center; margin-top: 2rem;">
+    <div style="width:80px; height:80px; background:rgba(79,142,247,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:var(--blue);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+    </div>
+    <h2 style="color: var(--text); font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:10px;">Development Console</h2>
+    <p style="color: var(--muted); margin-bottom:2rem; max-width:400px; margin-left:auto; margin-right:auto;">This module integrates your study progress with job market requirements to show your specific development gaps.</p>
+    <div style="display:flex; justify-content:center; gap:15px;">
+       <button onclick="showPage('job_radar')" style="background:var(--blue); color:white; border:none; padding:12px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Go to Dashboard</button>
+       <button onclick="triggerJobScan()" style="background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border); padding:12px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Scan Market Needs</button>
     </div>
   </div>
 </div>
@@ -13353,6 +13404,6 @@ public class LoanStatusActionTest {
 
 </div><!-- end #main -->
 
-<script src="app.v1400.js"></script>
+<script src="app.v1401.js"></script>
 </body>
 </html>

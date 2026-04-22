@@ -250,7 +250,7 @@ body {
 .mobile-toggle {
   width: 44px;
   height: 44px;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   background: var(--card2);
@@ -3133,3 +3133,5 @@ pre.code .num {
 
 .panel-action-btn.danger:hover { color: var(--red); border-color: var(--red); }
 
+
+@media (min-width: 1025px) { .mobile-toggle { display: none !important; } }

@@ -1,6 +1,7 @@
-// Version: 2026-04-22-T2030 (Industrial Enrichment v1400)
+// Version: 2026-04-22-T2045 (Industrial Enrichment v1401)
 // =============================================
-console.log('%c Dashboard Version: 2026-04-22-T2030 (v1400)', 'color: #3b82f6; font-weight: bold; font-size: 14px;');
+const DASHBOARD_VERSION = "2026-04-22-T2045 (v1401)";
+console.log('🚀 Dashboard Version:', DASHBOARD_VERSION);
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -801,6 +802,7 @@ var topicConfig = {
   // Daily Plan (No timers needed here)
   'schedule': { name: 'Daily Schedule', recommended: 15, group: 'General', noTimer: true },
   'job_radar': { name: 'Job Radar Dashboard', recommended: 30, group: 'General', noTimer: true },
+  'job_radar_dev': { name: 'Job Radar Development', recommended: 30, group: 'General', noTimer: true },
   'study_tracker': { name: 'Progress Tracker', recommended: 30, group: 'General', noTimer: true },
   'study_history': { name: 'Study History', recommended: 0, group: 'General', noTimer: true },
   'profile_match': { name: 'Profile Matching', recommended: 10, group: 'General', noTimer: true },
@@ -2334,7 +2336,13 @@ async function showPage(id) {
     document.getElementById('btnGenerateTopicQA').onclick = () => generateDynamicQA(id);
   }
 
-  if (page) { page.classList.add('active'); page.style.display = 'block'; }
+  if (page) { 
+    page.classList.add('active'); 
+    page.style.setProperty('display', 'block', 'important'); 
+    console.log('[DEBUG] Page shown:', id);
+  } else {
+    console.error('[ERROR] Page NOT found:', id);
+  }
   
   // Update Title and Navigation
   const headerTitle = document.getElementById('headerTitle');
@@ -3232,8 +3240,10 @@ function switchRadarSubTab(tab) {
 
   const pipelineView = document.getElementById('radar-pipeline-view');
   const insightsView = document.getElementById('radar-insights-view');
+  const developmentView = document.getElementById('radar-development-view');
   if (pipelineView) pipelineView.style.display = tab === 'pipeline' ? 'block' : 'none';
   if (insightsView) insightsView.style.display = tab === 'insights' ? 'block' : 'none';
+  if (developmentView) developmentView.style.display = tab === 'development' ? 'block' : 'none';
   if (tab === 'insights') renderInsights();
 }
 
