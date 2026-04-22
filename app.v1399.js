@@ -19,6 +19,29 @@ let userRetention = {};
 let currentRetentionTopicId = null;
 let sessionFeedbackProvided = new Set(); 
 
+// --- JOB RADAR PIPELINE STATE (v1399) ---
+let pipelineJobs = JSON.parse(localStorage.getItem('sfpipe2026v3')) || [];
+let activityLog = JSON.parse(localStorage.getItem('sfActivityLog')) || [];
+let currentBoardFilter = 'all';
+
+const PREP_REGISTRY = {
+  "Cognizant": {
+    focus: "Apex best practices, LWC event system, Governor Limits, DevOps",
+    questions: ["Explain your trigger handler pattern and why you chose it", "How do you handle bulk operations in Apex?", "Difference between before vs after triggers — when to use each?", "How does LWC parent-child communication work (events vs LMS)?", "What Governor Limits do you hit most and how do you avoid them?"],
+    tips: ["Emphasize PD1+PD2 certs upfront", "Talk about code review experience", "Mention your Bitbucket/CI-CD pipeline work"]
+  },
+  "Deloitte India": {
+    focus: "BFSI domain, FSC objects, data governance, integration patterns",
+    questions: ["Describe your financial services Salesforce implementations", "How did you handle FCRA/HMDA compliance in Salesforce?", "Explain Platform Events vs Triggers — when to pick each?"],
+    tips: ["Lead with your mortgage domain expertise", "Prepare a 5-min story of your Experian credit bureau integration"]
+  },
+  "Salesforce Inc.": {
+    focus: "Product engineering, scale, Agentforce, Data Cloud, Core internals",
+    questions: ["How do you design for multi-tenancy?", "Explain the Atlas reasoning engine in Agentforce", "Difference between DLO and DMO in Data Cloud"],
+    tips: ["Emphasize innovation and "Customer Success" focus", "Talk about your Agentforce Specialist certification"]
+  }
+};
+
 // =============================================
 // DYNAMIC CONTENT DATA (MASTER REGISTRY v1399)
 // =============================================
@@ -1805,6 +1828,26 @@ async function fetchJobsList() {
     if (!response.ok) throw new Error('Unauthorized');
     const data = await response.json();
     window.allJobRecords = data.records;
+    
+    // Phase 2: Sync with Radar Pipeline
+    data.records.forEach(rec => {
+      if (!pipelineJobs.find(j => j.id === rec.id || (j.company === rec.company && j.role === rec.role))) {
+        pipelineJobs.push({
+          id: rec.id,
+          company: rec.company,
+          role: rec.role,
+          loc: rec.location || 'Remote',
+          sal: rec.salary || '—',
+          score: rec.fitScore || 75,
+          prob: 'medium',
+          status: 'todo',
+          dateTracked: new Date().toISOString()
+        });
+      }
+    });
+    savePipeline();
+    renderBoard();
+    
     renderJobsList(data.records);
     updateJobRadarSummary();
   } catch (e) {
@@ -2311,7 +2354,12 @@ async function showPage(id) {
   
   if (id === 'schedule') await renderTimetable();
   if (id === 'study_history') await renderHistory();
-  if (id === 'job_radar') { updateJobRadarSummary(); fetchJobsList(); fetchJobAnalytics(); }
+  if (id === 'job_radar') { 
+    renderBoard(); 
+    updateAnalytics(); 
+    fetchJobsList(); 
+    fetchJobAnalytics(); 
+  }
   if (id === 'profile_match') { if (cachedUserProfile) renderProfileMatchPage(cachedUserProfile); else loadUserProfile(); }
   if (id === 'study_tracker') {
     const lastTab = localStorage.getItem('last_tracker_tab') || 'tab_suggestions';
@@ -3042,6 +3090,360 @@ function renderRevisionAlerts() {
       </div>`;
   });
   container.innerHTML = html;
+}
+
+// =============================================
+// JOB RADAR PHASE 2 FUNCTIONS (v1399)
+// =============================================
+function savePipeline() {
+  localStorage.setItem('sfpipe2026v3', JSON.stringify(pipelineJobs));
+  updateAnalytics();
+}
+
+function logActivity(text, type = 'info') {
+  const entry = {
+    id: 'log_' + Date.now(),
+    text,
+    type,
+    timestamp: new Date().toISOString()
+  };
+  activityLog.unshift(entry);
+  if (activityLog.length > 100) activityLog.pop();
+  localStorage.setItem('sfActivityLog', JSON.stringify(activityLog));
+  renderLog();
+}
+
+function renderLog() {
+  const body = document.getElementById('logBody');
+  if (!body) return;
+  if (activityLog.length === 0) {
+    body.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.8rem;">No activity logged yet.</div>';
+    return;
+  }
+  body.innerHTML = activityLog.map(log => `
+    <div class="log-entry">
+      <div class="log-entry-meta">
+        <span>${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+        <span style="color: ${log.type === 'success' ? 'var(--green)' : log.type === 'ai' ? 'var(--blue)' : 'var(--muted)'}">${log.type.toUpperCase()}</span>
+      </div>
+      <div class="log-entry-text">${log.text}</div>
+    </div>
+  `).join('');
+}
+
+function toggleLog() {
+  const panel = document.getElementById('logPanel');
+  if (panel) {
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')) renderLog();
+  }
+}
+
+function renderBoard() {
+  const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
+  cols.forEach(col => {
+    const list = document.getElementById(`list-${col}`);
+    const count = document.getElementById(`count-${col}`);
+    if (!list) return;
+
+    const filtered = pipelineJobs.filter(j => j.status === col && (currentBoardFilter === 'all' || j.prob === currentBoardFilter));
+    if (count) count.textContent = filtered.length;
+
+    list.innerHTML = filtered.length === 0 ? 
+      `<div style="padding:20px; text-align:center; color:var(--muted); font-size:0.7rem; border:1px dashed var(--border); border-radius:10px;">No jobs here.</div>` :
+      filtered.map(job => renderJobCard(job)).join('');
+  });
+}
+
+function renderJobCard(job) {
+  const followUp = getFollowUpStatus(job);
+  let badgeHtml = '';
+  if (followUp && job.status === 'applied') {
+    badgeHtml = `<div class="followup-badge badge-${followUp.class}">${followUp.label}</div>`;
+  }
+
+  return `
+    <div class="job-radar-card" id="card-${job.id}">
+      ${badgeHtml}
+      <span class="job-card-prob prob-${job.prob}">${job.prob} probability</span>
+      <div class="job-card-title">${job.role}</div>
+      <div class="job-card-company">${job.company}</div>
+      <div class="job-card-meta">
+        <span class="meta-tag">${job.loc}</span>
+        <span class="meta-tag">${job.sal || '—'}</span>
+        <span class="meta-tag">Fit: ${job.score}%</span>
+      </div>
+      <div class="job-card-actions">
+        ${job.status === 'todo' ? `<button class="card-btn" onclick="moveTo('${job.id}', 'applied')">Applied</button>` : ''}
+        ${job.status === 'applied' ? `<button class="card-btn" onclick="openEmailModal('${job.id}')">AI Email</button>` : ''}
+        ${['applied', 'interview'].includes(job.status) ? `<button class="card-btn" onclick="moveTo('${job.id}', 'interview')">Interview</button>` : ''}
+        ${job.status === 'interview' ? `<button class="card-btn prep" onclick="openPrepPanel('${job.company}')">Prep</button>` : ''}
+        <button class="card-btn" onclick="moveTo('${job.id}', 'rejected')" style="margin-left:auto; color:var(--red); border-color:rgba(239,68,68,0.1);">&times;</button>
+      </div>
+    </div>
+  `;
+}
+
+function getFollowUpStatus(job) {
+  if (job.status !== 'applied' || !job.dateApplied) return null;
+  const days = Math.floor((new Date() - new Date(job.dateApplied)) / (1000 * 60 * 60 * 24));
+  if (days >= 21) return { label: 'GHOSTED?', class: 'ghost' };
+  if (days >= 14) return { label: 'URGENT', class: 'urgent' };
+  if (days >= 7) return { label: 'FOLLOW-UP', class: 'warn' };
+  return null;
+}
+
+function moveTo(id, newStatus) {
+  const job = pipelineJobs.find(j => j.id === id);
+  if (!job) return;
+  const oldStatus = job.status;
+  job.status = newStatus;
+  if (newStatus === 'applied') job.dateApplied = new Date().toISOString();
+  savePipeline();
+  renderBoard();
+  logActivity(`Moved <strong>${job.company}</strong> from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`, 'success');
+  
+  if (newStatus === 'applied') {
+    showToast('🚀 Application recorded! Added to Weekly Goal.');
+    updateStudyStreak(); 
+  }
+}
+
+function setBoardFilter(val, btn) {
+  currentBoardFilter = val;
+  document.querySelectorAll('.board-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBoard();
+}
+
+function doBoardSearch() {
+  const query = document.getElementById('boardSearch').value.toLowerCase();
+  const cards = document.querySelectorAll('.job-radar-card');
+  cards.forEach(card => {
+    const text = card.innerText.toLowerCase();
+    card.style.display = text.includes(query) ? 'block' : 'none';
+  });
+}
+
+function openAddJobModal() {
+  const modal = document.getElementById('addJobModal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function submitCustomJob() {
+  const company = document.getElementById('aj-company').value;
+  const role = document.getElementById('aj-role').value;
+  if (!company || !role) {
+    showToast('Please fill required fields');
+    return;
+  }
+
+  const newJob = {
+    id: 'custom_' + Date.now(),
+    company,
+    role,
+    loc: document.getElementById('aj-loc').value || 'Remote',
+    sal: document.getElementById('aj-sal').value || '—',
+    url: document.getElementById('aj-url').value,
+    prob: document.getElementById('aj-prob').value,
+    score: document.getElementById('aj-score').value || 75,
+    notes: document.getElementById('aj-notes').value,
+    status: 'todo',
+    dateTracked: new Date().toISOString()
+  };
+
+  pipelineJobs.unshift(newJob);
+  savePipeline();
+  renderBoard();
+  closeModal('addJobModal');
+  logActivity(`Added custom job: <strong>${company}</strong>`, 'info');
+  showToast('⭐ Job added to pipeline!');
+}
+
+function updateAnalytics() {
+  const appliedCount = pipelineJobs.filter(j => j.status !== 'todo' && j.status !== 'rejected').length;
+  const total = pipelineJobs.length;
+  const rate = total > 0 ? Math.round((appliedCount / total) * 100) : 0;
+  
+  const metRate = document.getElementById('met-rate');
+  if (metRate) metRate.textContent = rate + '%';
+  
+  const metStreak = document.getElementById('met-streak');
+  if (metStreak) metStreak.textContent = (studyStreak.current || 0) + 'd';
+  
+  const followups = pipelineJobs.filter(j => getFollowUpStatus(j)).length;
+  const metFollowup = document.getElementById('met-followup');
+  if (metFollowup) metFollowup.textContent = followups;
+
+  // Weekly Goal (Monday to Sunday)
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - (startOfWeek.getDay() || 7) + 1);
+  startOfWeek.setHours(0,0,0,0);
+  
+  const weeklyCount = pipelineJobs.filter(j => j.dateApplied && new Date(j.dateApplied) >= startOfWeek).length;
+  const goal = 5; 
+  const metWeekly = document.getElementById('met-weekly');
+  if (metWeekly) metWeekly.textContent = `${weeklyCount}/${goal}`;
+  
+  const pct = Math.min(Math.round((weeklyCount / goal) * 100), 100);
+  const arc = document.getElementById('goal-arc');
+  if (arc) arc.style.strokeDasharray = `${pct} 100`;
+  const pctEl = document.getElementById('goal-pct');
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+let selectedJobForEmail = null;
+let currentEmailType = 'followup';
+
+function openEmailModal(jobId) {
+  selectedJobForEmail = pipelineJobs.find(j => j.id === jobId);
+  const modal = document.getElementById('emailModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.getElementById('emailBody').textContent = `Ready to compose a ${currentEmailType} email for ${selectedJobForEmail.company}...`;
+    document.getElementById('emailSubject').style.display = 'none';
+  }
+}
+
+function selectEmailType(type, btn) {
+  currentEmailType = type;
+  document.querySelectorAll('.email-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (selectedJobForEmail) {
+    document.getElementById('emailBody').textContent = `Ready to compose a ${currentEmailType} email for ${selectedJobForEmail.company}...`;
+  }
+}
+
+async function triggerEmailGeneration() {
+  if (!selectedJobForEmail) return;
+  const loading = document.getElementById('emailLoading');
+  const body = document.getElementById('emailBody');
+  const subject = document.getElementById('emailSubject');
+  
+  loading.style.display = 'flex';
+  
+  try {
+    const prompt = `Write a professional ${currentEmailType} email for a Salesforce Developer role at ${selectedJobForEmail.company}. Role: ${selectedJobForEmail.role}. Keep it industrial and concise.`;
+    
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'gemma:4b',
+        prompt: prompt,
+        stream: false
+      })
+    });
+    
+    if (!response.ok) throw new Error('AI Agent unreachable');
+    
+    const data = await response.json();
+    const fullText = data.response;
+    
+    if (fullText.includes('Subject:')) {
+      const parts = fullText.split('Subject:');
+      const sub = parts[1].split('\n')[0].trim();
+      subject.textContent = sub;
+      subject.style.display = 'block';
+      body.textContent = parts[1].replace(sub, '').trim();
+    } else {
+      subject.style.display = 'none';
+      body.textContent = fullText;
+    }
+    
+    logActivity(`Generated ${currentEmailType} email for <strong>${selectedJobForEmail.company}</strong>`, 'ai');
+  } catch (e) {
+    body.textContent = "AI unreachable. Use standard templates or check Ollama.";
+    console.error(e);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function copyGeneratedEmail() {
+  const body = document.getElementById('emailBody').textContent;
+  const sub = document.getElementById('emailSubject').textContent;
+  const text = sub ? `Subject: ${sub}\n\n${body}` : body;
+  navigator.clipboard.writeText(text).then(() => showToast('📋 Email copied to clipboard!'));
+}
+
+function openPrepPanel(company) {
+  const prep = PREP_REGISTRY[company] || PREP_REGISTRY["Cognizant"]; 
+  const panel = document.getElementById('prepPanel');
+  const content = document.getElementById('prepContent');
+  
+  if (!panel || !content) return;
+
+  content.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <h4 style="color:var(--blue); font-size:0.9rem; margin-bottom:10px;">Focus Areas</h4>
+      <div style="font-size:0.8rem; color:var(--muted);">${prep.focus}</div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <h4 style="color:var(--green); font-size:0.9rem; margin-bottom:10px;">High-Frequency Questions</h4>
+      <ul style="padding-left:20px; font-size:0.8rem; color:rgba(255,255,255,0.8); line-height:1.8;">
+        ${prep.questions.map(q => `<li>${q}</li>`).join('')}
+      </ul>
+    </div>
+    <div style="background:rgba(255,255,255,0.03); border-radius:12px; padding:15px; border:1px solid var(--border);">
+      <h4 style="font-size:0.75rem; color:var(--amber); margin-bottom:8px; text-transform:uppercase;">Insider Tips</h4>
+      <div style="font-size:0.75rem; color:var(--muted);">${prep.tips.join(' • ')}</div>
+    </div>
+  `;
+  
+  panel.style.display = 'flex';
+  logActivity(`Opened interview prep for <strong>${company}</strong>`, 'info');
+}
+
+async function generateMoreQuestions() {
+  showToast('🤖 AI is thinking... (Phase 3 Feature)');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--blue);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> ${msg}`;
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  setTimeout(() => {
+    t.style.transform = 'translateX(-50%) translateY(100px)';
+  }, 3000);
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = 'none';
+}
+
+function exportLog() {
+  const csv = "Timestamp,Type,Action\n" + activityLog.map(l => `"${l.timestamp}","${l.type}","${l.text.replace(/<[^>]*>/g, '')}"`).join("\n");
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.setAttribute('hidden', '');
+  a.setAttribute('href', url);
+  a.setAttribute('download', `sf_job_radar_log_${new Date().toISOString().slice(0,10)}.csv`);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function clearLog() {
+  if (confirm('Clear all activity logs?')) {
+    activityLog = [];
+    localStorage.removeItem('sfActivityLog');
+    renderLog();
+  }
+}
+
+function requestNotifications() {
+  if (!("Notification" in window)) {
+    showToast("This browser does not support notifications");
+  } else if (Notification.permission === "granted") {
+    showToast("Notifications already enabled!");
+  } else {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") showToast("🚀 Reminders enabled!");
+    });
+  }
 }
 
 // Close sidebar when clicking a nav item or overlay on mobile (v1343)
