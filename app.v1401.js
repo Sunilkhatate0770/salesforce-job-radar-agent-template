@@ -802,7 +802,6 @@ var topicConfig = {
   // Daily Plan (No timers needed here)
   'schedule': { name: 'Daily Schedule', recommended: 15, group: 'General', noTimer: true },
   'job_radar': { name: 'Job Radar Dashboard', recommended: 30, group: 'General', noTimer: true },
-  'job_radar_dev': { name: 'Job Radar Development', recommended: 30, group: 'General', noTimer: true },
   'study_tracker': { name: 'Progress Tracker', recommended: 30, group: 'General', noTimer: true },
   'study_history': { name: 'Study History', recommended: 0, group: 'General', noTimer: true },
   'profile_match': { name: 'Profile Matching', recommended: 10, group: 'General', noTimer: true },
@@ -3245,6 +3244,7 @@ function switchRadarSubTab(tab) {
   if (insightsView) insightsView.style.display = tab === 'insights' ? 'block' : 'none';
   if (developmentView) developmentView.style.display = tab === 'development' ? 'block' : 'none';
   if (tab === 'insights') renderInsights();
+  if (tab === 'development') renderDevelopment();
 }
 
 function renderInsights() {
@@ -3298,6 +3298,57 @@ function renderInsights() {
       <div style="font-size:0.55rem; color:var(--muted);">${d}</div>
     </div>
   `).join('');
+}
+
+function renderDevelopment() {
+  const container = document.getElementById('radar-development-view');
+  if (!container) return;
+  
+  const phases = [
+    { name: 'Phase 1: Foundation', status: 'completed', desc: 'Core agent logic and environment setup.' },
+    { name: 'Phase 2: Job Fetching', status: 'completed', desc: 'LinkedIn & Naukri integration with deduplication.' },
+    { name: 'Phase 3: AI Matching', status: 'in-progress', desc: 'Resume tailoring and skill gap analysis.' },
+    { name: 'Phase 4: Auto-Apply', status: 'pending', desc: 'One-click application and tracking.' },
+    { name: 'Phase 5: Smart Analytics', status: 'pending', desc: 'Market trend reporting and ROI tracking.' }
+  ];
+
+  const skillProficiency = [
+    { skill: 'Apex & SOQL', value: 92 },
+    { skill: 'LWC & Frontend', value: 85 },
+    { skill: 'Integration & APIs', value: 78 },
+    { skill: 'Data Cloud', value: 65 },
+    { skill: 'Agentforce', value: 58 }
+  ];
+
+  const proficiencyEl = document.getElementById('skillProficiencyList');
+  if (proficiencyEl) {
+    proficiencyEl.innerHTML = skillProficiency.map(s => `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px;">
+          <span>${s.skill}</span>
+          <span style="color:var(--blue); font-weight:700;">${s.value}%</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); height:6px; border-radius:3px; overflow:hidden;">
+          <div style="background:var(--blue); height:100%; width:${s.value}%; transition:width 1s ease;"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const readinessEl = document.getElementById('readyForDeploymentList');
+  if (readinessEl) {
+    readinessEl.innerHTML = phases.map(p => `
+      <div style="display:flex; align-items:flex-start; gap:12px; margin-bottom:15px;">
+        <div style="width:24px; height:24px; border-radius:50%; background:${p.status==='completed'?'var(--green)':p.status==='in-progress'?'var(--blue)':'rgba(255,255,255,0.05)'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          ${p.status==='completed'?'?':p.status==='in-progress'?'?':'?'}
+        </div>
+        <div>
+          <div style="font-size:0.8rem; font-weight:700; color:${p.status==='pending'?'var(--muted)':'var(--text)'}">${p.name}</div>
+          <div style="font-size:0.65rem; color:var(--muted);">${p.desc}</div>
+        </div>
+      </div>
+    `).join('');
+  }
 }
 
 // Phase 3D: Interview Coach Logic

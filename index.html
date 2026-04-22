@@ -128,7 +128,6 @@
     <div class="nav-item" onclick="showPage('profile_match')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Profile Matching <span class="count">AI</span></div>
     <div class="nav-item" onclick="showPage('study_history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Study History <span class="count">Archive</span></div>
     <div class="nav-item" onclick="showPage('job_radar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Job Radar Dashboard <span class="count">Radar</span></div>
-    <div class="nav-item" onclick="showPage('job_radar_dev')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> Job Radar Development <span class="count">Dev</span></div>
     <div class="nav-item" onclick="showBookmarks()" style="border-left-color:var(--amber); color:var(--text);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> Bookmarked Q&A <span class="count" id="bookmarkCount" style="background:rgba(244,197,66,0.2); color:var(--amber);">0</span></div>
   </div>
 
@@ -13009,24 +13008,6 @@ public class LoanStatusActionTest {
   </div>
 </div>
 
-<!-- JOB RADAR DEVELOPMENT PAGE -->
-<div id="job_radar_dev" class="page">
-  <div class="page-header">
-    <div class="page-title">🚀 Job Radar Development</div>
-    <div class="page-sub">Comprehensive technical analysis and preparation for advanced Salesforce roles.</div>
-  </div>
-  <div style="padding: 40px; background: var(--card); border: 1px solid var(--border); border-radius: 20px; text-align: center; margin-top: 2rem;">
-    <div style="width:80px; height:80px; background:rgba(79,142,247,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:var(--blue);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:40px;height:40px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-    </div>
-    <h2 style="color: var(--text); font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:10px;">Development Console</h2>
-    <p style="color: var(--muted); margin-bottom:2rem; max-width:400px; margin-left:auto; margin-right:auto;">This module integrates your study progress with job market requirements to show your specific development gaps.</p>
-    <div style="display:flex; justify-content:center; gap:15px;">
-       <button onclick="showPage('job_radar')" style="background:var(--blue); color:white; border:none; padding:12px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Go to Dashboard</button>
-       <button onclick="triggerJobScan()" style="background:rgba(255,255,255,0.05); color:var(--text); border:1px solid var(--border); padding:12px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Scan Market Needs</button>
-    </div>
-  </div>
-</div>
 
 <!-- AI MOCK INTERVIEW PAGE -->
 <div id="ai_interview" class="page">
