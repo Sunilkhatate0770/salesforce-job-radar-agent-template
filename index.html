@@ -68,6 +68,7 @@
 
 <!-- SIDEBAR -->
 <nav id="sidebar">
+  <!-- AGENT DASHBOARD BRANDING (v1378) -->
   <div class="sidebar-header" style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02);">
     <div style="font-size:0.6rem; color:var(--blue); font-family:'IBM Plex Mono',monospace; margin-bottom:0.4rem; letter-spacing:2px; text-transform:uppercase;">Agent Dashboard</div>
     <h2 style="font-size:0.95rem; font-weight:800; line-height:1.3; color:var(--text); margin:0;">
@@ -91,77 +92,133 @@
   </div>
 
   <div style="padding:0 1rem 1rem 1rem;">
+
+    <!-- MASTER PROFILE STATUS -->
     <div id="masterProfileStatus" style="margin-top:18px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05);">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
             <div style="font-size:0.65rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Professional Sync</div>
             <span id="syncPlatformCount" style="font-size:0.6rem; padding:2px 6px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:4px; color:var(--blue);">0 Linked</span>
         </div>
+        
         <div id="sidebarSyncStatus" style="display:flex; flex-direction:column; gap:8px;">
             <div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">No platforms linked yet</div>
         </div>
+
         <button onclick="openSyncModal()" style="width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.25); border-radius:12px; color:var(--blue); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
             Refresh Sync Data
         </button>
     </div>
-    <button id="sidebarSignOutBtn" onclick="signOut()" style="width:100%; margin-top:10px; padding:7px; font-size:0.68rem; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--muted); cursor:pointer; transition: all 0.2s;">Sign Out</button>
+
+    <!-- View Profile Match Button (shown after sync) -->
+    <button id="btnViewProfileMatch" onclick="showPage('profile_match')" style="display:none; width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); border-radius:12px; color:#c4b5fd; cursor:pointer; transition:all 0.2s; align-items:center; justify-content:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+      Profile Intelligence
+    </button>
+
+    <button id="sidebarSignOutBtn" onclick="signOut()" style="width:100%; margin-top:10px; padding:7px; font-size:0.68rem; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--muted); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(239,68,68,0.1)';this.style.borderColor='rgba(239,68,68,0.25)';this.style.color='#ef4444'" onmouseleave="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--muted)'">Sign Out</button>
   </div>
   <div class="search-wrap">
     <input type="text" id="searchInput" placeholder="Search any topic or question..." oninput="searchContent(this.value)">
   </div>
 
   <div class="nav-parent-section">
-    <div class="nav-parent-title">DASHBOARD & PLANNING</div>
-    <div class="nav-item active" onclick="showPage('schedule')">Daily Schedule</div>
-    <div class="nav-item" onclick="showPage('study_tracker')">Progress Tracker</div>
-    <div class="nav-item" onclick="showPage('job_radar')">Job Radar Dashboard</div>
-    <div class="nav-item" onclick="showBookmarks()">Bookmarked Q&A <span class="count" id="bookmarkCount">0</span></div>
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> DASHBOARD & PLANNING</div>
+    <div class="nav-item active" onclick="showPage('schedule')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Daily Schedule <span class="count">Live</span></div>
+    <div class="nav-item" onclick="showPage('study_tracker')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg> Progress Tracker <span class="count">Data</span></div>
+    <div class="nav-item" onclick="showPage('profile_match')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Profile Matching <span class="count">AI</span></div>
+    <div class="nav-item" onclick="showPage('study_history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Study History <span class="count">Archive</span></div>
+    <div class="nav-item" onclick="showPage('job_radar')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Job Radar Dashboard <span class="count">Radar</span></div>
+    <div class="nav-item" onclick="showBookmarks()" style="border-left-color:var(--amber); color:var(--text);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> Bookmarked Q&A <span class="count" id="bookmarkCount" style="background:rgba(244,197,66,0.2); color:var(--amber);">0</span></div>
   </div>
 
   <div class="nav-parent-section">
-    <div class="nav-parent-title">CORE DEVELOPMENT Q&A</div>
-    <div class="nav-item" onclick="showPage('apex')">Apex Core</div>
-    <div class="nav-item" onclick="showPage('soql')">SOQL Deep Dive</div>
-    <div class="nav-item" onclick="showPage('async')">Async Apex</div>
-    <div class="nav-item" onclick="showPage('triggers')">Triggers & Patterns</div>
-    <div class="nav-item" onclick="showPage('lwc')">LWC Components</div>
-    <div class="nav-item" onclick="showPage('aura')">Aura Components</div>
-    <div class="nav-item" onclick="showPage('integration')">Integration & APIs</div>
-    <div class="nav-item" onclick="showPage('security')">Security & Sharing</div>
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg> CORE DEVELOPMENT Q&A</div>
+    <div class="nav-item" onclick="showPage('apex')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Apex Core <span class="count">22 Q</span></div>
+    <div class="nav-item" onclick="showPage('soql')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> SOQL Deep Dive <span class="count">14 Q</span></div>
+    <div class="nav-item" onclick="showPage('async')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Async Apex <span class="count">16 Q</span></div>
+    <div class="nav-item" onclick="showPage('triggers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg> Triggers & Patterns <span class="count">14 Q</span></div>
+    <div class="nav-item" onclick="showPage('lwc')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg> LWC Components <span class="count">20 Q</span></div>
+    <div class="nav-item" onclick="showPage('aura')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Aura Components <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('integration')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> Integration & APIs <span class="count">18 Q</span></div>
+    <div class="nav-item" onclick="showPage('security')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Security & Sharing <span class="count">18 Q</span></div>
   </div>
 
   <div class="nav-parent-section">
-    <div class="nav-parent-title">ADVANCED & SCENARIOS</div>
-    <div class="nav-item" onclick="showPage('domain')">US Mortgage Domain</div>
-    <div class="nav-item" onclick="showPage('scenario')">Scenario Questions</div>
-    <div class="nav-item" onclick="showPage('design')">Design Patterns</div>
-    <div class="nav-item" onclick="showPage('adv_apex')">Advanced Apex</div>
-    <div class="nav-item" onclick="showPage('admin')">Admin & Config</div>
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> ADVANCED & SCENARIOS</div>
+    <div class="nav-item" onclick="showPage('domain')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> US Mortgage Domain <span class="count">Guide</span></div>
+    <div class="nav-item" onclick="showPage('scenario')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Scenario Questions <span class="count">16 Q</span></div>
+    <div class="nav-item" onclick="showPage('design')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Design Patterns <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('adv_apex')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> Advanced Apex <span class="count">18 Q</span></div>
+    <div class="nav-item" onclick="showPage('admin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> Admin & Config <span class="count">14 Q</span></div>
+    <div class="nav-parent-title" style="margin-top:10px; font-size:0.55rem; opacity:0.6;">100 Scenario Mix</div>
+    <div class="nav-item" onclick="showPage('sc_objects')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Objects & Fields <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_recordpage')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg> Record Page + LWC <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_navmixin')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M5 12h14M12 5l7 7-7 7"/></svg> NavigationMixin <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_validation')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Validation & Quality <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_async')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Async Scenarios <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_fileupload')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> File Uploads <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_flow')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> Flow Scenarios <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg> Reports & Dash <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_agentforce')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Agentforce <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('sc_arch')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 21v-4a4 4 0 1 1 8 0v4M13 21v-7a4 4 0 1 1 8 0v7M2 21h20M7 7l5-5 5 5M12 2v12"/></svg> Architecture Mix <span class="count">10 Q</span></div>
   </div>
 
   <div class="nav-parent-section">
-    <div class="nav-parent-title">100 Scenario Mix</div>
-    <div class="nav-item" onclick="showPage('sc_objects')">Objects & Fields</div>
-    <div class="nav-item" onclick="showPage('sc_recordpage')">Record Page + LWC</div>
-    <div class="nav-item" onclick="showPage('sc_navmixin')">NavigationMixin</div>
-    <div class="nav-item" onclick="showPage('sc_validation')">Validation & Quality</div>
-    <div class="nav-item" onclick="showPage('sc_async')">Async Scenarios</div>
-    <div class="nav-item" onclick="showPage('sc_fileupload')">File Uploads</div>
-    <div class="nav-item" onclick="showPage('sc_flow')">Flow Scenarios</div>
-    <div class="nav-item" onclick="showPage('sc_reports')">Reports & Dash</div>
-    <div class="nav-item" onclick="showPage('sc_agentforce')">Agentforce</div>
-    <div class="nav-item" onclick="showPage('sc_arch')">Architecture Mix</div>
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg> COMMUNICATION & CAREER</div>
+    <div class="nav-item" onclick="showPage('intro')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Self-Introduction <span class="count">Mocks</span></div>
+    <div class="nav-item" onclick="showPage('behavioral')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Behavioral Q&A (STAR) <span class="count">12 Story</span></div>
+    <div class="nav-item" onclick="showPage('speaking')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg> Speaking Drills <span class="count">40 Ex</span></div>
+    <div class="nav-item" onclick="showPage('comm')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Comm Scripts <span class="count">20 Scr</span></div>
+    <div class="nav-item" onclick="showPage('vocab')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Vocab & Phrases <span class="count">60 W</span></div>
+    <div class="nav-item" onclick="showPage('salary')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Salary & Negotiation <span class="count">Scripts</span></div>
+    <div class="nav-item" onclick="showPage('mock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg> Mock Interview <span class="count">3 Full</span></div>
+    <div class="nav-item" onclick="showPage('ai_interview')" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); color:#c4b5fd;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+      AI Mock Interview <span class="count" style="background:#8b5cf6;">Gemma 4</span>
+    </div>
   </div>
 
   <div class="nav-parent-section">
-    <div class="nav-parent-title">COMMUNICATION & CAREER</div>
-    <div class="nav-item" onclick="showPage('intro')">Self-Introduction</div>
-    <div class="nav-item" onclick="showPage('behavioral')">Behavioral Q&A (STAR)</div>
-    <div class="nav-item" onclick="showPage('speaking')">Speaking Drills</div>
-    <div class="nav-item" onclick="showPage('comm')">Comm Scripts</div>
-    <div class="nav-item" onclick="showPage('vocab')">Vocab & Phrases</div>
-    <div class="nav-item" onclick="showPage('salary')">Salary & Negotiation</div>
-    <div class="nav-item" onclick="showPage('mock')">Mock Interview</div>
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> AGENTFORCE & FDE MASTERY</div>
+    <div class="nav-item" onclick="showPage('fde_ag_concept')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Agentforce Core <span class="count">8 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_ag_scenario')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg> Agentforce Scenarios <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_atlas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Atlas Deep Dive <span class="count">6 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_trust')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Trust Layer <span class="count">5 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_dc_concept')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> Data Cloud Core <span class="count">8 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_dc_adv')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg> Data Cloud Advanced <span class="count">7 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_integration')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg> FDE Integration <span class="count">12 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_apex')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> FDE Apex in Agents <span class="count">10 Q</span></div>
+    <div class="nav-item" onclick="showPage('fde_behavioral')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> FDE Behavioral <span class="count">STAR</span></div>
+    <div class="nav-item" onclick="showPage('fde_cheat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Cheat Sheet <span class="count">7 Q</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><path d="M17 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM2 21v-2a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v2"></path></svg> COMPANY SPECIFIC PREP</div>
+    <div class="nav-item" onclick="showPage('deloitte')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg> Deloitte (Recent) <span class="count">2026</span></div>
+    <div class="nav-item" onclick="showPage('accenture')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Accenture Prep <span class="count">LWC+Async</span></div>
+    <div class="nav-item" onclick="showPage('company_interviews')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M17 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM2 21v-2a4 4 0 0 1 4-4h5a4 4 0 0 1 4 4v2"></path></svg> Company Interviews <span class="count">4-in-1</span></div>
+  </div>
+
+  <div class="nav-parent-section">
+    <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg> MASTER TECHNICAL MODULES</div>
+    <div class="nav-item" onclick="showPage('security_5_layers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> 5 Layers Security <span class="count">Master</span></div>
+    <div class="nav-item" onclick="showPage('order_of_execution')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Order of Execution <span class="count">20+ Steps</span></div>
+    <div class="nav-item" onclick="showPage('flow_master')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M5 12h14"></path><path d="M12 5l7 7-7 7"></path></svg> Flow Master Class <span class="count">Logic</span></div>
+    <div class="nav-item" onclick="showPage('sales_cloud')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Sales Cloud Arch <span class="count">Core</span></div>
+    <div class="nav-item" onclick="showPage('service_cloud')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Service Cloud Arch <span class="count">Advanced</span></div>
+    <div class="nav-item" onclick="showPage('experience_cloud')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> Experience Cloud <span class="count">Portals</span></div>
+  </div>
+
+  <div style="margin: 20px 15px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
+    <button onclick="triggerJobScan()" id="btnScanJobs" style="width:100%; display:flex; align-items:center; justify-content:center; gap:12px; padding:12px; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.3); border-radius:12px; color:var(--blue); font-weight:700; font-size:0.75rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15))';this.style.transform='scale(1.02)'" onmouseleave="this.style.background='linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1))';this.style.transform='scale(1)'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07M4.93 4.93a10 10 0 0 0 0 14.14"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      INITIATE GLOBAL JOB SCAN
+    </button>
+    <div id="scanStatusText" style="font-size:0.6rem; color:var(--muted); text-align:center; margin-top:8px;">Ready to scan</div>
+    
+    <!-- REVISION ALERTS (v1342) -->
+    <div id="revisionAlerts" style="margin-top:20px;"></div>
   </div>
 </nav>
 
@@ -176,249 +233,6 @@
   </button>
 </div>
 
-<!-- MAIN CONTENT -->
-<!-- PLATFORM SYNC MODAL -->
-<div id="syncModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:10000; align-items:center; justify-content:center;">
-    <div style="background:var(--card-bg); width:90%; max-width:450px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); padding:2rem; position:relative; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-        <button onclick="closeSyncModal()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
-        
-        <h2 style="font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:0.5rem; display:flex; align-items:center; gap:10px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;color:var(--blue);"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
-            Professional Cloud Sync
-        </h2>
-        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Connect your platforms to generate AI career insights and study plans.</p>
-
-        <div style="display:flex; flex-direction:column; gap:15px;">
-            <!-- LinkedIn -->
-            <div id="modalSyncLinkedIn" onclick="syncProfile('LinkedIn')" style="background:rgba(0,119,181,0.05); border:1px solid rgba(0,119,181,0.2); border-radius:16px; padding:1rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(0,119,181,0.1)'" onmouseleave="this.style.background='rgba(0,119,181,0.05)'">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                        <div style="width:36px; height:36px; background:var(--ln-blue); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-                        </div>
-                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                            <div style="font-weight:700; font-size:0.95rem; color:white;">LinkedIn</div>
-                            <div id="liSyncLabel" style="font-size:0.7rem; color:#60a5fa;">Not Linked</div>
-                        </div>
-                    </div>
-                    <div id="liSyncStatus" style="font-size:0.7rem; color:var(--muted); display:flex; align-items:center; gap:4px; flex-shrink:0;">
-                      Sync <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Naukri -->
-            <div id="modalSyncNaukri" onclick="syncProfile('Naukri')" style="background:rgba(255,117,85,0.05); border:1px solid rgba(255,117,85,0.2); border-radius:16px; padding:1rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,117,85,0.1)'" onmouseleave="this.style.background='rgba(255,117,85,0.05)'">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                        <div style="width:36px; height:36px; background:#ff7555; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg>
-                        </div>
-                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                            <div style="font-weight:700; font-size:0.95rem; color:white;">Naukri</div>
-                            <div id="nkSyncLabel" style="font-size:0.7rem; color:#fb923c;">Not Linked</div>
-                        </div>
-                    </div>
-                    <div id="nkSyncStatus" style="font-size:0.7rem; color:var(--muted); display:flex; align-items:center; gap:4px; flex-shrink:0;">
-                      Sync <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <p style="margin-top:2rem; font-size:0.7rem; color:rgba(255,255,255,0.3); text-align:center;">Secure Cloud Sync actively managed by Agent Data Layer</p>
-    </div>
-</div>
-
-<!-- CONFIDENCE RATING MODAL (v1342) -->
-<div id="confidenceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:10001; align-items:center; justify-content:center;">
-    <div style="background:var(--card-bg); width:90%; max-width:400px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); padding:2rem; text-align:center;">
-        <div style="font-size:3rem; margin-bottom:1rem;">=ƒºá</div>
-        <h2 style="font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:0.5rem;">How confident are you?</h2>
-        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Rate your understanding of this topic to schedule your next review.</p>
-        
-        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
-            <button onclick="saveRetention(1)" style="padding:15px; background:rgba(240,106,106,0.1); border:1px solid var(--red); border-radius:12px; color:var(--red); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ƒÿ½</div>
-                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">HARD</div>
-            </button>
-            <button onclick="saveRetention(3)" style="padding:15px; background:rgba(244,197,66,0.1); border:1px solid var(--amber); border-radius:12px; color:var(--amber); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ƒÿÉ</div>
-                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">GOOD</div>
-            </button>
-            <button onclick="saveRetention(5)" style="padding:15px; background:rgba(61,214,140,0.1); border:1px solid var(--green); border-radius:12px; color:var(--green); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ƒÿÄ</div>
-                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">EASY</div>
-            </button>
-        </div>
-    </div>
-</div>
-
-<div id="main">
-  <!-- MASTER VIEWPORT HEADER (v1344) -->
-  <header id="mainHeader">
-    <div class="header-zone-left">
-      <div class="mobile-toggle" onclick="toggleMobileSidebar()" title="Open Menu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </div>
-    </div>
-
-    <div class="header-zone-center">
-      <div id="headerTitle">SF Prep Guide</div>
-    </div>
-
-    <div class="header-zone-right">
-      <div class="floating-profile" onclick="toggleFloatingDropdown(event)">
-        <div id="floatingProfileContainer" style="display:none;">
-          <div class="profile-pill">
-            <div id="floatStreakBadge" class="streak-badge-mini">
-              <span class="streak-fire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg></span>
-              <span id="floatStreakVal">0</span>
-              <span class="streak-label">day</span>
-            </div>
-            <img id="floatAvatarImg" src="" alt="Profile">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Floating Dropdown Menu -->
-    <div id="floatDropdownMenu" class="floating-dropdown">
-      <div class="fd-header">
-        <div id="floatFullTitle" class="fd-name">User Name</div>
-        <div id="floatEmailTitle" class="fd-email">user@example.com</div>
-      </div>
-      <div class="fd-divider"></div>
-      <div class="fd-item" onclick="showPage('profile_match')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        View Profile
-      </div>
-      <div class="fd-item" onclick="showPage('study_history')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
-        Study History
-      </div>
-      <div class="fd-divider"></div>
-      <div class="fd-item sign-out" onclick="signOut()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Sign Out
-      </div>
-    </div>
-  </header>
-
-<!-- PROFILE MATCHING PAGE -->
-<div id="profile_match" class="page">
-  <div class="page-header">
-    <div class="page-title" style="display:flex; align-items:center; gap:12px;">
-      <span style="width:42px; height:42px; background:linear-gradient(135deg,#8b5cf6,#3b82f6); border-radius:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
-      </span>
-      AI Profile Matching & Study Plan
-    </div>
-    <div class="page-sub">Powered by Gemma 4 Local AI Engine GÇö Sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
-  </div>
-  
-  <!-- PREMIUM SYNC ARCHITECTURE (v1373) -->
-  <div id="syncCtaCards" class="sync-cta-grid">
-    <!-- LinkedIn Card -->
-    <div class="sync-card-premium linkedin">
-      <div class="sync-icon-box">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
-      </div>
-      <div class="sync-title">LinkedIn Profile</div>
-      <div class="sync-desc">Deep-extract skills, certifications, and career history from your LinkedIn profile.</div>
-      <button id="btnSyncLinkedIn" onclick="syncProfile('LinkedIn')" class="sync-btn-premium">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-        Sync & Analyze
-      </button>
-    </div>
-
-    <!-- Naukri Card -->
-    <div class="sync-card-premium naukri">
-      <div class="sync-icon-box">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg>
-      </div>
-      <div class="sync-title">Naukri Resume</div>
-      <div class="sync-desc">Analyze your latest Naukri profile and resume data for industrial gap assessment.</div>
-      <button id="btnSyncNaukri" onclick="syncProfile('Naukri')" class="sync-btn-premium">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-        Sync & Analyze
-      </button>
-    </div>
-  </div>
-
-  <!-- AI Study Plan Output -->
-  <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:28px; margin-top:8px;">
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <span style="display:flex; align-items:center; justify-content:center; color:var(--blue);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-      </span>
-      <span style="font-weight:700; font-size:1rem; color:var(--text);">AI-Generated Study Plan</span>
-      <span style="font-size:0.6rem; padding:3px 8px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.25); border-radius:20px; color:#c4b5fd; margin-left:auto;">Gemma 4</span>
-    </div>
-    <div id="profileMatchContent" style="font-size:0.82rem; line-height:1.8; color:var(--muted);">
-      <div style="text-align:center; padding:40px 20px;">
-        <div style="width:64px; height:64px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px;">
-           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px; height:32px; color:var(--muted); opacity:0.5;"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-        </div>
-        <div style="font-weight:600; color:var(--text); margin-bottom:6px;">No Profile Synced Yet</div>
-        <div style="font-size:0.75rem; max-width:400px; margin:0 auto; margin-bottom:20px; color:var(--muted);">Click one of the buttons above or use the options below to sync your profile. Our AI will analyze your skills and generate a tailored study roadmap.</div>
-        <div style="display:flex; justify-content:center; gap:12px;">
-          <button onclick="syncProfile('LinkedIn')" style="padding:10px 20px; background:#0077b5; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> Sync LinkedIn
-          </button>
-          <button onclick="syncProfile('Naukri')" style="padding:10px 20px; background:#ff7555; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
-            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg> Sync Naukri
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- BOOKMARKS PAGE (v1340) -->
-<div id="bookmarks_page" class="page">
-  <div class="page-header">
-    <div class="page-title" style="color:var(--amber); display:flex; align-items:center; gap:10px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-      My Bookmarked Questions
-    </div>
-    <div class="page-sub">Your curated collection of important questions for quick revision.</div>
-  </div>
-  <div id="bookmarksContent"></div>
-</div>
-
-<!-- SEARCH RESULTS PAGE -->
-<div id="searchPage" class="page">
-  <div class="page-title">Search Results</div>
-  <div class="page-sub">Click any result to see the full answer</div>
-  <div id="searchResults"></div>
-</div>
-
-<!-- SCHEDULE PAGE -->
-<div id="schedule" class="page active">
-  <div class="page-header">
-    <div class="page-title">Daily Study Schedule</div>
-    <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
-  </div>
-  <div class="summary-bar">
-    <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
-    <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
-    <div class="sum-chip"><b>30 min</b>Job applications</div>
-    <div class="sum-chip"><b>285 hrs</b>Total in 30 days</div>
-  </div>
-  <div style="margin-bottom:2rem;">
-    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;font-family:'IBM Plex Mono',monospace;">
-      <span>Daily Goal Progress</span>
-      <span id="dailyProgressText">0%</span>
-    </div>
-    <div style="width:100%;height:8px;background:var(--card);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
-      <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
-    </div>
-  </div>
-  <div id="timetableContainer"></div>
-</div>
-
-<!-- APEX PAGE -->
 <!-- MODULAR PAGE CONTAINERS -->
 <div id="apex" class="page"></div>
 <div id="soql" class="page"></div>
