@@ -183,11 +183,10 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ completedTasks: tasks }));
       }
       else if (url === '/api/jobs' && method === 'GET') {
-        const query = userId ? { $or: [{ userId }, { userId: 'system' }] } : { userId: 'system' };
-        
         if (isMongoConnected) {
-          const records = await JobRecord.find(query).sort({ createdAt: -1 }).lean();
-          console.log(`[DB] Query: ${JSON.stringify(query)} | Found: ${records.length} jobs`);
+          // BRUTE FORCE TEST: Show ALL jobs in the database
+          const records = await JobRecord.find({}).sort({ createdAt: -1 }).lean();
+          console.log(`[DB] Brute Force Find | Found: ${records.length} jobs`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ records }));
         } else {
