@@ -242,8 +242,9 @@ export default async function(req, res) {
 
     // 5. JOBS ENDPOINTS
     if (path === 'jobs') {
-      const jobs = await JobRecord.find({ userId }).sort({ createdAt: -1 }).limit(100).lean();
-      return res.status(200).json({ records: jobs });
+      const jobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ createdAt: -1 }).limit(100).lean();
+      const debugJobs = [{ title: 'DEBUG: DATABASE CONNECTED', company: 'ROUTER ACTIVE', status: 'new', job_hash: 'debug-router' }, ...jobs];
+      return res.status(200).json({ records: debugJobs, dbStatus: true, count: jobs.length });
     }
     if (path === 'jobs/analytics') {
       const latestJobs = await JobRecord.find({}).sort({ fetched_at: -1 }).limit(200).lean();
