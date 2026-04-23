@@ -1834,8 +1834,9 @@ async function fetchJobsList() {
     const response = await apiFetch('/api/jobs');
     if (!response.ok) throw new Error('Unauthorized or Server Down');
     const data = await response.json();
+    console.log('📦 [RADAR] Raw Server Response:', data);
     window.allJobRecords = data.records || [];
-    console.log(`✅ [RADAR] Received ${window.allJobRecords.length} jobs.`);
+    console.log(`✅ [RADAR] Received ${window.allJobRecords.length} jobs. DB Status: ${data.dbStatus}`);
     
     // Phase 2: Sync with Radar Pipeline
     window.allJobRecords.forEach(rec => {
