@@ -58,6 +58,7 @@ import {
   buildActionCardHiringPostReviewMessages,
   buildActionCardJobAlertMessages
 } from "./notify/actionCards.js";
+import { checkApifyQuota, recordApifyUsage } from "./utils/apifyQuota.js";
 
 const AGENT_NAME = String(process.env.AGENT_NAME || "Salesforce Job Radar Agent").trim();
 
@@ -2804,7 +2805,14 @@ async function run() {
     }
 
     // 🔁 Fetch jobs safely with retry
-    const jobs = await safeFetch(() => fetchNaukriJobs());
+    const quotaOk = await checkApifyQuota();
+    let jobs = [];
+    if (quotaOk) {
+      jobs = await safeFetch(() => fetchNaukriJobs());
+      await recordApifyUsage(1); // Record 1 unit for the run
+    } else {
+      console.log("⚠️ Skipping Apify fetch due to monthly quota limit.");
+    }
     const fetchReport = getLastNaukriFetchReport();
     const providerHealthBlocks = buildProviderHealthBlocks(fetchReport);
     const baseMessageBlocks = mergeMessageBlocks(providerHealthBlocks);

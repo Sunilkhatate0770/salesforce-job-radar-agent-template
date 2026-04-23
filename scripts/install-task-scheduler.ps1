@@ -20,8 +20,8 @@ $taskCommand = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$RunSc
 
 schtasks.exe /Create `
   /TN $TaskName `
-  /SC MINUTE `
-  /MO $IntervalMinutes `
+  /SC DAILY `
+  /ST 09:00 `
   /TR $taskCommand `
   /F | Out-Host
 

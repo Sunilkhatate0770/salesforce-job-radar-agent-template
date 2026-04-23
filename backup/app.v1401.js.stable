@@ -3162,8 +3162,6 @@ function toggleLog() {
   if (panel) panel.classList.toggle('open');
 }
 
-let radarBoardLimits = { todo: 10, applied: 10, interview: 10, offer: 10, rejected: 10 };
-
 function renderBoard() {
   const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
   cols.forEach(col => {
@@ -3174,30 +3172,11 @@ function renderBoard() {
     const filtered = pipelineJobs.filter(j => j.status === col && (currentBoardFilter === 'all' || j.prob === currentBoardFilter));
     if (count) count.textContent = filtered.length;
 
-    const limit = radarBoardLimits[col];
-    const displayJobs = filtered.slice(0, limit);
-    
-    let html = displayJobs.length === 0 ? 
+    list.innerHTML = filtered.length === 0 ? 
       `<div style="padding:20px; text-align:center; color:var(--muted); font-size:0.7rem; border:1px dashed var(--border); border-radius:10px;">No jobs here.</div>` :
-      displayJobs.map(job => renderJobCard(job)).join('');
-      
-    if (filtered.length > limit) {
-      html += `
-        <button class="card-btn" style="width:100%; margin-top:12px; border:1px solid var(--border); background:rgba(255,255,255,0.02); color:var(--muted); font-size:0.7rem;" 
-                onclick="loadMoreJobs('${col}')">
-          View All (${filtered.length})
-        </button>
-      `;
-    }
-    
-    list.innerHTML = html;
+      filtered.map(job => renderJobCard(job)).join('');
   });
   checkOfferComparison();
-}
-
-function loadMoreJobs(col) {
-  radarBoardLimits[col] = 1000; 
-  renderBoard();
 }
 
 function renderJobCard(job) {
@@ -3206,8 +3185,6 @@ function renderJobCard(job) {
   if (followUp && job.status === 'applied') {
     badgeHtml = `<div class="followup-badge badge-${followUp.class}">${followUp.label}</div>`;
   }
-
-  const fetchDate = job.created_at ? new Date(job.created_at).toLocaleDateString() : 'New';
 
   return `
     <div class="job-radar-card" id="card-${job.id}">
@@ -3218,7 +3195,6 @@ function renderJobCard(job) {
       <div class="job-card-meta">
         <span class="meta-tag">${job.loc}</span>
         <span class="meta-tag" title="AI Fit Score">⚡ ${job.score}%</span>
-        <span class="meta-tag" title="Fetch Date" style="background:rgba(255,255,255,0.03);">${fetchDate}</span>
         ${job.outreach ? `<span class="meta-tag" style="border-color:var(--blue); color:var(--blue);">🔗 Linked</span>` : ''}
       </div>
       <div class="job-card-actions">

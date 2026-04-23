@@ -180,14 +180,23 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ completedTasks: tasks }));
       }
       else if (url === '/api/jobs' && method === 'GET') {
-        if (!isMongoConnected) {
+        if (isMongoConnected) {
+          const records = await JobRecord.find({ userId }).sort({ createdAt: -1 }).lean();
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ records: [] }));
-          return;
+          res.end(JSON.stringify({ records }));
+        } else {
+          // Fallback to local application tracker cache
+          const cachePath = path.join(CACHE_DIR, 'application-tracker.json');
+          if (fs.existsSync(cachePath)) {
+            const data = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+            const records = Array.isArray(data.records) ? data.records : [];
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ records }));
+          } else {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ records: [] }));
+          }
         }
-        const records = await JobRecord.find({ userId }).sort({ createdAt: -1 }).lean();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ records }));
       }
       else if (url === '/api/jobs/analytics' && method === 'GET') {
         if (!isMongoConnected) {
