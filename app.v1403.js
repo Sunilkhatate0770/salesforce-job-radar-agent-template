@@ -1861,15 +1861,6 @@ async function fetchJobsList() {
     savePipeline();
     renderBoard();
     updateJobRadarSummary();
-}
-
-function clearAndSyncJobs() {
-    console.log('🧹 Clearing old pipeline junk...');
-    localStorage.removeItem('sfpipe2026v3');
-    pipelineJobs = [];
-    fetchJobsList();
-    showToast('✨ Dashboard Cleared & Resynced!');
-}
 
     // Update DB Badge
     const dbBadge = document.getElementById('dbStatusBadge');
@@ -1879,14 +1870,17 @@ function clearAndSyncJobs() {
       dbBadge.style.color = 'var(--green)';
     }
   } catch (e) {
-    console.error('❌ [RADAR] Failed to fetch jobs:', e);
-    const dbBadge = document.getElementById('dbStatusBadge');
-    if (dbBadge) {
-      dbBadge.textContent = 'OFFLINE / LOCAL ONLY';
-      dbBadge.style.background = 'rgba(239,68,68,0.1)';
-      dbBadge.style.color = 'var(--red)';
-    }
+    console.error('❌ [RADAR] Error fetching jobs:', e);
+    showToast('Failed to load jobs from database.');
   }
+}
+
+function clearAndSyncJobs() {
+    console.log('🧹 Clearing old pipeline junk...');
+    localStorage.removeItem('sfpipe2026v3');
+    pipelineJobs = [];
+    fetchJobsList();
+    showToast('✨ Dashboard Cleared & Resynced!');
 }
 
 async function fetchJobAnalytics() {
