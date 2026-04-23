@@ -3223,3 +3223,9 @@ pre.code .num {
 .jbtn { flex: 1 !important; padding: 8px !important; border-radius: 8px !important; font-size: 0.75rem !important; font-weight: 700 !important; cursor: pointer !important; text-align: center !important; text-decoration: none !important; transition: 0.2s !important; }
 .jbtn-apply { background: var(--blue) !important; color: white !important; border: none !important; }
 .jbtn-link { background: rgba(255,255,255,0.03) !important; border: 1px solid var(--border) !important; color: var(--text) !important; }
+
+/* --- SCORE RING SYSTEM (v1403) --- */
+.score-ring { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; background: conic-gradient(var(--blue) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); padding: 3px; }
+.score-ring.h { background: conic-gradient(var(--green) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); }
+.score-ring.m { background: conic-gradient(var(--amber) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); }
+.score-inner { width: 100%; height: 100%; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: white; }
