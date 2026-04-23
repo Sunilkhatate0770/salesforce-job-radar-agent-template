@@ -2348,7 +2348,7 @@ async function showPage(id) {
   if (page) { 
     page.classList.add('active');
     page.style.setProperty('display', 'block', 'important'); 
-    console.log('    [NAV] Success: Page set to active and visible:', id);
+    console.log('    [NAV] Final display style for', id, ':', page.style.display, ' (inline:', page.getAttribute('style'), ')');
   } else {
     console.error('    [NAV] Failure: No page element or topic mapping for ID:', id);
     // Try to show a fallback error on screen if possible
