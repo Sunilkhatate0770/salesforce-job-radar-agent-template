@@ -1,6 +1,6 @@
-// Version: 2026-04-22-T2045 (Industrial Enrichment v1401)
+// Version: 2026-04-23-T1920 (Industrial Enrichment v1402)
 // =============================================
-const DASHBOARD_VERSION = "2026-04-22-T2045 (v1401)";
+const DASHBOARD_VERSION = "2026-04-23-T1920 (v1402)";
 console.log('🚀 Dashboard Version:', DASHBOARD_VERSION);
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
