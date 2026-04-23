@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Salesforce Job Radar</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>ðŸ“¡</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>=ƒôí</text></svg>">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0b0d12">
   <meta name="mobile-web-app-capable" content="yes">
@@ -64,6 +64,7 @@
     </div>
   </div>
 </div>
+<!-- NO FLOATING PROFILE HERE (MOVED INSIDE MAIN) -->
 
 <!-- SIDEBAR -->
 <nav id="sidebar">
@@ -164,60 +165,1130 @@
   </div>
 </nav>
 
-<div id="main">
-  <header id="mainHeader">
-    <div class="mobile-toggle" onclick="toggleMobileSidebar()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+<!-- FLOATING TIMER -->
+<div id="floatingTimer">
+  <span class="ft-dot" id="ftDot"></span>
+  <span class="ft-topic" id="ftTopic">Ready</span>
+  <span class="ft-time" id="ftTime">00:00</span>
+  <button class="ft-btn playing" id="ftPlayPause" onclick="togglePause()" title="Pause/Resume">
+    <svg id="ftIconPause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+    <svg id="ftIconPlay" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:none;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+  </button>
+</div>
+
+<!-- MAIN CONTENT -->
+<!-- PLATFORM SYNC MODAL -->
+<div id="syncModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:10000; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); width:90%; max-width:450px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); padding:2rem; position:relative; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+        <button onclick="closeSyncModal()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+        
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:0.5rem; display:flex; align-items:center; gap:10px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;color:var(--blue);"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+            Professional Cloud Sync
+        </h2>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Connect your platforms to generate AI career insights and study plans.</p>
+
+        <div style="display:flex; flex-direction:column; gap:15px;">
+            <!-- LinkedIn -->
+            <div id="modalSyncLinkedIn" onclick="syncProfile('LinkedIn')" style="background:rgba(0,119,181,0.05); border:1px solid rgba(0,119,181,0.2); border-radius:16px; padding:1rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(0,119,181,0.1)'" onmouseleave="this.style.background='rgba(0,119,181,0.05)'">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:36px; height:36px; background:var(--ln-blue); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+                        </div>
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <div style="font-weight:700; font-size:0.95rem; color:white;">LinkedIn</div>
+                            <div id="liSyncLabel" style="font-size:0.7rem; color:#60a5fa;">Not Linked</div>
+                        </div>
+                    </div>
+                    <div id="liSyncStatus" style="font-size:0.7rem; color:var(--muted); display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                      Sync <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Naukri -->
+            <div id="modalSyncNaukri" onclick="syncProfile('Naukri')" style="background:rgba(255,117,85,0.05); border:1px solid rgba(255,117,85,0.2); border-radius:16px; padding:1rem; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.background='rgba(255,117,85,0.1)'" onmouseleave="this.style.background='rgba(255,117,85,0.05)'">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:36px; height:36px; background:#ff7555; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg>
+                        </div>
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <div style="font-weight:700; font-size:0.95rem; color:white;">Naukri</div>
+                            <div id="nkSyncLabel" style="font-size:0.7rem; color:#fb923c;">Not Linked</div>
+                        </div>
+                    </div>
+                    <div id="nkSyncStatus" style="font-size:0.7rem; color:var(--muted); display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                      Sync <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:10px;height:10px;"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p style="margin-top:2rem; font-size:0.7rem; color:rgba(255,255,255,0.3); text-align:center;">Secure Cloud Sync actively managed by Agent Data Layer</p>
     </div>
-    <div id="headerTitle">SF Prep Guide</div>
+</div>
+
+<!-- CONFIDENCE RATING MODAL (v1342) -->
+<div id="confidenceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:10001; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); width:90%; max-width:400px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); padding:2rem; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:1rem;">=ƒºá</div>
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:0.5rem;">How confident are you?</h2>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Rate your understanding of this topic to schedule your next review.</p>
+        
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+            <button onclick="saveRetention(1)" style="padding:15px; background:rgba(240,106,106,0.1); border:1px solid var(--red); border-radius:12px; color:var(--red); cursor:pointer;">
+                <div style="font-size:1.2rem;">=ƒÿ½</div>
+                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">HARD</div>
+            </button>
+            <button onclick="saveRetention(3)" style="padding:15px; background:rgba(244,197,66,0.1); border:1px solid var(--amber); border-radius:12px; color:var(--amber); cursor:pointer;">
+                <div style="font-size:1.2rem;">=ƒÿÉ</div>
+                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">GOOD</div>
+            </button>
+            <button onclick="saveRetention(5)" style="padding:15px; background:rgba(61,214,140,0.1); border:1px solid var(--green); border-radius:12px; color:var(--green); cursor:pointer;">
+                <div style="font-size:1.2rem;">=ƒÿÄ</div>
+                <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">EASY</div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="main">
+  <!-- MASTER VIEWPORT HEADER (v1344) -->
+  <header id="mainHeader">
+    <div class="header-zone-left">
+      <div class="mobile-toggle" onclick="toggleMobileSidebar()" title="Open Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px;"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </div>
+    </div>
+
+    <div class="header-zone-center">
+      <div id="headerTitle">SF Prep Guide</div>
+    </div>
+
+    <div class="header-zone-right">
+      <div class="floating-profile" onclick="toggleFloatingDropdown(event)">
+        <div id="floatingProfileContainer" style="display:none;">
+          <div class="profile-pill">
+            <div id="floatStreakBadge" class="streak-badge-mini">
+              <span class="streak-fire"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg></span>
+              <span id="floatStreakVal">0</span>
+              <span class="streak-label">day</span>
+            </div>
+            <img id="floatAvatarImg" src="" alt="Profile">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Dropdown Menu -->
+    <div id="floatDropdownMenu" class="floating-dropdown">
+      <div class="fd-header">
+        <div id="floatFullTitle" class="fd-name">User Name</div>
+        <div id="floatEmailTitle" class="fd-email">user@example.com</div>
+      </div>
+      <div class="fd-divider"></div>
+      <div class="fd-item" onclick="showPage('profile_match')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        View Profile
+      </div>
+      <div class="fd-item" onclick="showPage('study_history')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg>
+        Study History
+      </div>
+      <div class="fd-divider"></div>
+      <div class="fd-item sign-out" onclick="signOut()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign Out
+      </div>
+    </div>
   </header>
 
-  <div id="schedule" class="page active"></div>
-  <div id="study_tracker" class="page"></div>
-  <div id="job_radar" class="page"></div>
-  
-  <!-- MODULAR PAGE CONTAINERS -->
-  <div id="apex" class="page"></div>
-  <div id="soql" class="page"></div>
-  <div id="async" class="page"></div>
-  <div id="triggers" class="page"></div>
-  <div id="lwc" class="page"></div>
-  <div id="aura" class="page"></div>
-  <div id="integration" class="page"></div>
-  <div id="security" class="page"></div>
-  <div id="domain" class="page"></div>
-  <div id="scenario" class="page"></div>
-  <div id="design" class="page"></div>
-  <div id="adv_apex" class="page"></div>
-  <div id="admin" class="page"></div>
-  <div id="sc_objects" class="page"></div>
-  <div id="sc_recordpage" class="page"></div>
-  <div id="sc_navmixin" class="page"></div>
-  <div id="sc_validation" class="page"></div>
-  <div id="sc_async" class="page"></div>
-  <div id="sc_fileupload" class="page"></div>
-  <div id="sc_flow" class="page"></div>
-  <div id="sc_reports" class="page"></div>
-  <div id="sc_agentforce" class="page"></div>
-  <div id="sc_arch" class="page"></div>
-  <div id="intro" class="page"></div>
-  <div id="behavioral" class="page"></div>
-  <div id="speaking" class="page"></div>
-  <div id="comm" class="page"></div>
-  <div id="vocab" class="page"></div>
-  <div id="salary" class="page"></div>
-  <div id="mock" class="page"></div>
-  
-  <div id="searchPage" class="page">
-    <div class="page-title">Search Results</div>
-    <div id="searchResults"></div>
+<!-- PROFILE MATCHING PAGE -->
+<div id="profile_match" class="page">
+  <div class="page-header">
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+      <span style="width:42px; height:42px; background:linear-gradient(135deg,#8b5cf6,#3b82f6); border-radius:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
+      </span>
+      AI Profile Matching & Study Plan
+    </div>
+    <div class="page-sub">Powered by Gemma 4 Local AI Engine GÇö Sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
   </div>
   
-  <div id="bookmarks_page" class="page">
-    <div class="page-title">Bookmarked Questions</div>
-    <div id="bookmarksContent"></div>
+  <!-- PREMIUM SYNC ARCHITECTURE (v1373) -->
+  <div id="syncCtaCards" class="sync-cta-grid">
+    <!-- LinkedIn Card -->
+    <div class="sync-card-premium linkedin">
+      <div class="sync-icon-box">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg>
+      </div>
+      <div class="sync-title">LinkedIn Profile</div>
+      <div class="sync-desc">Deep-extract skills, certifications, and career history from your LinkedIn profile.</div>
+      <button id="btnSyncLinkedIn" onclick="syncProfile('LinkedIn')" class="sync-btn-premium">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        Sync & Analyze
+      </button>
+    </div>
+
+    <!-- Naukri Card -->
+    <div class="sync-card-premium naukri">
+      <div class="sync-icon-box">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg>
+      </div>
+      <div class="sync-title">Naukri Resume</div>
+      <div class="sync-desc">Analyze your latest Naukri profile and resume data for industrial gap assessment.</div>
+      <button id="btnSyncNaukri" onclick="syncProfile('Naukri')" class="sync-btn-premium">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        Sync & Analyze
+      </button>
+    </div>
+  </div>
+
+  <!-- AI Study Plan Output -->
+  <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:28px; margin-top:8px;">
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+      <span style="display:flex; align-items:center; justify-content:center; color:var(--blue);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
+      </span>
+      <span style="font-weight:700; font-size:1rem; color:var(--text);">AI-Generated Study Plan</span>
+      <span style="font-size:0.6rem; padding:3px 8px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.25); border-radius:20px; color:#c4b5fd; margin-left:auto;">Gemma 4</span>
+    </div>
+    <div id="profileMatchContent" style="font-size:0.82rem; line-height:1.8; color:var(--muted);">
+      <div style="text-align:center; padding:40px 20px;">
+        <div style="width:64px; height:64px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 15px;">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:32px; height:32px; color:var(--muted); opacity:0.5;"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+        </div>
+        <div style="font-weight:600; color:var(--text); margin-bottom:6px;">No Profile Synced Yet</div>
+        <div style="font-size:0.75rem; max-width:400px; margin:0 auto; margin-bottom:20px; color:var(--muted);">Click one of the buttons above or use the options below to sync your profile. Our AI will analyze your skills and generate a tailored study roadmap.</div>
+        <div style="display:flex; justify-content:center; gap:12px;">
+          <button onclick="syncProfile('LinkedIn')" style="padding:10px 20px; background:#0077b5; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg> Sync LinkedIn
+          </button>
+          <button onclick="syncProfile('Naukri')" style="padding:10px 20px; background:#ff7555; border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; font-size:0.75rem; display:flex; align-items:center; gap:6px;">
+            <svg viewBox="0 0 24 24" fill="white" style="width:14px;height:14px;"><path d="M20 6H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 9H8v-1h4v1zm6-3H8v-1h10v1zm0-3H8V8h10v1z"/></svg> Sync Naukri
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- BOOKMARKS PAGE (v1340) -->
+<div id="bookmarks_page" class="page">
+  <div class="page-header">
+    <div class="page-title" style="color:var(--amber); display:flex; align-items:center; gap:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+      My Bookmarked Questions
+    </div>
+    <div class="page-sub">Your curated collection of important questions for quick revision.</div>
+  </div>
+  <div id="bookmarksContent"></div>
+</div>
+
+<!-- SEARCH RESULTS PAGE -->
+<div id="searchPage" class="page">
+  <div class="page-title">Search Results</div>
+  <div class="page-sub">Click any result to see the full answer</div>
+  <div id="searchResults"></div>
+</div>
+
+<!-- SCHEDULE PAGE -->
+<div id="schedule" class="page active">
+  <div class="page-header">
+    <div class="page-title">Daily Study Schedule</div>
+    <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
+  </div>
+  <div class="summary-bar">
+    <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
+    <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
+    <div class="sum-chip"><b>30 min</b>Job applications</div>
+    <div class="sum-chip"><b>285 hrs</b>Total in 30 days</div>
+  </div>
+  <div style="margin-bottom:2rem;">
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;font-family:'IBM Plex Mono',monospace;">
+      <span>Daily Goal Progress</span>
+      <span id="dailyProgressText">0%</span>
+    </div>
+    <div style="width:100%;height:8px;background:var(--card);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+      <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
+    </div>
+  </div>
+  <div id="timetableContainer"></div>
+</div>
+
+<!-- APEX PAGE -->
+<!-- MODULAR PAGE CONTAINERS -->
+<div id="apex" class="page"></div>
+<div id="soql" class="page"></div>
+<div id="async" class="page"></div>
+<div id="triggers" class="page"></div>
+<div id="lwc" class="page"></div>
+<div id="aura" class="page"></div>
+<div id="integration" class="page"></div>
+<div id="security" class="page"></div>
+<div id="domain" class="page"></div>
+<div id="scenario" class="page"></div>
+<div id="design" class="page"></div>
+<div id="adv_apex" class="page"></div>
+<div id="admin" class="page"></div>
+
+<!-- 100 SCENARIO SUITE -->
+<div id="sc_objects" class="page"></div>
+<div id="sc_recordpage" class="page"></div>
+<div id="sc_navmixin" class="page"></div>
+<div id="sc_validation" class="page"></div>
+<div id="sc_async" class="page"></div>
+<div id="sc_fileupload" class="page"></div>
+<div id="sc_flow" class="page"></div>
+<div id="sc_reports" class="page"></div>
+<div id="sc_agentforce" class="page"></div>
+<div id="sc_arch" class="page"></div>
+
+<!-- COMMUNICATION & CAREER -->
+<div id="intro" class="page"></div>
+<div id="behavioral" class="page"></div>
+<div id="speaking" class="page"></div>
+<div id="comm" class="page"></div>
+<div id="vocab" class="page"></div>
+<div id="salary" class="page"></div>
+<div id="mock" class="page"></div>
+
+<!-- AGENTFORCE & FDE -->
+<div id="fde_ag_concept" class="page"></div>
+<div id="fde_ag_scenario" class="page"></div>
+<div id="fde_atlas" class="page"></div>
+<div id="fde_trust" class="page"></div>
+<div id="fde_dc_concept" class="page"></div>
+<div id="fde_dc_adv" class="page"></div>
+<div id="fde_integration" class="page"></div>
+<div id="fde_apex" class="page"></div>
+<div id="fde_behavioral" class="page"></div>
+<div id="fde_cheat" class="page"></div>
+
+<!-- COMPANY SPECIFIC -->
+<div id="deloitte" class="page"></div>
+<div id="accenture" class="page"></div>
+<div id="company_interviews" class="page"></div>
+<div id="company_iq" class="page"></div>
+<div id="mobigic_pwc" class="page"></div>
+
+<!-- ESSENTIAL SPA PAGES -->
+<div id="bookmarks_page" class="page">
+  <div class="page-header">
+    <div class="page-title" style="color:var(--amber); display:flex; align-items:center; gap:10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+      My Bookmarked Questions
+    </div>
+    <div class="page-sub">Your curated collection of important questions for quick revision.</div>
+  </div>
+  <div id="bookmarksContent"></div>
+</div>
+
+<div id="searchPage" class="page">
+  <div class="page-title">Search Results</div>
+  <div class="page-sub">Click any result to see the full answer</div>
+  <div id="searchResults"></div>
+</div>
+<div id="study_tracker" class="page">
+  <div class="page-header">
+    <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+      Study Time Tracker
+    </div>
+    <div class="page-sub">Automatically tracks time spent on each topic. Data persists in your browser.</div>
+  </div>
+
+  <div id="dailyInsightCard" class="suggestion-card" style="border-left-color:var(--blue); display:none; margin-bottom:1.5rem;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.9rem; font-weight:700; color:var(--blue); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Today's Cloud Summary
+      </span>
+      <span id="summaryDate" style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;"></span>
+    </div>
+    <div id="summaryContent" style="margin-top:0.8rem; font-size:0.82rem; color:var(--text); line-height:1.6;">
+      <!-- Summary will be injected here -->
+    </div>
+  </div>
+
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem; border-left:4px solid var(--blue);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem; flex-wrap:wrap; gap:15px;">
+      <div style="min-width:200px;">
+        <h3 style="color:var(--text); font-size:1.1rem; margin-bottom:5px; display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:18px;height:18px;color:var(--amber);"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+          Course Completion Goal
+        </h3>
+        <p style="color:var(--muted); font-size:0.8rem;">Calculate how many hours you need to study per day to finish.</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:0.85rem; color:var(--text);">Finish in:</span>
+        <select id="studyDeadlineDays" onchange="updateCourseTargets()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit;">
+          <option value="7">7 Days (Express)</option>
+          <option value="10">10 Days (Fast)</option>
+          <option value="15">15 Days (Steady)</option>
+          <option value="30" selected>30 Days (Standard)</option>
+          <option value="90">90 Days (Deep Dive)</option>
+        </select>
+      </div>
+    </div>
+    <div class="stats-row" style="border-top:1px solid rgba(255,255,255,0.05); padding-top:1.5rem; margin-top:0;">
+      <div class="stat-box"><div class="stat-value" id="courseTotalProgress" style="color:var(--green);">0%</div><div class="stat-label">Course Completed</div></div>
+      <div class="stat-box"><div class="stat-value" id="courseRequiredDaily" style="color:var(--blue);">0.0 hrs</div><div class="stat-label">Required Per Day</div></div>
+      <div class="stat-box"><div class="stat-value" id="courseRemainingTime">0h 0m</div><div class="stat-label">Total Left</div></div>
+    </div>
+  </div>
+  <div class="stats-row" style="margin-bottom: 2rem;">
+    <div class="stat-box"><div class="stat-value" id="totalStudyTime">0h 0m</div><div class="stat-label">Total Study Time</div></div>
+    <div class="stat-box"><div class="stat-value" id="totalSessions">0</div><div class="stat-label">Total Sessions</div></div>
+    <div class="stat-box"><div class="stat-value" id="totalTopics">0 / 0</div><div class="stat-label">Topics Studied</div></div>
+    <div class="stat-box"><div class="stat-value" id="todayTime">0h 0m</div><div class="stat-label">Today's Time</div></div>
+  </div>
+
+  <div style="display:flex; gap:10px; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:10px; overflow-x:auto;">
+    <button class="tracker-tab active" onclick="switchTrackerTab('tab_suggestions')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M9 21h6M9 18h6M10 15c-2.33-1.57-4-3.7-4-7 0-3.3 2.7-6 6-6s6 2.7 6 6c0 3.3-1.67 5.43-4 7"></path></svg>
+      Suggestions
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_chart')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+      Distribution
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_topics')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      Topics
+    </button>
+    <button class="tracker-tab" onclick="switchTrackerTab('tab_history')" style="display:flex; align-items:center; gap:6px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Sessions
+    </button>
+    <button class="tracker-tab" style="color:var(--green); display:flex; align-items:center; gap:6px;" onclick="switchTrackerTab('tab_leaderboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>
+      Leaderboard
+    </button>
+  </div>
+
+  <div id="tab_suggestions" class="tracker-content" style="display:block;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--amber);"><path d="M9 21h6M9 18h6M10 15c-2.33-1.57-4-3.7-4-7 0-3.3 2.7-6 6-6s6 2.7 6 6c0 3.3-1.67 5.43-4 7"></path></svg>
+      Smart Study Suggestions
+    </h3>
+    <div id="suggestions"></div>
+  </div>
+
+  <div id="tab_chart" class="tracker-content" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+        Time Distribution
+      </h3>
+      <button class="reset-btn" onclick="resetTracker()" style="display:flex; align-items:center; gap:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"></path></svg>
+        Reset All Data
+      </button>
+    </div>
+    <div id="timeChart" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.2rem;margin-bottom:1.5rem;"></div>
+  </div>
+
+  <div id="tab_topics" class="tracker-content" style="display:none;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      Topic Completion Details
+    </h3>
+    <div class="tracker-grid" id="trackerGrid"></div>
+  </div>
+
+  <div id="tab_history" class="tracker-content" style="display:none;">
+    <h3 style="font-size:1rem;font-weight:600;color:var(--text);margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+      Recent Session History
+    </h3>
+    <div id="sessionHistory" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem;"></div>
+  </div>
+
+  <div id="tab_leaderboard" class="tracker-content" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.2rem; flex-wrap:wrap; gap:10px;">
+      <h3 style="font-size:1rem;font-weight:600;color:var(--text); display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--amber);"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>
+        Global Top Scholars
+      </h3>
+      <button class="reset-btn" onclick="fetchLeaderboard()" style="color:var(--blue); border-color:var(--blue); display:flex; align-items:center; gap:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+        Refresh Ranks
+      </button>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
+      <div id="leaderboardList" style="display:flex; flex-direction:column; gap:10px;">
+        <span style="color:var(--muted); font-size:0.8rem;">Loading scholars...</span>
+      </div>
+    </div>
+  </div>
+</div><!-- end study_tracker -->
+
+
+<!-- STUDY HISTORY PAGE -->
+<div id="study_history" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title" style="display:flex; align-items:center; gap:12px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;color:var(--blue);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Master Study History
+      </div>
+      <div class="page-sub" style="border:none; margin:0; padding:0;">Day-by-day breakdown of your preparation journey.</div>
+    </div>
+    <button id="syncHistoryBtn" onclick="syncHistoryWithFeedback()" class="tracker-tab active sync-btn-header" style="background:var(--blue); color:white; border:none; padding:10px 20px; box-shadow:0 4px 15px rgba(79,142,247,0.3); display:flex; align-items:center; gap:10px; min-width:160px; justify-content:center;">
+      <span id="syncIcon" style="display:flex; align-items:center; justify-content:center; transition: transform 0.5s;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+      </span> 
+      <span id="syncText">Sync Dashboard</span>
+    </button>
+  </div>
+  
+  <div class="stats-row" style="margin-bottom:1.5rem;">
+    <div class="stat-box"><div class="stat-value" id="historyAvgTime">0h 0m</div><div class="stat-label">Daily Average</div></div>
+    <div class="stat-box"><div class="stat-value" id="historyTotalTime">0h 0m</div><div class="stat-label">Period Total</div></div>
+    <div class="stat-box"><div class="stat-value" id="historyDayCount">0</div><div class="stat-label">Days Studied</div></div>
+  </div>
+
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem;">
+    <div class="history-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:15px; flex-wrap:wrap; gap:15px;">
+      <div class="history-tabs" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="history-tab active" onclick="switchHistoryTab('timeline')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Timeline</button>
+        <button class="history-tab" onclick="switchHistoryTab('table')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M3 3h18v18H3z"></path><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path><path d="M15 3v18"></path></svg> Table</button>
+        <button class="history-tab" onclick="switchHistoryTab('analytics')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg> Analytics</button>
+      </div>
+      <select id="historyPeriodFilter" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
+        <option value="today">Today Only</option>
+        <option value="yesterday">Yesterday</option>
+        <option value="current_month" selected>Current Month (Live)</option>
+        <option value="last3">Last 3 Months</option>
+        <option value="year">Full Year (2026)</option>
+      </select>
+    </div>
+    <div id="historyTimeline">
+      <!-- Content will be injected based on view mode -->
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY DETAIL MODAL -->
+<div id="historyModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:650px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); margin: auto; position: relative; top: 50%; transform: translateY(-50%);">
+    <div style="padding:1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+      <div>
+        <div id="modalDate" style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;"></div>
+        <div id="modalTitle" style="font-size:1.2rem; font-weight:700; color:var(--text);">Daily Study Report</div>
+      </div>
+      <button onclick="closeHistoryModal()" style="background:rgba(255,255,255,0.05); border:none; color:var(--muted); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+    
+    <div id="modalBody" style="padding:2rem; max-height:70vh; overflow-y:auto;">
+      <!-- Dynamic content injected here -->
+    </div>
+
+    <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); text-align:right;">
+      <button onclick="closeHistoryModal()" style="background:var(--blue); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer;">Close Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- JOB RADAR PAGE -->
+<div id="job_radar" class="page">
+  <div class="page-header" style="justify-content: space-between; border-bottom: none; margin-bottom: 0;">
+    <div>
+      <div class="page-title">=ƒôí Job Radar Dashboard</div>
+      <div class="page-sub" style="border:none; margin:0; padding:0;">Phase 2-5: Autonomous Pipeline & Analytics (v1400)</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+       <div id="dbStatusBadge" style="font-size: 0.6rem; padding: 4px 8px; border-radius: 6px; background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.2); font-weight: 700; letter-spacing: 0.5px;">LOCAL DB</div>
+       <button class="tracker-tab" onclick="clearAndSyncJobs()" id="btnScanJobs" style="display:flex; align-items:center; gap:6px; background:linear-gradient(135deg, var(--blue), var(--cyan)); border:none; color:white; padding:6px 16px; border-radius:8px; font-size:0.75rem; cursor:pointer; font-weight:700; box-shadow: 0 4px 12px rgba(59,130,246,0.3);">
+         <span id="scanIcon">=ƒöä</span> Clean & Sync
+       </button>
+       <button class="tracker-tab" onclick="toggleLog()" style="display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.03); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:8px; font-size:0.75rem; cursor:pointer;">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg>
+         Activity Log
+       </button>
+    </div>
+  </div>
+
+  <!-- Discovery Overview (Phase 2F) -->
+  <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:15px; margin-top:1.5rem;">
+    <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:12px 15px; display:flex; align-items:center; gap:12px;">
+      <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+      <div>
+        <div id="trackedCount" style="font-size:1rem; font-weight:800; color:var(--text);">0</div>
+        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Jobs Tracked</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:12px 15px; display:flex; align-items:center; gap:12px;">
+      <div style="width:32px; height:32px; background:rgba(16,185,129,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--green);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <div>
+        <div id="appliedCount" style="font-size:1rem; font-weight:800; color:var(--text);">0</div>
+        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Applications</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:12px 15px; display:flex; align-items:center; gap:12px;">
+      <div style="width:32px; height:32px; background:rgba(245,158,11,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--amber);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+      </div>
+      <div>
+        <div id="dedupeCount" style="font-size:1rem; font-weight:800; color:var(--text);">0</div>
+        <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Unique Signals</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Header & Tabs -->
+  <div class="radar-tabs" style="display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 1rem; margin-top: 1rem;">
+    <button id="tab-pipeline" class="radar-tab-btn active" onclick="switchRadarSubTab('pipeline')" style="background:none; border:none; padding:12px 20px; color:var(--text); font-weight:700; cursor:pointer; border-bottom: 2px solid var(--blue);">Pipeline Board</button>
+    <button id="tab-insights" class="radar-tab-btn" onclick="switchRadarSubTab('insights')" style="background:none; border:none; padding:12px 20px; color:var(--muted); font-weight:700; cursor:pointer; border-bottom: 2px solid transparent;">Insights & Analytics</button>
+    <button id="tab-development" class="radar-tab-btn" onclick="switchRadarSubTab('development')" style="background:none; border:none; padding:12px 20px; color:var(--muted); font-weight:700; cursor:pointer; border-bottom: 2px solid transparent;">Development Board</button>
+  </div>
+
+  <div id="radar-pipeline-view">
+    <!-- Analytics Bar (Industrial Refinement) -->
+    <div style="display:flex; align-items:center; gap:20px; background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--border); margin-bottom:1.5rem; margin-top:1rem;">
+      <div class="metric" style="flex:1;">
+        <div class="metric-val" id="met-rate" style="font-size:1.2rem; font-weight:800; color:var(--blue); font-family:'IBM Plex Mono',monospace;">0%</div>
+        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Applied Rate</div>
+      </div>
+      <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
+      <div class="metric" style="flex:1;">
+        <div class="metric-val" id="met-streak" style="font-size:1.2rem; font-weight:800; color:var(--amber); font-family:'IBM Plex Mono',monospace;">0d</div>
+        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Apply Streak</div>
+      </div>
+      <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
+      <div class="metric" style="flex:1;">
+        <div class="metric-val" id="met-followup" style="font-size:1.2rem; font-weight:800; color:var(--red); font-family:'IBM Plex Mono',monospace;">0</div>
+        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Follow-ups Due</div>
+      </div>
+      <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
+      <!-- Weekly goal ring -->
+      <div class="goal-ring-wrap" style="display:flex; align-items:center; gap:12px; min-width:120px;">
+        <div style="position:relative; width:36px; height:36px;">
+          <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform:rotate(-90deg);">
+            <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3"/>
+            <circle id="goal-arc" cx="18" cy="18" r="15.9" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="0 100" stroke-linecap="round" style="transition: stroke-dasharray 0.6s ease;"/>
+          </svg>
+          <div id="goal-pct" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg); font-size:9px; font-weight:800; color:var(--green);">0%</div>
+        </div>
+        <div>
+          <div id="met-weekly" style="font-size:1rem; font-weight:800; color:var(--text); font-family:'IBM Plex Mono',monospace;">0/5</div>
+          <div style="font-size:0.65rem; color:var(--muted); text-transform:uppercase;">This Week</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Board Filters -->
+    <div class="filter-bar" style="margin-bottom: 1.5rem; display: flex; gap: 8px; align-items: center; background: var(--card); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);">
+      <span style="font-size: 0.65rem; color: var(--muted); font-weight: 800; letter-spacing: 1px; margin-right: 8px;">FILTER:</span>
+      <button class="board-filter-btn active" onclick="setBoardFilter('all', this)">All</button>
+      <button class="board-filter-btn" onclick="setBoardFilter('high', this)">=ƒƒó High Prob</button>
+      <button class="board-filter-btn" onclick="setBoardFilter('medium', this)">=ƒƒí Medium</button>
+      <button class="board-filter-btn" onclick="setBoardFilter('stretch', this)">=ƒƒú Stretch</button>
+      <div style="flex: 1;"></div>
+      <div style="position: relative;">
+        <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; color: var(--muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="boardSearch" placeholder="Search pipeline..." oninput="doBoardSearch()" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 10px 5px 28px; border-radius: 6px; font-size: 0.75rem; width: 180px; font-family: inherit;">
+      </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="board-wrap" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; height: calc(100vh - 380px); min-height: 450px;">
+       <div class="kanban-col" id="col-todo"><div class="kanban-header"><span class="col-dot" style="background:#4f8ef7;"></span>=ƒôï To Apply <span class="col-count" id="count-todo">0</span></div><div class="kanban-body" id="list-todo"></div></div>
+       <div class="kanban-col" id="col-applied"><div class="kanban-header"><span class="col-dot" style="background:#10b981;"></span>G£à Applied <span class="col-count" id="count-applied">0</span></div><div class="kanban-body" id="list-applied"></div></div>
+       <div class="kanban-col" id="col-interview"><div class="kanban-header"><span class="col-dot" style="background:#f59e0b;"></span>=ƒôP Interview <span class="col-count" id="count-interview">0</span></div><div class="kanban-body" id="list-interview"></div></div>
+       <div class="kanban-col" id="col-offer"><div class="kanban-header"><span class="col-dot" style="background:#ec4899;"></span>=ƒÄë Offer <span class="col-count" id="count-offer">0</span></div><div class="kanban-body" id="list-offer"></div></div>
+       <div class="kanban-col" id="col-rejected"><div class="kanban-header"><span class="col-dot" style="background:#ef4444;"></span>G¥î Rejected <span class="col-count" id="count-rejected">0</span></div><div class="kanban-body" id="list-rejected"></div></div>
+    </div>
+  </div>
+
+  <div id="radar-insights-view" style="display:none; animation: fadeIn 0.4s ease;">
+    <div class="insights-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px; margin-top:1rem;">
+      <!-- Phase 5A: Conversion Funnel -->
+      <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
+        <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--blue);"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg> Application Funnel
+        </h4>
+        <div id="funnel-container" style="display:flex; flex-direction:column; gap:15px;"></div>
+      </div>
+
+      <!-- Phase 5C: Segment Distribution -->
+      <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
+        <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--green);"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg> Market Distribution
+        </h4>
+        <div id="dist-container" style="display:flex; flex-direction:column; gap:12px;"></div>
+      </div>
+
+      <!-- Phase 5B: Weekly Velocity -->
+      <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
+        <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--cyan);"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg> Weekly Velocity
+        </h4>
+        <div id="velocity-container" style="display:flex; align-items:flex-end; gap:8px; height:120px; padding-bottom:20px;"></div>
+      </div>
+    </div>
+
+    <!-- Phase 5D: Offer Comparison Matrix (Conditional) -->
+    <div id="offer-comparison" style="display:none; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-top:20px; animation: slideUp 0.4s ease;">
+      <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--pink);"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg> Offer Comparison Matrix
+      </h4>
+      <div id="offer-matrix-container" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+
+  <!-- JOB RADAR DEVELOPMENT SUB-VIEW (v1401) -->
+  <div id="radar-development-view" style="display:none; animation: fadeIn 0.4s ease;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-top:1.5rem;">
+      <h3 style="font-size:1.1rem; color:var(--text); margin-bottom:1rem; display:flex; align-items:center; gap:10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--blue);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        Development Analytics & Roadmap
+      </h3>
+      <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Tracking your technical growth and readiness for Salesforce Developer roles.</p>
+      
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
+        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
+          <h4 style="font-size:0.8rem; color:var(--blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Skill Proficiency</h4>
+          <div id="skillProficiencyList" style="display:flex; flex-direction:column; gap:12px;">
+             <div style="font-size:0.8rem; color:var(--muted);">Initializing skill data...</div>
+          </div>
+        </div>
+        <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
+          <h4 style="font-size:0.8rem; color:var(--green); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Ready for Deployment</h4>
+          <div id="readyForDeploymentList" style="display:flex; flex-direction:column; gap:12px;">
+             <div style="font-size:0.8rem; color:var(--muted);">Analyzing role readiness...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Market Trends Section (Bottom) -->
+  <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+    <h3 style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:1.2rem; display:flex; align-items:center; gap:8px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+      Salesforce Market Intelligence
+    </h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:15px; margin-bottom:2rem;">
+      <div style="background:rgba(16,185,129,0.03); border:1px solid rgba(16,185,129,0.1); border-radius:12px; padding:1.2rem;">
+        <h4 style="font-size:0.75rem; color:var(--green); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Matched Skills</h4>
+        <div id="matchedSkillsTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
+      </div>
+      <div style="background:rgba(239,68,68,0.03); border:1px solid rgba(239,68,68,0.1); border-radius:12px; padding:1.2rem;">
+        <h4 style="font-size:0.75rem; color:var(--red); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Market Gaps</h4>
+        <div id="missingSkillsTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
+      </div>
+      <div style="background:rgba(79,142,247,0.03); border:1px solid rgba(79,142,247,0.1); border-radius:12px; padding:1.2rem;">
+        <h4 style="font-size:0.75rem; color:var(--blue); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Top Hiring Nodes</h4>
+        <div id="topCompaniesTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB + Side Panels -->
+  <button class="fab-add" onclick="openAddJobModal()" title="Add Custom Job">+</button>
+  
+  <div class="activity-log-panel" id="logPanel">
+    <div class="log-panel-header">
+      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.85rem;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--blue);"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg>
+        Activity Log
+      </div>
+      <button class="close-panel-btn" onclick="toggleLog()">&times;</button>
+    </div>
+    <div class="log-panel-body" id="logBody">
+      <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.8rem;">No activity logged yet.</div>
+    </div>
+    <div class="log-panel-footer">
+      <button onclick="exportLog()" class="panel-action-btn">G¼çn+Å Export CSV</button>
+      <button onclick="clearLog()" class="panel-action-btn danger">=ƒùæn+Å Clear</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- AI MOCK INTERVIEW PAGE -->
+<div id="ai_interview" class="page">
+  <div class="page-header">
+    <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;vertical-align:middle;margin-right:10px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg> Gemma 4 AI Interview Room</div>
+    <div class="page-sub">Interactive practice sessions with real-time feedback from your local AI agent.</div>
+  </div>
+  
+  <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; height:600px; display:flex; flex-direction:column; overflow:hidden;">
+    <!-- Interview Config -->
+    <div id="interviewSetup" style="padding:1.5rem; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
+      <div style="display:flex; gap:20px; align-items:center;">
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Pick Interview Topic</label>
+          <select id="interviewTopic" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+            <option value="Apex & Technical">Apex & Technical Development</option>
+            <option value="LWC & Frontend">LWC & Frontend Engineering</option>
+            <option value="Architecture & Scenarios">Architecture & Complex Scenarios</option>
+            <option value="Behavioral & HR">Behavioral & STAR Method</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Difficulty Level</label>
+          <select id="interviewDifficulty" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+            <option value="Junior">Junior / Mid-Level</option>
+            <option value="Senior" selected>Senior Technical Architect</option>
+            <option value="Expert">Subject Matter Expert (Hard)</option>
+          </select>
+        </div>
+        <button onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; margin-top:1.5rem;">Start Session</button>
+      </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div id="interviewChat" style="flex:1; overflow-y:auto; padding:1.5rem; display:flex; flex-direction:column; gap:1.5rem;">
+      <div style="text-align:center; color:var(--muted); margin-top:100px;">
+        <div style="font-size:3rem; margin-bottom:1rem; color:var(--blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:80px;height:80px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg></div>
+        <h3>Welcome to the Interview Room</h3>
+        <p>Your local Gemma 4 engine is ready to challenge you.</p>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div id="interviewInputArea" style="padding:1.5rem; border-top:1px solid var(--border); display:none;">
+      <div style="display:flex; gap:10px;">
+        <textarea id="userAnswerInput" placeholder="Type or speak your answer here..." style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:1rem; min-height:80px; font-family:inherit; resize:none;"></textarea>
+        <button id="micBtn" onclick="toggleVoiceInput()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:0 1.5rem; border-radius:8px; cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center; transition: all 0.3s;" title="Use Voice to Answer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>
+        <button onclick="submitAnswer()" style="background:var(--green); color:black; border:none; padding:0 2rem; border-radius:8px; font-weight:700; cursor:pointer;">Submit<br>Answer</button>
+      </div>
+      <div style="font-size:0.7rem; color:var(--muted); margin-top:8px; display:flex; justify-content:space-between;">
+        <span>Press Ctrl+Enter to submit</span>
+        <span id="aiThinkingStatus" style="display:none; color:var(--blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg> Gemma is thinking...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: AGENTFORCE CORE -->
+<div id="fde_ag_concept" class="page">
+  <div class="page-title">FDE Prep: Agentforce Core Concepts</div>
+  <div class="page-sub">Master the foundations of Salesforce AI Agents, Atlas Reasoning, and the Trust Layer</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is Agentforce and how does it differ from Einstein Bots?</span>
+      <span class="qa-q-label lbl-fde">CORE</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">Agentforce is an evolution from intent-based bots to **autonomous agents**. Unlike bots that follow strict "If-Then" trees, Agentforce uses the **Atlas Reasoning Engine** to determine which "Action" to take based on the user's goal.</p>
+      <ul>
+        <li><b>Intent vs. Goal:</b> Bots respond to pre-defined intents; Agents pursue high-level goals.</li>
+        <li><b>Actions:</b> Agents can invoke Apex, Flows, and Prompt Templates autonomously.</li>
+        <li><b>Data:</b> Agents use real-time Data Cloud data for grounding without training the model.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: DATA CLOUD -->
+<div id="fde_dc_concept" class="page">
+  <div class="page-title">FDE Prep: Data Cloud Foundation</div>
+  <div class="page-sub">Understanding Ingestion, Modeling, Identity Resolution, and Calculated Insights</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Explain the Data Cloud "Ingest to Action" flow.</span>
+      <span class="qa-q-label lbl-fde">DATA CLOUD</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <ol>
+        <li><b>Ingest:</b> Connect data sources (Salesforce, S3, Snowflake, Web/Mobile).</li>
+        <li><b>Map:</b> Map Data Source Objects (DSO) to Data Model Objects (DMO) using the CIM (Cloud Information Model).</li>
+        <li><b>Unify:</b> Use Identity Resolution rules to create a "Unified Individual".</li>
+        <li><b>Insight:</b> Create Calculated Insights (SQL-based) or Streaming Insights.</li>
+        <li><b>Act:</b> Trigger Flows, send to Marketing Cloud, or ground Agentforce prompts.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: ATLAS & TRUST -->
+<div id="fde_atlas" class="page">
+  <div class="page-title">Atlas Reasoning & Trust Layer</div>
+  <div class="page-sub">The brain and the safety shield of Agentforce</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How does the Atlas Reasoning Engine work?</span>
+      <span class="qa-q-label lbl-fde">REASONING</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">Atlas works in a loop: **Query Analysis -> Plan Building -> Execution -> Result Evaluation**. It retrieves relevant metadata (Actions, Flows) and data (Data Cloud) to build a prompt, then interprets the LLM response to see if the goal is met or if more actions are needed.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: TRUST LAYER -->
+<div id="fde_trust" class="page">
+  <div class="page-title">FDE Prep: Einstein Trust Layer</div>
+  <div class="page-sub">Security, Privacy, and Compliance in the Age of Generative AI</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What are the key features of the Einstein Trust Layer?</span>
+      <span class="qa-q-label lbl-fde">TRUST</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">The Trust Layer sits between the Agent and the LLM. It ensures:</p>
+      <ul>
+        <li><b>Dynamic Grounding:</b> Pulls real data from Salesforce/Data Cloud to give the LLM context.</li>
+        <li><b>Data Masking:</b> Replaces PII (email, phone, SSN) with placeholders before sending to the LLM.</li>
+        <li><b>Zero Retention:</b> LLM providers (OpenAI, etc.) agree not to store or use data for training.</li>
+        <li><b>Toxicity Detection:</b> Checks both input and output for offensive content.</li>
+        <li><b>Audit Trail:</b> Logs every interaction for compliance.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: DATA CLOUD ADVANCED -->
+<div id="fde_dc_adv" class="page">
+  <div class="page-title">FDE Prep: Advanced Data Cloud</div>
+  <div class="page-sub">Transformations, Insights, and Data Spaces</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is the difference between Calculated Insights and Streaming Insights?</span>
+      <span class="qa-q-label lbl-fde">DATA CLOUD</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <table class="comparison-table">
+        <tr><th>Feature</th><th>Calculated Insights (CI)</th><th>Streaming Insights (SI)</th></tr>
+        <tr><td>Latency</td><td>Batch (every few hours)</td><td>Real-time (seconds/minutes)</td></tr>
+        <tr><td>Language</td><td>Standard SQL</td><td>Standard SQL</td></tr>
+        <tr><td>Use Case</td><td>LTV, CSAT, Total Spend</td><td>Next Best Action, Abandoned Cart</td></tr>
+        <tr><td>Windowing</td><td>N/A</td><td>Requires Windowing (e.g. 5 min)</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FDE PREP: CHEAT SHEET -->
+<div id="fde_cheat" class="page">
+  <div class="page-title">FDE Prep: Final Cheat Sheet</div>
+  <div class="page-sub">Key terms, limits, and "must-knows" for the exam</div>
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Quick Fire: Must-Know FDE Limits & Terms</span>
+      <span class="qa-q-label lbl-fde-cheat">CHEAT SHEET</span>
+      <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+    </div>
+    <div class="qa-answer">
+      <div class="fde-hero-box">
+        <h3>Key Terms to Remember:</h3>
+        <ul>
+          <li><b>CIM:</b> Cloud Information Model (The shared language of Data Cloud).</li>
+          <li><b>DSO -> DLO -> DMO:</b> Data Source -> Data Lake -> Data Model.</li>
+          <li><b>Identity Resolution:</b> Reconciliation Rules & Match Rules.</li>
+          <li><b>Prompt Template Types:</b> Sales, Field Service, Flex.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DYNAMIC TOPIC VIEWER -->
+<div id="topic_viewer" class="page">
+  <div class="page-title" id="topicViewerTitle">Study Topic</div>
+  <div class="page-sub" id="topicViewerSub">AI-Powered deep dive into this technical subject</div>
+  
+  <div id="topicViewerContent" style="margin-top: 24px;">
+    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:40px; text-align:center;">
+      <div id="topicViewerIcon" style="width:48px; height:48px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; background:rgba(59,130,246,0.1); border-radius:12px; color:var(--blue);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div style="font-weight:600; font-size:1.1rem; color:var(--text); margin-bottom:8px;">Ready to generate Interview Questions?</div>
+      <p style="font-size:0.8rem; color:var(--muted); max-width:400px; margin:0 auto 24px;">Gemma 4 will analyze this topic and generate 5 high-impact interview questions with detailed answers tailored to your profile.</p>
+      <button id="btnGenerateTopicQA" style="padding:12px 28px; background:linear-gradient(135deg,var(--blue),var(--cyan)); border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">Generate AI Interview Q&A</button>
+    </div>
+  </div>
+  
+  <div id="topicQAContainer" style="margin-top:24px; display:none;"></div>
+</div>
+
+<!-- ULTRA-COMPACT PREMIUM FOOTER -->
+<footer style="height: 60px; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; padding-bottom: env(safe-area-inset-bottom);">
+  <div style="font-size: 0.65rem; color: var(--muted); display: flex; align-items: center; gap: 6px; opacity: 0.6;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px; opacity:0.3;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span style="letter-spacing: 0.5px; font-weight: 600;">SF Prep Agent v1400</span>
+    <span style="opacity: 0.2;">&bull;</span>
+    <span style="letter-spacing: 0.5px;">Industrial Stability Sync</span>
+  </div>
+</footer>
+
+<!-- GòÉGòÉGòÉ ADD JOB MODAL GòÉGòÉGòÉ -->
+<div id="addJobModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:600px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+      <div style="font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--amber);">G¡É</span> Add Custom Job
+      </div>
+      <button onclick="closeModal('addJobModal')" style="background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding:1.5rem; max-height:70vh; overflow-y:auto;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Company Name *</label>
+          <input id="aj-company" type="text" placeholder="e.g. Google" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Role Title *</label>
+          <input id="aj-role" type="text" placeholder="e.g. SF Developer" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Location</label>
+          <input id="aj-loc" type="text" placeholder="Pune / Remote" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Salary Range</label>
+          <input id="aj-sal" type="text" placeholder="Gé¦15-25 LPA" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+        </div>
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Job URL</label>
+        <input id="aj-url" type="url" placeholder="https://linkedin.com/jobs/..." style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+      </div>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:15px;">
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Probability</label>
+          <select id="aj-prob" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+            <option value="high">=ƒƒó High</option>
+            <option value="medium" selected>=ƒƒí Medium</option>
+            <option value="stretch">=ƒƒú Stretch</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Fit Score (0-100)</label>
+          <input id="aj-score" type="number" value="75" min="0" max="100" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+        </div>
+      </div>
+      <div>
+        <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Internal Notes</label>
+        <textarea id="aj-notes" placeholder="Referral? Tech stack details?" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit; min-height:80px; resize:none;"></textarea>
+      </div>
+    </div>
+    <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); display:flex; gap:12px; justify-content:flex-end;">
+      <button onclick="closeModal('addJobModal')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button onclick="submitCustomJob()" style="background:var(--blue); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer; box-shadow:0 4px 15px rgba(79,142,247,0.3);">Add to Pipeline</button>
+    </div>
+  </div>
+</div>
+
+<!-- GòÉGòÉGòÉ AI EMAIL MODAL GòÉGòÉGòÉ -->
+<div id="emailModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:650px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+      <div style="font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--blue);">G£ën+Å</span> AI Email Generator
+      </div>
+      <button onclick="closeModal('emailModal')" style="background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding:1.5rem;">
+      <div style="display:flex; gap:10px; margin-bottom:1.5rem;">
+        <button class="email-tab active" onclick="selectEmailType('followup', this)">=ƒôº Follow-up</button>
+        <button class="email-tab" onclick="selectEmailType('thankyou', this)">=ƒÖÅ Thank You</button>
+        <button class="email-tab" onclick="selectEmailType('withdraw', this)">Gå¬ Withdraw</button>
+      </div>
+      <div id="emailPreviewArea" style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:1.5rem; min-height:200px; max-height:400px; overflow-y:auto; position:relative;">
+        <div id="emailSubject" style="font-weight:700; color:var(--text); margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid var(--border); display:none;"></div>
+        <div id="emailBody" style="font-size:0.85rem; color:rgba(255,255,255,0.9); line-height:1.6; white-space:pre-wrap;">Select a type and click generate...</div>
+        <div id="emailLoading" style="position:absolute; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; flex-direction:column; gap:15px;">
+           <div class="spin" style="width:30px; height:30px; border:3px solid var(--blue); border-top-color:transparent; border-radius:50%;"></div>
+           <span style="font-size:0.8rem; color:var(--blue); font-weight:700;">Gemma 4 is composing...</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); display:flex; gap:12px; justify-content:flex-end;">
+      <button onclick="copyGeneratedEmail()" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Text
+      </button>
+      <button id="genEmailBtn" onclick="triggerEmailGeneration()" style="background:linear-gradient(135deg, var(--blue), #60a5fa); color:white; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Generate Now
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- GòÉGòÉGòÉ PREP PANEL GòÉGòÉGòÉ -->
+<div id="prepPanel" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:700px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+    <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
+      <div style="font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:8px;">
+        <span style="color:var(--green);">=ƒôÜ</span> Interview Preparation
+      </div>
+      <button onclick="closeModal('prepPanel')" style="background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    <div id="prepContent" style="padding:1.5rem; max-height:70vh; overflow-y:auto;"></div>
+    <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); display:flex; gap:12px; justify-content:flex-end;">
+      <button onclick="closeModal('prepPanel')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer;">Close</button>
+      <button onclick="generateMoreQuestions()" style="background:var(--green); color:black; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer;">=ƒñû AI Expand (10 Qs)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Outreach Tracker Modal (Phase 3F) -->
+<div class="modal-overlay" id="outreachModal" style="display:none;">
+  <div class="modal-box" style="width: 400px;">
+    <div class="modal-header">
+      <span>=ƒöù Outreach Record</span>
+      <button onclick="closeModal('outreachModal')">&times;</button>
+    </div>
+    <div style="padding:1.5rem;">
+      <div style="margin-bottom: 15px;">
+        <label style="font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 5px;">Recruiter Name</label>
+        <input type="text" id="out-name" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px;">
+      </div>
+      <div style="margin-bottom: 15px;">
+        <label style="font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 5px;">Status</label>
+        <select id="out-status" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px;">
+          <option value="sent">Message Sent</option>
+          <option value="connected">Connected</option>
+          <option value="responded">Responded</option>
+          <option value="ghosted">Ghosted</option>
+        </select>
+      </div>
+      <button onclick="saveOutreach()" style="width: 100%; background: var(--blue); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700;">Save Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Interview Coach Modal (Phase 3D) -->
+<div class="modal-overlay" id="coachModal" style="display:none;">
+  <div class="modal-box" style="width: 550px; height: 80vh; display: flex; flex-direction: column;">
+    <div class="modal-header">
+      <span>=ƒñû AI Interview Coach</span>
+      <button onclick="closeModal('coachModal')">&times;</button>
+    </div>
+    <div id="coachChat" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.15);">
+      <div style="background: var(--blue); color: white; padding: 12px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 0.85rem;">
+        Hello Sunil! I'm your AI Interview Coach. Let's practice! What role or company should we focus on?
+      </div>
+    </div>
+    <div style="padding: 1.2rem; border-top: 1px solid var(--border); display: flex; gap: 10px;">
+      <input type="text" id="coachInput" placeholder="Type answer..." style="flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px;">
+      <button onclick="sendToCoach()" style="background: var(--blue); color: white; border: none; padding: 0 20px; border-radius: 8px; font-weight: 700;">Send</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(100px); background:var(--card); border:1px solid var(--border); color:var(--text); padding:12px 24px; border-radius:12px; z-index:20000; transition:transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.5);"></div>
+
+</div><!-- end #main -->
 
 <script src="app.v1403.js"></script>
 </body>
