@@ -3207,3 +3207,19 @@ pre.code .num {
   .radar-tabs { overflow-x: auto !important; padding-bottom: 5px !important; }
   .radar-tab-btn { white-space: nowrap !important; padding: 10px !important; font-size: 0.8rem !important; }
 }
+
+/* --- FULL CARD VISIBILITY RESTORATION (v1403) --- */
+.jcard { background: rgba(30, 41, 59, 0.7) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 16px !important; padding: 20px !important; margin-bottom: 15px !important; display: flex !important; flex-direction: column !important; gap: 15px !important; min-height: auto !important; height: auto !important; overflow: visible !important; }
+.jcard-top { display: flex !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; }
+.co-info { display: flex !important; align-items: center !important; gap: 12px !important; }
+.co-logo { width: 40px !important; height: 40px !important; background: var(--blue) !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-weight: 800 !important; color: white !important; font-size: 1.2rem !important; flex-shrink: 0 !important; }
+.co-name { font-weight: 700 !important; font-size: 0.95rem !important; color: var(--text) !important; }
+.co-type { font-size: 0.7rem !important; color: var(--muted) !important; }
+.job-role { font-family: " Syne\, sans-serif !important; font-weight: 800 !important; font-size: 1.1rem !important; color: var(--text) !important; margin: 5px 0 !important; line-height: 1.3 !important; }
+.jcard-meta { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; }
+.meta-pill { background: rgba(255,255,255,0.05) !important; padding: 4px 10px !important; border-radius: 8px !important; font-size: 0.7rem !important; color: var(--muted) !important; border: 1px solid rgba(255,255,255,0.05) !important; }
+.jcard-why { background: rgba(79, 142, 247, 0.05) !important; border-left: 3px solid var(--blue) !important; padding: 10px !important; border-radius: 0 8px 8px 0 !important; font-size: 0.75rem !important; color: rgba(255,255,255,0.8) !important; line-height: 1.5 !important; }
+.jcard-actions { display: flex !important; gap: 10px !important; margin-top: 5px !important; }
+.jbtn { flex: 1 !important; padding: 8px !important; border-radius: 8px !important; font-size: 0.75rem !important; font-weight: 700 !important; cursor: pointer !important; text-align: center !important; text-decoration: none !important; transition: 0.2s !important; }
+.jbtn-apply { background: var(--blue) !important; color: white !important; border: none !important; }
+.jbtn-link { background: rgba(255,255,255,0.03) !important; border: 1px solid var(--border) !important; color: var(--text) !important; }
