@@ -2351,7 +2351,9 @@ async function showPage(id) {
 
   document.querySelectorAll('.nav-item').forEach(function(n) {
     var oc = n.getAttribute('onclick');
-    if (oc && (oc.indexOf("'"+id+"'") !== -1 || oc.indexOf("\""+id+"\"") !== -1)) n.classList.add('active');
+    if (oc && (oc.indexOf("'"+id+"'") !== -1 || oc.indexOf("\""+id+"\"") !== -1)) {
+      n.classList.add('active');
+    }
   });
 
   const searchPage = document.getElementById('searchPage');
@@ -2370,6 +2372,8 @@ async function showPage(id) {
   if (id === 'job_radar') { 
     console.log('[DEBUG] Initializing Job Radar...');
     try {
+      if (!currentRadarSubTab) currentRadarSubTab = 'pipeline';
+      switchRadarSubTab(currentRadarSubTab);
       renderBoard(); 
       updateAnalytics(); 
       fetchJobsList(); 
