@@ -2394,7 +2394,9 @@ async function showPage(id) {
       updateAnalytics(); 
       fetchJobsList(); 
       fetchJobAnalytics(); 
-      console.log('    [INIT] Job Radar Dashboard fully initialized.');
+      console.log('    [INIT] Job Radar Dashboard fully initialized. Content length:', document.getElementById('job_radar').innerHTML.length);
+      console.log('    [INIT] Pipeline View visible:', document.getElementById('radar-pipeline-view').style.display !== 'none');
+      console.log('    [INIT] Discovery View element:', document.querySelector('#job_radar > div:nth-child(2)').getBoundingClientRect());
     } catch(err) {
       console.error('    [INIT] ERROR in Job Radar Dashboard:', err);
     }
