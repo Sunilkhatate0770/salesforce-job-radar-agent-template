@@ -1,7 +1,7 @@
 // Version: 2026-04-24-T1030 (Industrial Enrichment v1411)
 // =============================================
 const DASHBOARD_VERSION = "2026-04-24-T1630 (app.v1411.js - Production Dashboard Logic)";
-console.log('%c 🚀 Dashboard Version: 2026-04-24-T1630 (EXTREME LOGGING v1411)', 'color: #3b82f6; font-weight: bold; font-size: 1.2rem;');
+console.log('%c ðŸš€ Dashboard Version: 2026-04-24-T1630 (EXTREME LOGGING v1411)', 'color: #3b82f6; font-weight: bold; font-size: 1.2rem;');
 if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => { for (let reg of regs) reg.unregister(); }); }
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
@@ -30,12 +30,12 @@ let currentRadarSubTab = 'pipeline';
 const PREP_REGISTRY = {
   "Cognizant": {
     focus: "Apex best practices, LWC event system, Governor Limits, DevOps",
-    questions: ["Explain your trigger handler pattern and why you chose it", "How do you handle bulk operations in Apex?", "Difference between before vs after triggers — when to use each?", "How does LWC parent-child communication work (events vs LMS)?", "What Governor Limits do you hit most and how do you avoid them?"],
+    questions: ["Explain your trigger handler pattern and why you chose it", "How do you handle bulk operations in Apex?", "Difference between before vs after triggers â€” when to use each?", "How does LWC parent-child communication work (events vs LMS)?", "What Governor Limits do you hit most and how do you avoid them?"],
     tips: ["Emphasize PD1+PD2 certs upfront", "Talk about code review experience", "Mention your Bitbucket/CI-CD pipeline work"]
   },
   "Deloitte India": {
     focus: "BFSI domain, FSC objects, data governance, integration patterns",
-    questions: ["Describe your financial services Salesforce implementations", "How did you handle FCRA/HMDA compliance in Salesforce?", "Explain Platform Events vs Triggers — when to pick each?"],
+    questions: ["Describe your financial services Salesforce implementations", "How did you handle FCRA/HMDA compliance in Salesforce?", "Explain Platform Events vs Triggers â€” when to pick each?"],
     tips: ["Lead with your mortgage domain expertise", "Prepare a 5-min story of your Experian credit bureau integration"]
   },
   "Salesforce Inc.": {
@@ -55,11 +55,11 @@ var TOPIC_DATA = {
     title: 'Deloitte Salesforce Interview (2026)',
     subtitle: 'Advanced architectural screening and scenario drills for Senior Roles.',
     blocks: [
-      { type: 'section', title: '🏗️ Enterprise Architecture' },
+      { type: 'section', title: 'ðŸ—ï¸ Enterprise Architecture' },
       { type: 'qa', question: 'How do you handle Large Data Volumes (LDV) in a Deloitte global org?', answer: '<p class="ans-p">Handling LDV requires a multi-layered approach to prevent locking and governor limit exhaustion:</p><ul class="ans-list"><li><b>Skinny Tables:</b> Request Salesforce Support to enable skinny tables to include frequently used fields and avoid joins.</li><li><b>Custom Indexes:</b> Use the Index checkbox on custom fields to optimize SOQL WHERE clauses.</li><li><b>Division:</b> Use divisions to segment data and improve performance in massive orgs.</li><li><b>Async Processing:</b> Use <code>Queueable</code> with <code>Database.AllowsCallouts</code> to offload processing and maintain UI responsiveness.</li></ul>' },
       { type: 'qa', question: 'Explain the importance of "Quality Engineering" at Deloitte.', answer: '<p class="ans-p">Quality Engineering (QE) is the evolution of QA, embedding testing into the entire lifecycle:</p><ul class="ans-list"><li><b>Shift Left:</b> Unit testing (Apex & Jest) is performed immediately during development.</li><li><b>Static Analysis:</b> Continuous use of PMD, Checkmarx, and Salesforce Code Analyzer (SFCA).</li><li><b>Automated Regression:</b> Using Copado or Jenkins pipelines to run all tests before merging into the Integration branch.</li></ul>' },
       { type: 'qa', question: 'Scenario: How to handle 100k+ record updates daily without hitting limits?', answer: '<p class="ans-p">Use <b>Batch Apex</b> with a targeted scope size (typically 200). If the logic is relatively simple, <b>Platform Events</b> can be used to decouple the update from the source transaction, allowing for much higher throughput and parallel processing.</p>' },
-      { type: 'section', title: '🕒 April 2026 Interview Updates' },
+      { type: 'section', title: 'ðŸ•’ April 2026 Interview Updates' },
       { type: 'qa', question: 'Scenario: Write a trigger to store Contact count on Account without using Roll-up Summary.', answer: '<p class="ans-p">Since Account and Contact are standard objects in a lookup relationship (not Master-Detail), we must use Apex:</p><ol class="ans-list"><li><b>Collect Account IDs:</b> In <code>after insert</code>, <code>after update</code>, and <code>after delete</code>, collect all <code>AccountId</code> values into a <code>Set&lt;Id&gt;</code>.</li><li><b>Aggregate Query:</b> Run an <code>AggregateResult</code> query: <code>[SELECT AccountId, COUNT(Id) cnt FROM Contact WHERE AccountId IN :accIds GROUP BY AccountId]</code>.</li><li><b>Update Accounts:</b> Loop through the results, create new Account instances with the count, and perform a single <code>update</code> DML on the list.</li><li><b>Recursion:</b> Ensure you use a static boolean flag to prevent the update from re-triggering logic if other triggers exist.</li></ol>' },
       { type: 'qa', question: 'Compare Custom Settings vs. Custom Metadata for Deloitte projects.', answer: '<p class="ans-p"><b>Custom Metadata (Preferred):</b> Deployable via change sets/packages, queryable without DML limits, supports relationship fields, and perfect for app configurations/mappings. <b>Custom Settings:</b> Better for "Hierarchy" settings (user-specific values) or frequently updated "List" settings if the volume is low, but metadata is the modern standard for enterprise config.</p>' },
       { type: 'qa', question: 'Explain the 3 Layers of the Salesforce Security Model.', answer: '<p class="ans-p">Deloitte interviewers look for this hierarchy:</p><ol class="ans-list"><li><b>Object Level (CRUD):</b> Profiles and Permission Sets control what objects a user can see/edit.</li><li><b>Field Level (FLS):</b> Controls visibility/editability of specific fields within those objects.</li><li><b>Record Level (Sharing):</b> Controlled by OWD (baseline), Role Hierarchy (vertical), Sharing Rules (horizontal), and Apex Sharing (complex).</li></ol>' },
@@ -70,47 +70,47 @@ var TOPIC_DATA = {
     title: 'Accenture Salesforce Prep',
     subtitle: 'Focus on Global Delivery Model and Scalable Frameworks.',
     blocks: [
-      { type: 'section', title: '🛠️ Scalable Development' },
+      { type: 'section', title: 'ðŸ› ï¸ Scalable Development' },
       { type: 'qa', question: 'Why is a Trigger Framework mandatory in Accenture projects?', answer: '<p class="ans-p">Accenture utilizes frameworks like <b>fflib</b> or custom <b>Trigger Handlers</b> to ensure:</p><ul class="ans-list"><li><b>One Trigger Per Object:</b> Prevents unpredictable order of execution issues.</li><li><b>Recursion Control:</b> Uses static sets or boolean flags to prevent infinite loops.</li><li><b>Separation of Concerns:</b> Trigger only handles routing; business logic lives in Service or Domain classes.</li></ul>' },
       { type: 'qa', question: 'How to manage multi-org deployments using Unlocked Packages?', answer: '<p class="ans-p">Unlocked packages allow for modular development. We define dependencies in <code>sfdx-project.json</code> and use the <code>sf package version create</code> command. This ensures that changes in "Core Security" don\'t break "Regional Sales" modules unless explicitly updated.</p>' },
-      { type: 'section', title: '🕒 April 2026 Interview Updates' },
+      { type: 'section', title: 'ðŸ•’ April 2026 Interview Updates' },
       { type: 'qa', question: 'LWC Lifecycle: How to capture child component data in the parent?', answer: '<p class="ans-p">Use <b>Custom Events</b>. The child dispatches an event using <code>this.dispatchEvent(new CustomEvent(\'myevent\', { detail: data }))</code>. The parent listens for it in the HTML using <code>onmyevent={handleEvent}</code>. For deep nesting, use <code>bubbles: true</code> and <code>composed: true</code>.</p>' },
       { type: 'qa', question: 'Scenario: Implement a progress bar for a 5-minute external API call.', answer: '<p class="ans-p">Since an HTTP callout cannot stay open for 5 minutes (timeout is 120s), we use a <b>Polling or Callback pattern</b>:</p><ol class="ans-list"><li><b>Initiate:</b> Apex calls the API, gets a "Job ID", and returns it to LWC.</li><li><b>Poll:</b> LWC uses <code>setInterval</code> to call another Apex method every 5-10 seconds to check the status of that Job ID.</li><li><b>Progress:</b> As the status updates (e.g., 20%, 50%), the LWC updates a <code>lightning-progress-bar</code>.</li><li><b>Complete:</b> Once status is "Success", clear the interval and show a toast message.</li></ol>' }
     ]
   },
   'fde_ag_concept': {
-    title: 'FDE Prep — Agentforce Core',
+    title: 'FDE Prep â€” Agentforce Core',
     subtitle: 'Architectural concepts for AI Specialists.',
     blocks: [
-      { type: 'section', title: '🤖 Agentforce Architecture' },
+      { type: 'section', title: 'ðŸ¤– Agentforce Architecture' },
       { type: 'qa', question: 'What are the 5 core components of Agentforce?', answer: '<p class="ans-p"><b>1. Agent:</b> The AI persona/role. <b>2. Topics:</b> Task categories. <b>3. Actions:</b> Executable logic (Flow, Apex, etc.). <b>4. Atlas:</b> The reasoning engine. <b>5. Trust Layer:</b> Security and PII masking.</p>' },
       { type: 'qa', question: 'What is the ReAct pattern in Atlas?', answer: '<p class="ans-p"><b>Reason + Act.</b> The engine reasons about the user intent, decides on an action, executes it, observes the result, and loops until the final response is generated.</p>' },
       { type: 'qa', question: 'Dynamic Grounding vs. Hallucination.', answer: '<p class="ans-p">Grounding is the process of injecting real Salesforce record data into the prompt at runtime (RAG). This ensures the LLM answers based on facts, preventing it from making up information (hallucination).</p>' }
     ]
   },
   'fde_ag_scenario': {
-    title: 'FDE Prep — Agentforce Scenarios',
+    title: 'FDE Prep â€” Agentforce Scenarios',
     subtitle: 'Practical design and debugging challenges.',
     blocks: [
-      { type: 'section', title: '🛠️ Design & Debugging' },
+      { type: 'section', title: 'ðŸ› ï¸ Design & Debugging' },
       { type: 'qa', question: 'Scenario: Agent gives wrong product eligibility answers. Debug steps?', answer: '<p class="ans-p">1. Check <b>Conversation Simulator</b> logs. 2. Verify <b>Grounding Data</b> was correctly retrieved. 3. Review <b>Prompt Template</b> instructions for ambiguity. 4. Add <b>negative instructions</b> to the topic guardrails.</p>' },
       { type: 'qa', question: 'How to make Agentforce compliant in Mortgage?', answer: '<p class="ans-p">Enable <b>PII Masking</b> in the Trust Layer. Add <b>hard escalation rules</b> for TRID-sensitive keywords (e.g., "rate quote"). Use <b>System Prompts</b> to forbid legal advice.</p>' }
     ]
   },
   'fde_dc_concept': {
-    title: 'FDE Prep — Data Cloud Core',
+    title: 'FDE Prep â€” Data Cloud Core',
     subtitle: 'Unified profile and data orchestration.',
     blocks: [
-      { type: 'section', title: '📊 Data Cloud Lifecycle' },
-      { type: 'qa', question: 'Explain the Data Cloud lifecycle.', answer: '<p class="ans-p"><b>Ingest</b> (DLO) → <b>Map</b> (DMO) → <b>Resolve</b> (Unified Individual) → <b>Insights</b> (Metrics) → <b>Segment</b> (Audience) → <b>Activate</b> (Destination).</p>' },
+      { type: 'section', title: 'ðŸ“Š Data Cloud Lifecycle' },
+      { type: 'qa', question: 'Explain the Data Cloud lifecycle.', answer: '<p class="ans-p"><b>Ingest</b> (DLO) â†’ <b>Map</b> (DMO) â†’ <b>Resolve</b> (Unified Individual) â†’ <b>Insights</b> (Metrics) â†’ <b>Segment</b> (Audience) â†’ <b>Activate</b> (Destination).</p>' },
       { type: 'qa', question: 'What is a Unified Individual?', answer: '<p class="ans-p">A master 360-degree profile created by <b>Identity Resolution</b> match rules. It links records from multiple systems (CRM, Web, Legacy) without destroying source data.</p>' }
     ]
   },
   'fde_dc_adv': {
-    title: 'FDE Prep — Data Cloud Advanced',
+    title: 'FDE Prep â€” Data Cloud Advanced',
     subtitle: 'Large scale orchestration and AI grounding.',
     blocks: [
-      { type: 'section', title: '🚀 Performance & AI' },
+      { type: 'section', title: 'ðŸš€ Performance & AI' },
       { type: 'qa', question: 'What are Data Graphs and why use them for Agentforce?', answer: '<p class="ans-p">Data Graphs are <b>pre-joined, materialized views</b> of related records. They provide sub-second data retrieval for agent grounding, ensuring the AI has the full context without multiple slow SOQL queries.</p>' },
       { type: 'qa', question: 'Explain Zero Copy Partner Network.', answer: '<p class="ans-p">Allows Data Cloud to query data in-place from external warehouses like <b>Snowflake</b> or <b>BigQuery</b> without physically copying the data, reducing cost and latency.</p>' }
     ]
@@ -119,10 +119,10 @@ var TOPIC_DATA = {
     title: 'FDE Cheat Sheet',
     subtitle: 'Rapid-fire definitions and power phrases.',
     blocks: [
-      { type: 'section', title: '⚡ Rapid-Fire Definitions' },
+      { type: 'section', title: 'âš¡ Rapid-Fire Definitions' },
       { type: 'qa', question: 'Atlas vs. Trust Layer', answer: '<p class="ans-p"><b>Atlas:</b> The brain (thinking/planning). <b>Trust Layer:</b> The shield (PII masking/security).</p>' },
       { type: 'qa', question: 'DLO vs. DMO', answer: '<p class="ans-p"><b>DLO (Data Lake Object):</b> Raw incoming data. <b>DMO (Data Model Object):</b> Clean, mapped data in the standard model.</p>' },
-      { type: 'section', title: '🎯 Power Phrases' },
+      { type: 'section', title: 'ðŸŽ¯ Power Phrases' },
       { type: 'qa', question: 'How to sound like a Senior FDE?', answer: '<p class="ans-p">"Grounding is the foundation of accuracy; without it, you just have a generic chatbot."<br>"I separate read-only topics from write topics to manage risk profiles."<br>"Topic descriptions matter more than prompt engineering because Atlas routes before the LLM fires."</p>' }
     ]
   },
@@ -131,7 +131,7 @@ var TOPIC_DATA = {
     title: 'Salesforce 5 Layers of Security',
     subtitle: 'Complete breakdown of the Salesforce Security Model.',
     blocks: [
-      { type: 'section', title: '🛡️ The Security Gates' },
+      { type: 'section', title: 'ðŸ›¡ï¸ The Security Gates' },
       { type: 'qa', question: 'Layer 1: Organization Level Security?', answer: '<p class="ans-p">The first line of defense. Controls WHO can login and WHEN:</p><ul class="ans-list"><li><b>Login IP Ranges:</b> Restricts access to specific network addresses (Trusted IPs).</li><li><b>Login Hours:</b> Restricts access based on time of day (e.g., 9-5 only).</li><li><b>Password Policies:</b> Complexity, history, and lockout periods.</li></ul>' },
       { type: 'qa', question: 'Layer 2: Object Level Security (CRUD)?', answer: '<p class="ans-p">Controls WHAT objects a user can see and modify. Managed via <b>Profiles</b> (baseline) and <b>Permission Sets</b> (additive). Permissions include Create, Read, Edit, Delete, View All, and Modify All.</p>' },
       { type: 'qa', question: 'Layer 3: Field Level Security (FLS)?', answer: '<p class="ans-p">Controls which fields are visible/editable even if the user has object access. This is the <b>strongest</b> way to protect PII data. If a field is hidden via FLS, it cannot be seen in reports, search, or via API.</p>' },
@@ -143,7 +143,7 @@ var TOPIC_DATA = {
     title: 'Order of Execution (Master Class)',
     subtitle: 'The sub-second sequence of events when saving a record.',
     blocks: [
-      { type: 'section', title: '⏱️ The 20-Step Sequence' },
+      { type: 'section', title: 'â±ï¸ The 20-Step Sequence' },
       { type: 'qa', question: 'Explain the 20 steps of Salesforce Order of Execution in order.', answer: '<p class="ans-p">When a record is saved, Salesforce follows this strict sequence:</p><ol class="ans-list"><li><b>Initialize:</b> Loads original record from DB (if update).</li><li><b>Overwrite:</b> Overwrites old values with new values from request.</li><li><b>System Validation:</b> Checks required fields, data types, and field lengths.</li><li><b>Before-Save Flow:</b> Executes Record-Triggered Flows configured to run "Before the record is saved".</li><li><b>Before Triggers:</b> Executes all <code>before insert</code> or <code>before update</code> triggers.</li><li><b>Custom Validation:</b> Executes custom Validation Rules.</li><li><b>Duplicate Rules:</b> Checks for duplicate records.</li><li><b>Save:</b> Saves the record to the database (but does not commit).</li><li><b>After Triggers:</b> Executes all <code>after insert</code> or <code>after update</code> triggers.</li><li><b>Assignment Rules:</b> Executes Case or Lead assignment rules.</li><li><b>Auto-Response:</b> Executes auto-response rules.</li><li><b>Workflow:</b> Executes Workflow rules (Field updates, Tasks, Emails).</li><li><b>Workflow Re-execution:</b> If workflow updated a field, Before/After triggers fire ONE MORE TIME (but only once).</li><li><b>Escalation Rules:</b> Executes Case escalation rules.</li><li><b>After-Save Flow:</b> Executes Record-Triggered Flows (After-Save) and Process Builders.</li><li><b>Entitlements:</b> Executes entitlement processes.</li><li><b>Roll-up Summary:</b> Calculates roll-up summary fields and updates parent records.</li><li><b>Sharing:</b> Evaluates Criteria-Based Sharing.</li><li><b>Commit:</b> Commits all DML operations to the database.</li><li><b>Post-Commit:</b> Executes logic after commit (Email Alerts, Outbound Messages).</li></ol>' },
       { type: 'qa', question: 'What is the "Recursive Trigger" trap in the Order of Execution?', answer: '<p class="ans-p">If a workflow rule (Step 12) performs a field update, it causes the <b>Before and After triggers</b> to fire again. If your trigger logic performs another update without a static boolean flag to check "isExecuting", you can enter an infinite loop, eventually hitting the limit of 16 recursions or governor limits.</p>' },
       { type: 'qa', question: 'Why use Before-Save Flow (Step 4) instead of Before Trigger (Step 5)?', answer: '<p class="ans-p">Before-Save Flows are up to <b>10x faster</b> than Process Builder or Workflow and don\'t require extra DML. They should be used for simple same-record field updates. Before Triggers should be reserved for complex logic that requires Apex (e.g., calling a Service class or complex collections logic).</p>' }
@@ -153,7 +153,7 @@ var TOPIC_DATA = {
     title: 'Salesforce Flow Master Class',
     subtitle: 'Advanced design patterns and error handling.',
     blocks: [
-      { type: 'section', title: '🌊 Automation Strategy' },
+      { type: 'section', title: 'ðŸŒŠ Automation Strategy' },
       { type: 'qa', question: 'How to handle "Mixed DML" errors in Flow?', answer: '<p class="ans-p">Mixed DML occurs when updating Setup (User) and Non-Setup (Account) objects in one transaction. Fix: Use an <b>Action element</b> with "Pause" or call an <b>Async Apex</b> action to separate the transactions.</p>' },
       { type: 'qa', question: 'What is a "Fault Path" and why use it?', answer: '<p class="ans-p">A Fault Path allows you to handle unexpected errors gracefully. Instead of the user seeing "An unhandled fault has occurred", you can log the error to a custom object, send a Slack alert, or show a friendly screen message.</p>' }
     ]
@@ -162,7 +162,7 @@ var TOPIC_DATA = {
     title: 'Sales Cloud Architecture',
     subtitle: 'Mastering the Lead-to-Cash lifecycle and Sales productivity.',
     blocks: [
-      { type: 'section', title: '💰 Sales Pipeline & Productivity' },
+      { type: 'section', title: 'ðŸ’° Sales Pipeline & Productivity' },
       { type: 'qa', question: 'How do you handle Multi-Currency and Advanced Currency Management (ACM)?', answer: '<p class="ans-p">Enable Multi-Currency in Company Information. <b>ACM</b> allows you to manage dated exchange rates within Opportunities. Note: ACM does NOT apply to custom objects or roll-up summaries; for those, you need custom Apex logic or third-party tools.</p>' },
       { type: 'qa', question: 'Explain the Opportunity Split feature.', answer: '<p class="ans-p">Opportunity Splits allow multiple team members to share credit for an Opportunity. <b>Revenue Splits</b> must total 100%, while <b>Overlay Splits</b> can total any percentage. Both rely on Opportunity Teams being enabled.</p>' },
       { type: 'qa', question: 'What is Collaborative Forecasting?', answer: '<p class="ans-p">A tool to predict sales based on the Opportunity pipeline. It supports various forecast types (Revenue, Quantity, Product Families) and allows for adjustments by managers to provide a "best-case" estimate.</p>' },
@@ -173,7 +173,7 @@ var TOPIC_DATA = {
     title: 'Service Cloud Architecture',
     subtitle: 'High-performance support, Omni-channel, and KCS.',
     blocks: [
-      { type: 'section', title: '🛠️ Service Excellence & Knowledge' },
+      { type: 'section', title: 'ðŸ› ï¸ Service Excellence & Knowledge' },
       { type: 'qa', question: 'What is Knowledge Centered Service (KCS) in Salesforce?', answer: '<p class="ans-p">KCS involves capturing knowledge during the support process. Agents can search the <b>Knowledge Base</b>, attach articles to cases, and "Promote to Article" from a Case comment. This requires <b>Knowledge User</b> licenses and Article Type configurations.</p>' },
       { type: 'qa', question: 'Omni-Channel: Capacity vs. Weight?', answer: '<p class="ans-p"><b>Capacity:</b> The total work an agent can handle (e.g., 100 units). <b>Weight:</b> The "cost" of a specific work item (e.g., a Chat = 20 units, a Case = 50 units). Omni-Channel routes work until the agent\'s total weight reaches their capacity.</p>' },
       { type: 'qa', question: 'How to implement "Follow-the-Sun" support?', answer: '<p class="ans-p">Use <b>Business Hours</b> and <b>Holiday</b> settings combined with <b>Case Assignment Rules</b> or Omni-Channel. Rules check the current time and route the case to the queue active in that specific time zone (e.g., APAC, EMEA, US).</p>' },
@@ -184,7 +184,7 @@ var TOPIC_DATA = {
     title: 'Experience Cloud (Communities)',
     subtitle: 'Building secure and performant portals for Partners & Customers.',
     blocks: [
-      { type: 'section', title: '🌐 Portal Architecture & Security' },
+      { type: 'section', title: 'ðŸŒ Portal Architecture & Security' },
       { type: 'qa', question: 'Difference between Customer Community vs. Partner Community licenses?', answer: '<p class="ans-p"><b>Customer Community:</b> High volume, limited access (no Leads, Opportunities, or Campaigns). <b>Partner Community:</b> Full access to Sales objects (Leads, Deals, MDF) and supports <b>Advanced Sharing</b> (Share Groups/Apex Sharing).</p>' },
       { type: 'qa', question: 'How to manage Brand Consistency across multiple Communities?', answer: '<p class="ans-p">Use the <b>Experience Builder Theme</b>. Define global colors, fonts, and CSS. For cross-community reuse, package your brand as a <b>Lightning Bolt Template</b> or use a shared <b>LWC Design System</b>.</p>' },
       { type: 'qa', question: 'What is a "Share Group" in Experience Cloud?', answer: '<p class="ans-p">Share Groups are used with <b>Customer Community Plus</b> or <b>Partner</b> licenses to share records owned by community users with internal users. Since community users don\'t exist in the standard Role Hierarchy, Share Groups bridge that gap.</p>' },
@@ -356,12 +356,12 @@ window.syncProfile = async function(platform) {
   const originalHtmlN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Sync & Analyze';
 
   if (platform === 'LinkedIn' && btnL) { 
-    btnL.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">↻</span> Analyzing Profile...'; 
+    btnL.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">â†»</span> Analyzing Profile...'; 
     btnL.style.background = 'var(--blue)';
     btnL.style.opacity = '0.9'; 
   }
   if (platform === 'Naukri' && btnN) { 
-    btnN.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">↻</span> Scanning Resume...'; 
+    btnN.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">â†»</span> Scanning Resume...'; 
     btnN.style.background = '#ff7555';
     btnN.style.opacity = '0.9'; 
   }
@@ -395,7 +395,7 @@ window.syncProfile = async function(platform) {
 
       if (statusEl) {
         statusEl.style.display = 'block';
-        statusEl.innerHTML = '✓ ' + platform + ' profile synced & saved to cloud';
+        statusEl.innerHTML = 'âœ“ ' + platform + ' profile synced & saved to cloud';
         setTimeout(function() { statusEl.style.display = 'none'; }, 8000);
       }
       await loadUserProfile();
@@ -645,7 +645,7 @@ async function generateDynamicQA(topicId) {
   const topicName = topicConfig[topicId] ? topicConfig[topicId].name : topicId;
 
   btn.disabled = true;
-  btn.textContent = '⏳ Gemma 4 is generating Q&A...';
+  btn.textContent = 'â³ Gemma 4 is generating Q&A...';
   
   try {
     const prompt = `You are a Senior Salesforce Interviewer. Generate 5 highly technical and scenario-based interview questions for the topic: "${topicName}". 
@@ -682,7 +682,7 @@ Do not include any conversational text before or after the JSON.`;
       <div class="qa-block" style="margin-bottom:15px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; overflow:hidden;">
         <div class="qa-question" onclick="toggleQA(this)" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
           <span class="qa-q-text" style="font-weight:700; font-size:0.9rem; color:var(--text);">${idx + 1}. ${item.question}</span>
-          <span class="qa-chevron">▼</span>
+          <span class="qa-chevron">â–¼</span>
         </div>
         <div class="qa-answer" style="padding:0 15px 15px; font-size:0.85rem; color:rgba(255,255,255,0.8); line-height:1.6;">
           ${item.answer.replace(/\n/g, '<br>')}
@@ -1065,7 +1065,7 @@ async function stopTracking() {
   var activeEl = document.getElementById('currentlyStudying');
   var lightEl = document.getElementById('activeLight');
   var timerEl = document.getElementById('floatingTimer');
-  if (activeEl) activeEl.textContent = '—';
+  if (activeEl) activeEl.textContent = 'â€”';
   if (lightEl) lightEl.style.display = 'none';
   if (timerEl) timerEl.style.display = 'none';
   if (floatingTimerInterval) {
@@ -1334,7 +1334,7 @@ function switchHistoryTab(mode) {
 
 async function syncDashboard() {
   try {
-    console.log('🔄 Initiating resilient dashboard sync...');
+    console.log('ðŸ”„ Initiating resilient dashboard sync...');
     // Execute individually so one crash doesn't block others
     await updateTrackerUI().catch(e => console.error('UI Tracker fail', e));
     await renderTimetable().catch(e => console.error('Timetable fail', e)); // FIXED: Added to sync
@@ -1520,7 +1520,7 @@ function renderTimelineView(container, dates, histories, todayStr, yestStr) {
             <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${isToday ? 'Today' : (isYesterday ? 'Yesterday' : date)}</div>
             <div style="font-size:1.3rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${formatTime((h.study && h.study.totalSeconds) ? h.study.totalSeconds : 0)}</div>
           </div>
-          <button onclick="showHistoryModal('${date}')" style="background:${accent}22; color:${accent}; border:1px solid ${accent}44; padding:8px 15px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:0.2s;">🔍 View Deep Info</button>
+          <button onclick="showHistoryModal('${date}')" style="background:${accent}22; color:${accent}; border:1px solid ${accent}44; padding:8px 15px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:0.2s;">ðŸ” View Deep Info</button>
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
@@ -1536,7 +1536,7 @@ function renderTimelineView(container, dates, histories, todayStr, yestStr) {
         
         <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
            <div style="display:flex; gap:10px; align-items:center;">
-             <span style="font-size:0.7rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:20px;">📡 Radar Active</span>
+             <span style="font-size:0.7rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:20px;">ðŸ“¡ Radar Active</span>
              <span style="font-size:0.75rem; color:var(--text);">${jobsCount} Jobs Found</span>
            </div>
            <div style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono';">#${date.replace(/-/g,'')}</div>
@@ -1713,7 +1713,7 @@ async function updateTrackerUI(useCache = false) {
       var pct = Math.min((s/maxSeconds)*100, 100);
       if (s===0 && maxSeconds>1) pct = 0;
       var color = colors[cfg.group] || colors['General'];
-      var active = currentTrackedPage===id ? ' <span style="color:var(--green);font-size:0.6rem;">● LIVE</span>' : '';
+      var active = currentTrackedPage===id ? ' <span style="color:var(--green);font-size:0.6rem;">â— LIVE</span>' : '';
       chartHtml += '<div class="chart-bar-container"><div class="chart-bar-label">'+cfg.name+active+'</div><div class="chart-bar-wrap"><div class="chart-bar-value" style="width:'+pct+'%;background:'+color+';"></div></div><div class="chart-bar-time">'+formatTime(s)+'</div></div>';
     });
     chartEl.innerHTML = chartHtml;
@@ -1736,11 +1736,11 @@ async function updateTrackerUI(useCache = false) {
       var last = td&&td.lastStudied ? new Date(td.lastStudied).toLocaleDateString() : 'Never';
       var isActive = currentTrackedPage===id;
       gridHtml += '<div class="tracker-card" style="--progress:'+pct+'%;'+(isActive?'border-color:var(--green);':'')+'">';
-      gridHtml += '<div class="tracker-status '+status.cls+'">'+(isActive?(isPaused?'⏸ PAUSED':'● LIVE'):status.label)+'</div>';
+      gridHtml += '<div class="tracker-status '+status.cls+'">'+(isActive?(isPaused?'â¸ PAUSED':'â— LIVE'):status.label)+'</div>';
       gridHtml += '<div class="tracker-topic">'+cfg.name+'</div>';
       gridHtml += '<div class="tracker-time">'+formatTime(s)+' <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">/ '+cfg.recommended+'m</span></div>';
       gridHtml += '<div class="tracker-bar"><div class="tracker-bar-fill" style="width:'+pct+'%;"></div></div>';
-      gridHtml += '<div class="tracker-sessions">'+(td?td.sessions:0)+' sessions · Last: '+last+'</div></div>';
+      gridHtml += '<div class="tracker-sessions">'+(td?td.sessions:0)+' sessions Â· Last: '+last+'</div></div>';
     });
     gridEl.innerHTML = gridHtml;
   }
@@ -1810,14 +1810,14 @@ function updateJobRadarSummary() {
 window.allJobRecords = [];
 
 async function fetchJobsList() {
-  console.log('📡 [RADAR] Fetching jobs from database...');
+  console.log('ðŸ“¡ [RADAR] Fetching jobs from database...');
   try {
     const response = await apiFetch('/api/jobs');
     if (!response.ok) throw new Error('Unauthorized or Server Down');
     const data = await response.json();
-    console.log('📦 [RADAR] Raw Server Response:', data);
+    console.log('ðŸ“¦ [RADAR] Raw Server Response:', data);
     window.allJobRecords = data.records || [];
-    console.log(`✅ [RADAR] Received ${window.allJobRecords.length} jobs. DB Status: ${data.dbStatus}`);
+    console.log(`âœ… [RADAR] Received ${window.allJobRecords.length} jobs. DB Status: ${data.dbStatus}`);
     
     // Phase 2: Sync with Radar Pipeline (with Duplicate Protection)
     window.allJobRecords.forEach(rec => {
@@ -1832,7 +1832,7 @@ async function fetchJobsList() {
           role: rec.role || rec.title,
           loc: rec.location || 'India',
           sal: rec.salary || 'Competitive',
-          experience: rec.experience || '3–5 Yrs',
+          experience: rec.experience || '3â€“5 Yrs',
           company_type: rec.company_type || 'MNC',
           why_apply: rec.why_apply || 'Matches your PD2 profile.',
           skills: rec.matched_skills || ['Apex', 'LWC'],
@@ -1856,16 +1856,16 @@ async function fetchJobsList() {
       dbBadge.style.color = 'var(--green)';
     }
   } catch (e) {
-    console.error('❌ [RADAR] Error fetching jobs:', e);
+    console.error('âŒ [RADAR] Error fetching jobs:', e);
     showToast('Failed to load jobs from database.');
   }
 }
 
 function clearAndSyncJobs() {
-    console.log('🧹 PERFORMING DEEP WIPE...');
+    console.log('ðŸ§¹ PERFORMING DEEP WIPE...');
     localStorage.clear(); // Wipe EVERYTHING to be safe
     pipelineJobs = [];
-    showToast('✨ System Wiped. Reloading for fresh sync...');
+    showToast('âœ¨ System Wiped. Reloading for fresh sync...');
     setTimeout(() => {
         window.location.reload(true); // Force reload from server
     }, 1500);
@@ -1944,7 +1944,7 @@ function renderJobsList(jobs) {
     <div class="job-card" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 1.2rem; border-radius: 12px; margin-bottom: 1rem;">
       <div class="job-info">
         <div class="job-title" style="font-size: 1.1rem; font-weight: 700; color: var(--text);">${job.title}</div>
-        <div class="job-company" style="font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem;">${job.company} · ${job.location}</div>
+        <div class="job-company" style="font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem;">${job.company} Â· ${job.location}</div>
         <div style="margin-top:0.8rem; display:flex; gap: 10px; align-items:center;">
           <span class="job-status-badge job-status-${job.status}">${job.status}</span>
           <span style="font-size:0.75rem; font-weight: 700; color: ${job.match_score > 70 ? 'var(--green)' : 'var(--blue)'};">Match: ${job.match_score || 0}%</span>
@@ -1953,7 +1953,7 @@ function renderJobsList(jobs) {
       
       ${job.resume_actions && job.resume_actions.length > 0 ? `
       <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05);">
-        <div style="font-size: 0.65rem; color: var(--blue); font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 1px; font-family: 'IBM Plex Mono', monospace;">🧠 GEMMA 4 AI ANALYSIS</div>
+        <div style="font-size: 0.65rem; color: var(--blue); font-weight: 700; margin-bottom: 0.5rem; letter-spacing: 1px; font-family: 'IBM Plex Mono', monospace;">ðŸ§  GEMMA 4 AI ANALYSIS</div>
         <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; color: rgba(255,255,255,0.8);">
           ${job.resume_actions.map(action => `<li style="margin-bottom: 0.3rem;">${action}</li>`).join('')}
         </ul>
@@ -1965,13 +1965,13 @@ function renderJobsList(jobs) {
         ${job.matched_skills && job.matched_skills.length > 0 ? `
           <div style="display:flex; flex-wrap:wrap; gap:5px;">
             <span style="font-size:0.65rem; color:var(--green); font-weight:700; width:100%; margin-bottom:2px;">STRENGTHS MATCHED:</span>
-            ${job.matched_skills.map(s => `<span style="font-size:0.62rem; padding:2px 8px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); border-radius:4px; color:#4ade80;">✓ ${s}</span>`).join('')}
+            ${job.matched_skills.map(s => `<span style="font-size:0.62rem; padding:2px 8px; background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); border-radius:4px; color:#4ade80;">âœ“ ${s}</span>`).join('')}
           </div>
         ` : ''}
         ${job.missing_skills && job.missing_skills.length > 0 ? `
           <div style="display:flex; flex-wrap:wrap; gap:5px;">
             <span style="font-size:0.65rem; color:var(--amber); font-weight:700; width:100%; margin-bottom:2px;">GAPS TO STUDY:</span>
-            ${job.missing_skills.map(s => `<span style="font-size:0.62rem; padding:2px 8px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2); border-radius:4px; color:#fbbf24; cursor:pointer;" onclick="showPage('profile_match')">↗ ${s}</span>`).join('')}
+            ${job.missing_skills.map(s => `<span style="font-size:0.62rem; padding:2px 8px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2); border-radius:4px; color:#fbbf24; cursor:pointer;" onclick="showPage('profile_match')">â†— ${s}</span>`).join('')}
           </div>
         ` : ''}
       </div>
@@ -1979,9 +1979,9 @@ function renderJobsList(jobs) {
 
       <div class="job-actions" style="margin-top: 1.2rem; display:flex; flex-wrap:wrap; gap: 10px;">
         <button class="btn-action" onclick="window.open('${job.apply_link || job.url}', '_blank')" style="background: var(--blue); border: none; padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-weight: 600; font-size: 0.8rem;">Apply Now</button>
-        <button class="btn-action" onclick="smartApply('${job.job_hash}')" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9); border: none; padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-weight: 700; font-size: 0.8rem; display:flex; align-items:center; gap:5px;">🚀 Smart Apply</button>
+        <button class="btn-action" onclick="smartApply('${job.job_hash}')" style="background: linear-gradient(135deg,#8b5cf6,#6d28d9); border: none; padding: 8px 16px; border-radius: 8px; color: white; cursor: pointer; font-weight: 700; font-size: 0.8rem; display:flex; align-items:center; gap:5px;">ðŸš€ Smart Apply</button>
         <button class="btn-action" onclick="updateJobStatus('${job.job_hash}', 'applied')" style="background: transparent; border: 1px solid var(--blue); padding: 8px 16px; border-radius: 8px; color: var(--blue); cursor: pointer; font-weight: 600; font-size: 0.8rem;">Mark Applied</button>
-        <button class="btn-action" onclick="generateCoverLetter('${job.job_hash}')" style="background: transparent; border: 1px solid var(--green); padding: 8px 16px; border-radius: 8px; color: var(--green); cursor: pointer; font-weight: 600; font-size: 0.8rem; display:flex; align-items:center; gap:5px;"><span id="cl_icon_${job.job_hash}">✨</span> Auto Cover Letter</button>
+        <button class="btn-action" onclick="generateCoverLetter('${job.job_hash}')" style="background: transparent; border: 1px solid var(--green); padding: 8px 16px; border-radius: 8px; color: var(--green); cursor: pointer; font-weight: 600; font-size: 0.8rem; display:flex; align-items:center; gap:5px;"><span id="cl_icon_${job.job_hash}">âœ¨</span> Auto Cover Letter</button>
       </div>
       <div id="cl_output_${job.job_hash}" style="display:none; margin-top:1rem; padding:1rem; background:rgba(0,0,0,0.2); border-left:3px solid var(--green); border-radius:8px; font-size:0.8rem; color:var(--text); white-space:pre-wrap; line-height:1.5;"></div>
     </div>
@@ -1996,17 +1996,17 @@ async function triggerJobScan() {
   if (radarIcon) radarIcon.style.display = 'inline-block';
   if (radarIcon) radarIcon.style.animation = 'spin 2s linear infinite';
   
-  showToast('📡 Scan Started: Fetching latest Salesforce roles...');
+  showToast('ðŸ“¡ Scan Started: Fetching latest Salesforce roles...');
 
   try {
     const res = await apiFetch('/api/jobs/scan', { method: 'POST' });
     const data = await res.json();
     
     if (data.success) {
-      showToast('⏳ AI Agent Analyzing matches... Please wait.');
+      showToast('â³ AI Agent Analyzing matches... Please wait.');
       setTimeout(async () => {
         await fetchJobsList(); 
-        showToast('✅ Dashboard Synced! Check the board.');
+        showToast('âœ… Dashboard Synced! Check the board.');
         if (btn) btn.disabled = false;
         if (radarIcon) radarIcon.style.animation = '';
       }, 5000); 
@@ -2015,7 +2015,7 @@ async function triggerJobScan() {
     }
   } catch (e) {
     console.error('Scan Error:', e);
-    showToast('❌ Scan Failed: Local agent might be offline.');
+    showToast('âŒ Scan Failed: Local agent might be offline.');
     if (btn) btn.disabled = false;
     if (radarIcon) radarIcon.style.animation = '';
   }
@@ -2031,7 +2031,7 @@ async function smartApply(hash) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('🚀 Automation launched! Look at your taskbar for a new Chrome window.');
+      alert('ðŸš€ Automation launched! Look at your taskbar for a new Chrome window.');
     } else {
       alert('Failed to launch automation: ' + data.error);
     }
@@ -2047,7 +2047,7 @@ async function generateCoverLetter(hash) {
   const btnIcon = document.getElementById(`cl_icon_${hash}`);
   const outputEl = document.getElementById(`cl_output_${hash}`);
   
-  if (btnIcon) btnIcon.textContent = '⏳';
+  if (btnIcon) btnIcon.textContent = 'â³';
   outputEl.style.display = 'block';
   outputEl.innerHTML = '<span style="color:var(--muted);">Gemma 4 is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
 
@@ -2070,11 +2070,11 @@ Do not include placeholders like [Your Name] or [Date], just write the core body
     const data = await res.json();
     
     outputEl.innerHTML = data.response;
-    if (btnIcon) btnIcon.textContent = '✅';
+    if (btnIcon) btnIcon.textContent = 'âœ…';
     
   } catch(e) {
-    outputEl.innerHTML = '<span style="color:var(--red);">⚠️ Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
-    if (btnIcon) btnIcon.textContent = '❌';
+    outputEl.innerHTML = '<span style="color:var(--red);">âš ï¸ Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
+    if (btnIcon) btnIcon.textContent = 'âŒ';
   }
 }
 
@@ -2097,32 +2097,32 @@ async function updateJobStatus(hash, status) {
 
 const SCHEDULE_DATA = [
   { 
-    time: '05:00', end: '05:40', title: 'Wake up naturally — no alarm panic', 
-    desc: 'You already wake between 5 and 6 AM naturally — this is a powerful advantage. Your cortisol is highest in the early morning which means peak alertness and energy. Drink one large glass of water the moment you wake. Do NOT open your phone, WhatsApp, or social media before your workout. Start the body first, screens later.', 
+    time: '05:00', end: '05:40', title: 'Wake up naturally â€” no alarm panic', 
+    desc: 'You already wake between 5 and 6 AM naturally â€” this is a powerful advantage. Your cortisol is highest in the early morning which means peak alertness and energy. Drink one large glass of water the moment you wake. Do NOT open your phone, WhatsApp, or social media before your workout. Start the body first, screens later.', 
     tag: 'Fitness' 
   },
   { 
-    time: '05:40', end: '06:10', title: 'Morning Workout — strength, bodyweight, or gym', 
-    desc: 'Whatever your current workout routine is — keep doing it exactly as you are. Exercise before study has been shown to boost memory retention, focus, and mood for 2–4 hours afterward. This is not time away from preparation — the workout IS preparation. It makes every study session more effective.', 
+    time: '05:40', end: '06:10', title: 'Morning Workout â€” strength, bodyweight, or gym', 
+    desc: 'Whatever your current workout routine is â€” keep doing it exactly as you are. Exercise before study has been shown to boost memory retention, focus, and mood for 2â€“4 hours afterward. This is not time away from preparation â€” the workout IS preparation. It makes every study session more effective.', 
     tag: 'Fitness' 
   },
   { 
-    time: '06:10', end: '08:00', title: '10,000 Steps Walk — outdoor walk', 
+    time: '06:10', end: '08:00', title: '10,000 Steps Walk â€” outdoor walk', 
     desc: 'Outdoor walk. Rehearse STAR stories or listen to podcasts. Subconscious processing happens here. Choose tech blogs or speaking practice.', 
     tag: 'Fitness' 
   },
   { 
-    time: '08:00', end: '08:30', title: 'Communication Block 1 — Read aloud + Vocab', 
+    time: '08:00', end: '08:30', title: 'Communication Block 1 â€” Read aloud + Vocab', 
     desc: 'Read one tech article aloud slowly. Trains pronunciation, fluency, and confidence. Pick 3 new words and use them in a Salesforce context.', 
     tag: 'Comm' 
   },
   { 
-    time: '08:30', end: '10:30', title: 'Core Technical Study Block 1 — Deep Focus', 
+    time: '08:30', end: '10:30', title: 'Core Technical Study Block 1 â€” Deep Focus', 
     desc: 'Post-workout, post-walk, your brain is at absolute peak performance. Focus on today topic. No phone, no music, no interruptions. Explain it aloud to yourself from memory.', 
     tag: 'Technical' 
   },
   { 
-    time: '10:30', end: '12:00', title: 'Hands-on Coding — Trailhead / Dev Org', 
+    time: '10:30', end: '12:00', title: 'Hands-on Coding â€” Trailhead / Dev Org', 
     desc: 'Build what you just studied. Write every line from scratch in your Dev Org. Do not copy-paste. Coding errors you solve now are your best teachers.', 
     tag: 'Coding' 
   },
@@ -2132,37 +2132,37 @@ const SCHEDULE_DATA = [
     tag: 'Comm' 
   },
   { 
-    time: '13:00', end: '14:30', title: 'Lunch + Power Nap — Brain Reset', 
+    time: '13:00', end: '14:30', title: 'Lunch + Power Nap â€” Brain Reset', 
     desc: 'Eat a proper lunch. Move completely away from the desk. No studying, no screens. Quality rest leads to a quality afternoon session.', 
     tag: 'Rest' 
   },
   { 
-    time: '14:30', end: '16:00', title: 'Core Technical Study Block 2 — Deep Dive', 
+    time: '14:30', end: '16:00', title: 'Core Technical Study Block 2 â€” Deep Dive', 
     desc: 'Go deeper into this morning topic or related sub-topics. Depth beats breadth. Write code for every concept. Study aggregate functions, bind variables, etc.', 
     tag: 'Technical' 
   },
   { 
-    time: '16:00', end: '16:30', title: 'Job Radar Application — Radar Dashboard', 
-    desc: 'Apply to 3-5 roles via Radar Dashboard. Send 2 personalized recruiter messages. Consistency here is everything — zero applications = zero chances.', 
+    time: '16:00', end: '16:30', title: 'Job Radar Application â€” Radar Dashboard', 
+    desc: 'Apply to 3-5 roles via Radar Dashboard. Send 2 personalized recruiter messages. Consistency here is everything â€” zero applications = zero chances.', 
     tag: 'Radar' 
   },
   { 
-    time: '16:30', end: '17:00', title: 'Chai + Micro-break — Disconnect', 
+    time: '16:30', end: '17:00', title: 'Chai + Micro-break â€” Disconnect', 
     desc: 'Step away from screen. Rest your eyes. Let your brain move short-term memory to long-term storage. No phone during this window.', 
     tag: 'Rest' 
   },
   { 
-    time: '17:00', end: '18:00', title: 'Communication Block 2 — STAR Stories', 
+    time: '17:00', end: '18:00', title: 'Communication Block 2 â€” STAR Stories', 
     desc: 'Master 2 STAR stories today. Practice out loud. Each story should be 2-2.5 minutes. Lead with the result: "I reduced pull time from 25m to 30s."', 
     tag: 'Comm' 
   },
   { 
-    time: '18:00', end: '19:00', title: 'Project/Portfolio Build — Developer Org', 
+    time: '18:00', end: '19:00', title: 'Project/Portfolio Build â€” Developer Org', 
     desc: 'Extend your mortgage platform or campaign feature. Gives you fresh real-world examples to discuss in interviews. build something new every week.', 
     tag: 'Coding' 
   },
   { 
-    time: '19:00', end: '19:30', title: 'Evening Walk — Mental Decompression', 
+    time: '19:00', end: '19:30', title: 'Evening Walk â€” Mental Decompression', 
     desc: 'Short outdoor break to separate study from evening. Important for mental health and mood regulation. Fully disconnect.', 
     tag: 'Rest' 
   },
@@ -2172,26 +2172,26 @@ const SCHEDULE_DATA = [
     tag: 'Technical' 
   },
   { 
-    time: '20:30', end: '22:00', title: 'Dinner + Family — Fully Disconnected', 
+    time: '20:30', end: '22:00', title: 'Dinner + Family â€” Fully Disconnected', 
     desc: 'Consolidate learning by resting. No phone, no LinkedIn. Protect this window to allow neurological processing of the day learning.', 
     tag: 'Rest' 
   },
   { 
-    time: '22:00', end: '22:30', title: 'Night Review — 20 Min Preview', 
+    time: '22:00', end: '22:30', title: 'Night Review â€” 20 Min Preview', 
     desc: 'Read only your notebook notes. Preview tomorrow topic title. Prime your brain for sleep. Dim lights and no screens after this.', 
     tag: 'Review' 
   }
 ];
 
 async function renderTimetable() {
-  console.log('📅 [SCHEDULE] renderTimetable() triggered');
+  console.log('ðŸ“… [SCHEDULE] renderTimetable() triggered');
   const container = document.getElementById('timetableContainer');
   if (!container) {
-    console.error('❌ [SCHEDULE] timetableContainer NOT FOUND in DOM!');
+    console.error('âŒ [SCHEDULE] timetableContainer NOT FOUND in DOM!');
     return;
   }
   
-  console.log('⏳ [SCHEDULE] Population started...');
+  console.log('â³ [SCHEDULE] Population started...');
   container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--muted);">Loading daily schedule...</div>';
 
   const now = new Date();
@@ -2210,7 +2210,7 @@ async function renderTimetable() {
 
   try {
     const data = await getStudyData();
-    console.log('📦 [SCHEDULE] Data received:', data);
+    console.log('ðŸ“¦ [SCHEDULE] Data received:', data);
     const completedTasks = data.completedTasks || [];
 
     const html = `
@@ -2243,15 +2243,15 @@ async function renderTimetable() {
       </div>
     `;
     container.innerHTML = html;
-    console.log(`✅ [SCHEDULE] Population COMPLETE. HTML Length: ${html.length}`);
+    console.log(`âœ… [SCHEDULE] Population COMPLETE. HTML Length: ${html.length}`);
   } catch (e) {
-    console.error('❌ [SCHEDULE] Failed to render:', e);
+    console.error('âŒ [SCHEDULE] Failed to render:', e);
     container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--red);">Failed to load schedule. Ensure the agent server is running.</div>';
   }
 }
 
 function switchTrackerTab(tabId) {
-  console.log(`%c 📑 [TRACKER] Switching Tab: ${tabId}`, 'color: #3b82f6; font-weight: bold;');
+  console.log(`%c ðŸ“‘ [TRACKER] Switching Tab: ${tabId}`, 'color: #3b82f6; font-weight: bold;');
   // Update Buttons
   document.querySelectorAll('.tracker-tab').forEach(btn => {
     btn.classList.remove('active');
@@ -2264,7 +2264,7 @@ function switchTrackerTab(tabId) {
   });
   const target = document.getElementById(tabId);
   if (target) {
-    console.log(`👁️ [TRACKER] Showing: #${tabId}`);
+    console.log(`ðŸ‘ï¸ [TRACKER] Showing: #${tabId}`);
     target.style.display = 'block';
   }
 
@@ -2293,9 +2293,9 @@ async function fetchLeaderboard() {
     
     container.innerHTML = data.leaderboard.map((user, index) => {
       let medal = '';
-      if (index === 0) medal = '🥇';
-      else if (index === 1) medal = '🥈';
-      else if (index === 2) medal = '🥉';
+      if (index === 0) medal = 'ðŸ¥‡';
+      else if (index === 1) medal = 'ðŸ¥ˆ';
+      else if (index === 2) medal = 'ðŸ¥‰';
       else medal = `<span style="opacity:0.5;">#${index + 1}</span>`;
       
       const pic = user.picture ? `<img src="${user.picture}" style="width:32px; height:32px; border-radius:50%; border:2px solid var(--blue);">` : `<div style="width:32px; height:32px; border-radius:50%; background:var(--blue); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold;">${user.name ? user.name.charAt(0) : '?'}</div>`;
@@ -2333,14 +2333,14 @@ async function ensurePageLoaded(pageId) {
     ];
 
     if (!modularPages.includes(pageId)) {
-        console.log(`ℹ️ [LOADER] ${pageId} is a dynamic topic. Skipping modular load.`);
+        console.log(`â„¹ï¸ [LOADER] ${pageId} is a dynamic topic. Skipping modular load.`);
         return true;
     }
 
-    console.log(`%c 🔍 [LOADER] Checking if modular page is loaded: ${pageId}`, 'color: #a855f7; font-weight: bold;');
+    console.log(`%c ðŸ” [LOADER] Checking if modular page is loaded: ${pageId}`, 'color: #a855f7; font-weight: bold;');
     const pageEl = document.getElementById(pageId);
     if (!pageEl) {
-        console.error(`%c ❌ [LOADER] CRITICAL: Element not found in DOM for modular page: #${pageId}`, 'color: #ef4444; font-weight: bold;');
+        console.error(`%c âŒ [LOADER] CRITICAL: Element not found in DOM for modular page: #${pageId}`, 'color: #ef4444; font-weight: bold;');
         return false;
     }
     
@@ -2348,27 +2348,27 @@ async function ensurePageLoaded(pageId) {
     const display = getComputedStyle(pageEl).display;
     const contentLen = pageEl.innerHTML.trim().length;
     
-    console.log(`%c 📊 [LOADER] Page ${pageId} Status -> Display: ${display}, ContentLen: ${contentLen}`, 'color: #6366f1;');
+    console.log(`%c ðŸ“Š [LOADER] Page ${pageId} Status -> Display: ${display}, ContentLen: ${contentLen}`, 'color: #6366f1;');
     
     if (contentLen > 100) {
-        console.log(`%c ✅ [LOADER] Page ${pageId} already has content. Skipping fetch.`, 'color: #10b981;');
+        console.log(`%c âœ… [LOADER] Page ${pageId} already has content. Skipping fetch.`, 'color: #10b981;');
         return true;
     }
 
-    console.log(`📡 [LOADER] Fetching modular page: /pages/${pageId}.html ...`);
+    console.log(`ðŸ“¡ [LOADER] Fetching modular page: /pages/${pageId}.html ...`);
     try {
         const response = await fetch(`/pages/${pageId}.html?v=${Date.now()}`);
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const html = await response.text();
         pageEl.innerHTML = html;
-        console.log(`%c ✅ [LOADER] Page ${pageId} injected successfully.`, 'color: #10b981; font-weight: bold;');
+        console.log(`%c âœ… [LOADER] Page ${pageId} injected successfully.`, 'color: #10b981; font-weight: bold;');
         
         // Refresh specific UI components if needed
         if (pageId === 'job_radar') fetchJobsList();
         
         return true;
     } catch (err) {
-        console.error(`%c ❌ [LOADER] Failed to load page ${pageId}: ${err.message}`, 'color: #ef4444; font-weight: bold;');
+        console.error(`%c âŒ [LOADER] Failed to load page ${pageId}: ${err.message}`, 'color: #ef4444; font-weight: bold;');
         pageEl.innerHTML = `<div style="padding:2rem; color:var(--red); text-align:center;">
           <h3>Modular Load Failed</h3>
           <p>The page "${pageId}" could not be retrieved from the server. [Error: ${err.message}]</p>
@@ -2381,7 +2381,7 @@ async function ensurePageLoaded(pageId) {
 
 // Update showPage to include extreme telemetry
 async function showPage(id) {
-  console.log(`%c 📑 [TAB SWITCH] -> ${id}`, 'background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;');
+  console.log(`%c ðŸ“‘ [TAB SWITCH] -> ${id}`, 'background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;');
   
   // Ensure the page content is loaded before showing
   await ensurePageLoaded(id);
@@ -2389,7 +2389,7 @@ async function showPage(id) {
   localStorage.setItem('last_active_tab', id);
   await stopTracking();
   
-  console.log(`🧹 [NAV] Hiding all .page elements...`);
+  console.log(`ðŸ§¹ [NAV] Hiding all .page elements...`);
   document.querySelectorAll('.page').forEach(function(p) { 
     p.classList.remove('active'); 
     p.style.setProperty('display', 'none', 'important'); 
@@ -2400,26 +2400,26 @@ async function showPage(id) {
   let page = document.getElementById(id);
   
   if (!page && !topicConfig[id]) {
-    console.error(`❌ [NAV] FATAL: Target element #${id} not found.`);
+    console.error(`âŒ [NAV] FATAL: Target element #${id} not found.`);
     return;
   }
 
   const isIndustrial = renderTopicContent(id);
   if (isIndustrial) {
-      console.log(`🏭 [NAV] Detected Industrial Content for: ${id}`);
+      console.log(`ðŸ­ [NAV] Detected Industrial Content for: ${id}`);
       page = document.getElementById('topic_viewer');
   } else if (!page && topicConfig[id]) {
-      console.log(`📚 [NAV] Routing to topic_viewer for: ${id}`);
+      console.log(`ðŸ“š [NAV] Routing to topic_viewer for: ${id}`);
       page = document.getElementById('topic_viewer');
   }
 
   if (page) { 
-    console.log(`✨ [NAV] ENABLING PAGE: #${page.id}`);
+    console.log(`âœ¨ [NAV] ENABLING PAGE: #${page.id}`);
     page.classList.add('active');
     page.style.setProperty('display', 'block', 'important'); 
     
     const finalStyle = getComputedStyle(page);
-    console.log(`📊 [NAV] #${page.id} COMPUTED STATE:
+    console.log(`ðŸ“Š [NAV] #${page.id} COMPUTED STATE:
     - Display: ${finalStyle.display}
     - Visibility: ${finalStyle.visibility}
     - Height: ${finalStyle.height}
@@ -2427,25 +2427,25 @@ async function showPage(id) {
     
     // Init Logic
     if (id === 'schedule') {
-        console.log('📅 [NAV] Rendering Timetable...');
+        console.log('ðŸ“… [NAV] Rendering Timetable...');
         await renderTimetable(); 
     }
     if (id === 'study_history') {
-        console.log('📜 [NAV] Rendering History...');
+        console.log('ðŸ“œ [NAV] Rendering History...');
         await renderHistory();
     }
     if (id === 'study_tracker') {
-        console.log('📈 [NAV] Initiating Study Tracker...');
+        console.log('ðŸ“ˆ [NAV] Initiating Study Tracker...');
         const lastTab = localStorage.getItem('last_tracker_tab') || 'tab_suggestions';
         switchTrackerTab(lastTab);
         await updateTrackerUI(); 
     }
     if (id === 'job_radar') {
-        console.log('🛰️ [NAV] Activating Job Radar Dashboard...');
+        console.log('ðŸ›°ï¸ [NAV] Activating Job Radar Dashboard...');
         fetchJobsList(); 
     }
     if (id === 'profile_match') { 
-        console.log('👤 [NAV] Analyzing Profile Match...');
+        console.log('ðŸ‘¤ [NAV] Analyzing Profile Match...');
         if (cachedUserProfile) renderProfileMatchPage(cachedUserProfile); 
         else loadUserProfile(); 
     }
@@ -2561,7 +2561,7 @@ async function showHistoryModal(date) {
         <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:1rem;">📚</div>
+              <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:1rem;">ðŸ“š</div>
               <div>
                 <div style="font-size:0.9rem; font-weight:700; color:var(--text);">${name}</div>
                 <div style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono';">SPENT: ${formatTime(spent)}</div>
@@ -2617,7 +2617,7 @@ function closeHistoryModal() {
 // BROADCAST HANDSHAKE: Auto-refresh dashboard when sync tab closes
 window.addEventListener('storage', (e) => {
   if (e.key === 'profile_sync_success') {
-    console.log('🔄 Profile sync detected from external tab. Refreshing...');
+    console.log('ðŸ”„ Profile sync detected from external tab. Refreshing...');
     syncDashboard();
   }
 });
@@ -2634,7 +2634,7 @@ function updateSyncModalUI(profile) {
 
   if (p.linkedin && p.linkedin.synced) {
       document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('liSyncStatus').innerHTML = '✅ Linked';
+      document.getElementById('liSyncStatus').innerHTML = 'âœ… Linked';
       if (liCard) {
         liCard.style.borderColor = '#10b981';
         liCard.style.background = 'rgba(16,185,129,0.05)';
@@ -2643,7 +2643,7 @@ function updateSyncModalUI(profile) {
       }
   } else {
       document.getElementById('liSyncLabel').textContent = 'Not Linked';
-      document.getElementById('liSyncStatus').textContent = 'Sync Now →';
+      document.getElementById('liSyncStatus').textContent = 'Sync Now â†’';
       if (liCard) {
         liCard.style.borderColor = 'rgba(0,119,181,0.2)';
         liCard.style.background = 'rgba(0,119,181,0.05)';
@@ -2654,7 +2654,7 @@ function updateSyncModalUI(profile) {
 
   if (p.naukri && p.naukri.synced) {
       document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('nkSyncStatus').innerHTML = '✅ Linked';
+      document.getElementById('nkSyncStatus').innerHTML = 'âœ… Linked';
       if (nkCard) {
         nkCard.style.borderColor = '#10b981';
         nkCard.style.background = 'rgba(16,185,129,0.05)';
@@ -2663,7 +2663,7 @@ function updateSyncModalUI(profile) {
       }
   } else {
       document.getElementById('nkSyncLabel').textContent = 'Not Linked';
-      document.getElementById('nkSyncStatus').textContent = 'Sync Now →';
+      document.getElementById('nkSyncStatus').textContent = 'Sync Now â†’';
       if (nkCard) {
         nkCard.style.borderColor = 'rgba(255,117,85,0.2)';
         nkCard.style.background = 'rgba(255,117,85,0.05)';
@@ -2781,7 +2781,7 @@ User Input: ${answer}`;
     
   } catch (e) {
     statusEl.style.display = 'none';
-    addChatMessage('ai', '⚠️ Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
+    addChatMessage('ai', 'âš ï¸ Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
     console.error('AI Interview Error:', e);
   }
 }
@@ -2843,7 +2843,7 @@ function toggleVoiceInput() {
       micBtn.style.background = 'var(--red)';
       micBtn.style.color = 'white';
       micBtn.style.boxShadow = '0 0 15px rgba(255, 59, 48, 0.5)';
-      micBtn.innerHTML = '🛑';
+      micBtn.innerHTML = 'ðŸ›‘';
     }
     if (input) input.placeholder = "Listening... Speak your answer now.";
   };
@@ -2880,7 +2880,7 @@ function stopRecordingUI() {
     micBtn.style.background = 'var(--card)';
     micBtn.style.color = 'var(--text)';
     micBtn.style.boxShadow = 'none';
-    micBtn.innerHTML = '🎤';
+    micBtn.innerHTML = 'ðŸŽ¤';
   }
   if (input) {
     input.placeholder = "Type or speak your answer here...";
@@ -3155,7 +3155,7 @@ async function saveRetention(q) {
     }).catch(e => console.error('Retention cloud sync failed', e));
   }
   
-  console.log(`🧠 Spaced Repetition: Topic [${topicId}] scheduled for ${stats.interval} days.`);
+  console.log(`ðŸ§  Spaced Repetition: Topic [${topicId}] scheduled for ${stats.interval} days.`);
   renderRevisionAlerts();
 }
 
@@ -3271,7 +3271,7 @@ function loadMoreJobs(col) {
 function renderJobCard(job) {
   const followUp = getFollowUpStatus(job);
   const sc = job.score >= 85 ? 'h' : (job.score >= 70 ? 'm' : 's');
-  const probLabels = { high: '🟢 High', medium: '🟡 Medium', stretch: '🟣 Stretch' };
+  const probLabels = { high: 'ðŸŸ¢ High', medium: 'ðŸŸ¡ Medium', stretch: 'ðŸŸ£ Stretch' };
   
   let badgeHtml = '';
   if (followUp && job.status === 'applied') {
@@ -3282,14 +3282,14 @@ function renderJobCard(job) {
     <div class="jcard" id="card-${job.id}" data-prob="${job.prob || 'medium'}">
       <div class="jcard-top">
         <div class="co-info">
-          <div class="co-logo">${job.company ? job.company.charAt(0) : '💼'}</div>
+          <div class="co-logo">${job.company ? job.company.trim().charAt(0).toUpperCase() : '💼'}</div>
           <div>
             <div class="co-name">${job.company || 'Confidential'}</div>
             <div class="co-type">${job.company_type || 'Salesforce Partner'}</div>
           </div>
         </div>
         <div class="score-ring ${sc}" style="--p:${job.score || 75}">
-          <div class="score-inner">${job.score || 75}%</div>
+          <div class="score-inner ${sc}">${job.score || 75}</div>
         </div>
       </div>
 
@@ -3297,22 +3297,23 @@ function renderJobCard(job) {
       ${badgeHtml}
 
       <div class="jcard-meta">
-        <span class="meta-pill">📍 ${job.loc || 'India'}</span>
-        <span class="meta-pill">💼 ${job.experience || '3-5 Yrs'}</span>
-        <span class="meta-pill">💰 ${job.sal || 'Competitive'}</span>
+        <span class="meta-pill">ðŸ“ ${job.loc || 'India'}</span>
+        <span class="meta-pill">ðŸ’¼ ${job.experience || '3-5 Yrs'}</span>
+        <span class="meta-pill">ðŸ’° ${job.sal || 'Competitive'}</span>
       </div>
 
-      <div class="jcard-skills">
-        ${(Array.isArray(job.skills) ? job.skills : ['Apex', 'LWC']).map(s => `<span class="skill-tag">${s}</span>`).join('')}
+      <div class="jcard-skills" style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+        ${(Array.isArray(job.skills) ? job.skills : ['Apex', 'LWC']).slice(0, 3).map(s => `<span class="skill-tag">${s}</span>`).join('')}
+        <span class="prob-badge ${job.prob || 'medium'}" style="font-size:0.55rem; font-weight:800; text-transform:uppercase; color:var(--muted); margin-left:auto;">${job.prob || 'medium'}</span>
       </div>
 
       <div class="jcard-why">
-        <strong>Why Apply:</strong> ${job.why_apply || 'Matches your PD2 profile.'}
+        ${job.why_apply || 'Matches your profile.'}
       </div>
 
       <div class="jcard-actions">
         <a href="${job.url || '#'}" target="_blank" class="jbtn jbtn-apply">View Job</a>
-        <button class="jbtn jbtn-link" onclick="openAIAssistant('${job.id}')">🤖</button>
+        <button class="jbtn jbtn-link" onclick="openAIAssistant('${job.id}')">ðŸ¤–</button>
       </div>
     </div>
   `;
@@ -3336,7 +3337,7 @@ function moveTo(id, newStatus) {
   savePipeline();
   renderBoard();
   logActivity(`Moved <strong>${job.company}</strong> from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`, 'success');
-  if (newStatus === 'applied') showToast('🚀 Application recorded!');
+  if (newStatus === 'applied') showToast('ðŸš€ Application recorded!');
 }
 
 function switchRadarSubTab(tab) {
@@ -3518,7 +3519,7 @@ function saveOutreach() {
   savePipeline();
   renderBoard();
   closeModal('outreachModal');
-  showToast('🔗 Outreach recorded for ' + selectedJobForOutreach.company);
+  showToast('ðŸ”— Outreach recorded for ' + selectedJobForOutreach.company);
   logActivity(`Log outreach to <strong>${selectedJobForOutreach.outreach.name}</strong> (${selectedJobForOutreach.company})`, 'info');
 }
 
@@ -3530,7 +3531,7 @@ async function requestNotifications() {
   }
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
-    showToast("🚀 Reminders enabled!");
+    showToast("ðŸš€ Reminders enabled!");
     scheduleReminders();
   }
 }
@@ -3554,7 +3555,7 @@ function scheduleReminders() {
 // Phase 3 Stubs
 async function openAIAssistant(jobId) {
   const job = pipelineJobs.find(j => j.id === jobId);
-  showToast(`🤖 Analyzing JD for ${job.company}...`);
+  showToast(`ðŸ¤– Analyzing JD for ${job.company}...`);
   setTimeout(() => {
      alert(`AI Suggestions for ${job.company}:\n1. Highlight your ${job.score > 90 ? 'PD2 Certification' : 'LWC experience'}.\n2. Emphasize Mortgage domain expertise.\n3. Mention Agentforce Specialist role.`);
   }, 1000);
@@ -3601,7 +3602,7 @@ async function triggerEmailGeneration() {
 
 function copyGeneratedEmail() {
   const text = document.getElementById('emailBody').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('📋 Copied!'));
+  navigator.clipboard.writeText(text).then(() => showToast('ðŸ“‹ Copied!'));
 }
 
 function openPrepPanel(company) {
@@ -3633,7 +3634,7 @@ function submitCustomJob() {
   const newJob = {
     id: 'custom_' + Date.now(), company, role,
     loc: document.getElementById('aj-loc').value || 'Remote',
-    sal: document.getElementById('aj-sal').value || '—',
+    sal: document.getElementById('aj-sal').value || 'â€”',
     prob: document.getElementById('aj-prob').value,
     score: document.getElementById('aj-score').value || 75,
     status: 'todo'
@@ -3641,7 +3642,7 @@ function submitCustomJob() {
   pipelineJobs.unshift(newJob);
   savePipeline(); renderBoard();
   closeModal('addJobModal');
-  showToast('⭐ Job added!');
+  showToast('â­ Job added!');
 }
 
 function updateAnalytics() {
@@ -3681,7 +3682,7 @@ function checkOfferComparison() {
       container.innerHTML = `
         <table style="width:100%; border-collapse:collapse; min-width:600px;">
           <thead><tr style="border-bottom:2px solid var(--border); color:var(--muted); font-size:0.7rem; text-transform:uppercase;"><th style="padding:12px; text-align:left;">Company</th><th style="padding:12px; text-align:left;">Salary</th><th style="padding:12px; text-align:left;">Fit</th></tr></thead>
-          <tbody>${offers.map(o => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:12px; font-weight:700;">${o.company}</td><td style="padding:12px; color:var(--green);">${o.sal}</td><td style="padding:12px;">⚡ ${o.score}%</td></tr>`).join('')}</tbody>
+          <tbody>${offers.map(o => `<tr style="border-bottom:1px solid var(--border);"><td style="padding:12px; font-weight:700;">${o.company}</td><td style="padding:12px; color:var(--green);">${o.sal}</td><td style="padding:12px;">âš¡ ${o.score}%</td></tr>`).join('')}</tbody>
         </table>`;
     }
   } else {
@@ -3691,7 +3692,7 @@ function checkOfferComparison() {
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.innerHTML = `🚀 ${msg}`;
+  t.innerHTML = `ðŸš€ ${msg}`;
   t.style.transform = 'translateX(-50%) translateY(0)';
   setTimeout(() => t.style.transform = 'translateX(-50%) translateY(100px)', 3000);
 }

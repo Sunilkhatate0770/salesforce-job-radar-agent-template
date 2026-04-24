@@ -1,7 +1,7 @@
   <div class="page-header radar-header">
     <div class="header-main">
       <div class="page-title">📡 Job Radar Dashboard</div>
-      <div class="page-sub">Phase 2-5: Autonomous Pipeline & Analytics (v1403)</div>
+      <div class="page-sub">Phase 2-5: Autonomous Pipeline & Analytics (v1411)</div>
     </div>
     <div class="header-actions">
        <div id="dbStatusBadge" class="status-badge">LOCAL DB</div>
@@ -15,37 +15,6 @@
     </div>
   </div>
 
-  <!-- Discovery Overview (Phase 2F) -->
-  <div class="radar-stats-grid">
-    <div class="radar-stat-card blue">
-      <div class="stat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-      </div>
-      <div>
-        <div id="trackedCount" class="stat-num">0</div>
-        <div class="stat-label">Jobs Tracked</div>
-      </div>
-    </div>
-    <div class="radar-stat-card green">
-      <div class="stat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-      </div>
-      <div>
-        <div id="appliedCount" class="stat-num">0</div>
-        <div class="stat-label">Applications</div>
-      </div>
-    </div>
-    <div class="radar-stat-card amber">
-      <div class="stat-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-      </div>
-      <div>
-        <div id="dedupeCount" class="stat-num">0</div>
-        <div class="stat-label">Unique Signals</div>
-      </div>
-    </div>
-  </div>
-
   <!-- Dashboard Header & Tabs -->
   <div class="radar-tabs" style="display: flex; gap: 20px; border-bottom: 1px solid var(--border); margin-bottom: 1rem; margin-top: 1rem;">
     <button id="tab-pipeline" class="radar-tab-btn active" onclick="switchRadarSubTab('pipeline')" style="background:none; border:none; padding:12px 20px; color:var(--text); font-weight:700; cursor:pointer; border-bottom: 2px solid var(--blue);">Pipeline Board</button>
@@ -54,82 +23,91 @@
   </div>
 
   <div id="radar-pipeline-view">
-    <!-- Analytics Bar (Industrial Refinement) -->
-    <div style="display:flex; align-items:center; gap:20px; background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--border); margin-bottom:1.5rem; margin-top:1rem;">
-      <div class="metric" style="flex:1;">
-        <div class="metric-val" id="met-rate" style="font-size:1.2rem; font-weight:800; color:var(--blue); font-family:'IBM Plex Mono',monospace;">0%</div>
-        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Applied Rate</div>
+    <!-- Analytics Bar (Premium V3 Refinement) -->
+    <div style="display:flex; align-items:center; gap:20px; background:rgba(255,255,255,0.02); padding:15px; border-radius:12px; border:1px solid var(--border); margin-bottom:1.5rem; margin-top:1rem; overflow-x:auto;">
+      <div class="metric" style="flex:1; min-width:80px;">
+        <div class="metric-val" id="met-rate" style="font-size:1.1rem; font-weight:800; color:var(--blue); font-family:'IBM Plex Mono',monospace;">0%</div>
+        <div class="metric-lbl" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Applied Rate</div>
       </div>
       <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
-      <div class="metric" style="flex:1;">
-        <div class="metric-val" id="met-streak" style="font-size:1.2rem; font-weight:800; color:var(--amber); font-family:'IBM Plex Mono',monospace;">0d</div>
-        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Apply Streak</div>
+      <div class="metric" style="flex:1; min-width:80px;">
+        <div class="metric-val" id="met-streak" style="font-size:1.1rem; font-weight:800; color:var(--amber); font-family:'IBM Plex Mono',monospace;">0d</div>
+        <div class="metric-lbl" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Apply Streak</div>
       </div>
       <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
-      <div class="metric" style="flex:1;">
-        <div class="metric-val" id="met-followup" style="font-size:1.2rem; font-weight:800; color:var(--red); font-family:'IBM Plex Mono',monospace;">0</div>
-        <div class="metric-lbl" style="font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Follow-ups Due</div>
+      <div class="metric" style="flex:1; min-width:80px;">
+        <div class="metric-val" id="met-followup" style="font-size:1.1rem; font-weight:800; color:var(--red); font-family:'IBM Plex Mono',monospace;">0</div>
+        <div class="metric-lbl" style="font-size:0.6rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px;">Follow-ups</div>
       </div>
       <div style="width:1px; height:24px; background:rgba(255,255,255,0.05);"></div>
       <!-- Weekly goal ring -->
-      <div class="goal-ring-wrap" style="display:flex; align-items:center; gap:12px; min-width:120px;">
+      <div class="goal-ring-wrap" style="display:flex; align-items:center; gap:12px; min-width:140px;">
         <div style="position:relative; width:36px; height:36px;">
           <svg viewBox="0 0 36 36" style="width:100%; height:100%; transform:rotate(-90deg);">
             <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3"/>
             <circle id="goal-arc" cx="18" cy="18" r="15.9" fill="none" stroke="var(--green)" stroke-width="3" stroke-dasharray="0 100" stroke-linecap="round" style="transition: stroke-dasharray 0.6s ease;"/>
           </svg>
-          <div id="goal-pct" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg); font-size:9px; font-weight:800; color:var(--green);">0%</div>
+          <div id="goal-pct" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(90deg); font-size:8px; font-weight:800; color:var(--green);">0%</div>
         </div>
         <div>
           <div id="met-weekly" style="font-size:1rem; font-weight:800; color:var(--text); font-family:'IBM Plex Mono',monospace;">0/5</div>
-          <div style="font-size:0.65rem; color:var(--muted); text-transform:uppercase;">This Week</div>
+          <div style="font-size:0.6rem; color:var(--muted); text-transform:uppercase;">Weekly Goal</div>
         </div>
       </div>
     </div>
 
     <!-- Board Filters -->
-    <div class="filter-bar" style="margin-bottom: 1.5rem; display: flex; gap: 8px; align-items: center; background: var(--card); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);">
-      <span style="font-size: 0.65rem; color: var(--muted); font-weight: 800; letter-spacing: 1px; margin-right: 8px;">FILTER:</span>
+    <div class="filter-bar-v3" style="margin-bottom: 1.5rem; display: flex; gap: 8px; align-items: center; background: var(--card); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border);">
       <button class="board-filter-btn active" onclick="setBoardFilter('all', this)">All</button>
-      <button class="board-filter-btn" onclick="setBoardFilter('high', this)">🟢 High Prob</button>
-      <button class="board-filter-btn" onclick="setBoardFilter('medium', this)">🟡 Medium</button>
+      <button class="board-filter-btn" onclick="setBoardFilter('high', this)">🟢 High</button>
+      <button class="board-filter-btn" onclick="setBoardFilter('medium', this)">🟡 Mid</button>
       <button class="board-filter-btn" onclick="setBoardFilter('stretch', this)">🟣 Stretch</button>
       <div style="flex: 1;"></div>
       <div style="position: relative;">
         <svg style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; color: var(--muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="boardSearch" placeholder="Search pipeline..." oninput="doBoardSearch()" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 10px 5px 28px; border-radius: 6px; font-size: 0.75rem; width: 180px; font-family: inherit;">
+        <input type="text" id="boardSearch" placeholder="Search pipeline..." oninput="doBoardSearch()" style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 5px 10px 5px 28px; border-radius: 6px; font-size: 0.75rem; width: 160px; font-family: inherit;">
       </div>
     </div>
 
     <!-- Kanban Board -->
-    <div class="board-wrap" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 10px; height: calc(100vh - 380px); min-height: 450px;">
-       <div class="kanban-col" id="col-todo"><div class="kanban-header"><span class="col-dot" style="background:#4f8ef7;"></span>📋 To Apply <span class="col-count" id="count-todo">0</span></div><div class="kanban-body" id="list-todo"></div></div>
-       <div class="kanban-col" id="col-applied"><div class="kanban-header"><span class="col-dot" style="background:#10b981;"></span>✅ Applied <span class="col-count" id="count-applied">0</span></div><div class="kanban-body" id="list-applied"></div></div>
-       <div class="kanban-col" id="col-interview"><div class="kanban-header"><span class="col-dot" style="background:#f59e0b;"></span>📞 Interview <span class="col-count" id="count-interview">0</span></div><div class="kanban-body" id="list-interview"></div></div>
-       <div class="kanban-col" id="col-offer"><div class="kanban-header"><span class="col-dot" style="background:#ec4899;"></span>🎉 Offer <span class="col-count" id="count-offer">0</span></div><div class="kanban-body" id="list-offer"></div></div>
-       <div class="kanban-col" id="col-rejected"><div class="kanban-header"><span class="col-dot" style="background:#ef4444;"></span>❌ Rejected <span class="col-count" id="count-rejected">0</span></div><div class="kanban-body" id="list-rejected"></div></div>
+    <div class="board-wrap" style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; height: calc(100vh - 400px); min-height: 480px; align-items: flex-start;">
+       <div class="kanban-col" id="col-todo">
+         <div class="kanban-header" style="background:rgba(79,142,247,0.05); color:var(--blue);"><span class="col-dot" style="background:var(--blue);"></span>📋 To Apply <span class="col-count" id="count-todo">0</span></div>
+         <div class="kanban-body" id="list-todo"></div>
+       </div>
+       <div class="kanban-col" id="col-applied">
+         <div class="kanban-header" style="background:rgba(16,185,129,0.05); color:var(--green);"><span class="col-dot" style="background:var(--green);"></span>✅ Applied <span class="col-count" id="count-applied">0</span></div>
+         <div class="kanban-body" id="list-applied"></div>
+       </div>
+       <div class="kanban-col" id="col-interview">
+         <div class="kanban-header" style="background:rgba(245,158,11,0.05); color:var(--amber);"><span class="col-dot" style="background:var(--amber);"></span>📞 Interview <span class="col-count" id="count-interview">0</span></div>
+         <div class="kanban-body" id="list-interview"></div>
+       </div>
+       <div class="kanban-col" id="col-offer">
+         <div class="kanban-header" style="background:rgba(236,72,153,0.05); color:var(--pink);"><span class="col-dot" style="background:var(--pink);"></span>🎉 Offer <span class="col-count" id="count-offer">0</span></div>
+         <div class="kanban-body" id="list-offer"></div>
+       </div>
+       <div class="kanban-col" id="col-rejected">
+         <div class="kanban-header" style="background:rgba(239,68,68,0.05); color:var(--red);"><span class="col-dot" style="background:var(--red);"></span>❌ Rejected <span class="col-count" id="count-rejected">0</span></div>
+         <div class="kanban-body" id="list-rejected"></div>
+       </div>
     </div>
   </div>
 
   <div id="radar-insights-view" style="display:none; animation: fadeIn 0.4s ease;">
     <div class="insights-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:20px; margin-top:1rem;">
-      <!-- Phase 5A: Conversion Funnel -->
       <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
         <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--blue);"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"></path></svg> Application Funnel
         </h4>
         <div id="funnel-container" style="display:flex; flex-direction:column; gap:15px;"></div>
       </div>
-
-      <!-- Phase 5C: Segment Distribution -->
       <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
         <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--green);"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg> Market Distribution
         </h4>
         <div id="dist-container" style="display:flex; flex-direction:column; gap:12px;"></div>
       </div>
-
-      <!-- Phase 5B: Weekly Velocity -->
       <div class="insight-card" style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px;">
         <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--cyan);"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg> Weekly Velocity
@@ -137,80 +115,23 @@
         <div id="velocity-container" style="display:flex; align-items:flex-end; gap:8px; height:120px; padding-bottom:20px;"></div>
       </div>
     </div>
-
-    <!-- Phase 5D: Offer Comparison Matrix (Conditional) -->
-    <div id="offer-comparison" style="display:none; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-top:20px; animation: slideUp 0.4s ease;">
-      <h4 style="font-size:0.8rem; font-weight:800; color:var(--text); margin-bottom:1.5rem; display:flex; align-items:center; gap:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--pink);"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg> Offer Comparison Matrix
-      </h4>
-      <div id="offer-matrix-container" style="overflow-x:auto;"></div>
-    </div>
   </div>
 
-  <!-- JOB RADAR DEVELOPMENT SUB-VIEW (v1401) -->
   <div id="radar-development-view" style="display:none; animation: fadeIn 0.4s ease;">
     <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:25px; margin-top:1.5rem;">
       <h3 style="font-size:1.1rem; color:var(--text); margin-bottom:1rem; display:flex; align-items:center; gap:10px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--blue);"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
         Development Analytics & Roadmap
       </h3>
-      <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Tracking your technical growth and readiness for Salesforce Developer roles.</p>
-      
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:20px;">
         <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
           <h4 style="font-size:0.8rem; color:var(--blue); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Skill Proficiency</h4>
-          <div id="skillProficiencyList" style="display:flex; flex-direction:column; gap:12px;">
-             <div style="font-size:0.8rem; color:var(--muted);">Initializing skill data...</div>
-          </div>
+          <div id="skillProficiencyList" style="display:flex; flex-direction:column; gap:12px;"></div>
         </div>
         <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:12px; padding:20px;">
           <h4 style="font-size:0.8rem; color:var(--green); margin-bottom:15px; text-transform:uppercase; letter-spacing:1px;">Ready for Deployment</h4>
-          <div id="readyForDeploymentList" style="display:flex; flex-direction:column; gap:12px;">
-             <div style="font-size:0.8rem; color:var(--muted);">Analyzing role readiness...</div>
-          </div>
+          <div id="readyForDeploymentList" style="display:flex; flex-direction:column; gap:12px;"></div>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Market Trends Section (Bottom) -->
-  <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-    <h3 style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:1.2rem; display:flex; align-items:center; gap:8px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
-      Salesforce Market Intelligence
-    </h3>
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:15px; margin-bottom:2rem;">
-      <div style="background:rgba(16,185,129,0.03); border:1px solid rgba(16,185,129,0.1); border-radius:12px; padding:1.2rem;">
-        <h4 style="font-size:0.75rem; color:var(--green); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Matched Skills</h4>
-        <div id="matchedSkillsTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
-      </div>
-      <div style="background:rgba(239,68,68,0.03); border:1px solid rgba(239,68,68,0.1); border-radius:12px; padding:1.2rem;">
-        <h4 style="font-size:0.75rem; color:var(--red); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Market Gaps</h4>
-        <div id="missingSkillsTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
-      </div>
-      <div style="background:rgba(79,142,247,0.03); border:1px solid rgba(79,142,247,0.1); border-radius:12px; padding:1.2rem;">
-        <h4 style="font-size:0.75rem; color:var(--blue); margin-bottom:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Top Hiring Nodes</h4>
-        <div id="topCompaniesTrends" style="font-size:0.75rem; color:rgba(255,255,255,0.8); line-height:1.6;">Loading analytics...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- FAB + Side Panels -->
-  <button class="fab-add" onclick="openAddJobModal()" title="Add Custom Job">+</button>
-  
-  <div class="activity-log-panel" id="logPanel">
-    <div class="log-panel-header">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.85rem;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--blue);"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg>
-        Activity Log
-      </div>
-      <button class="close-panel-btn" onclick="toggleLog()">&times;</button>
-    </div>
-    <div class="log-panel-body" id="logBody">
-      <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.8rem;">No activity logged yet.</div>
-    </div>
-    <div class="log-panel-footer">
-      <button onclick="exportLog()" class="panel-action-btn">⬇️ Export CSV</button>
-      <button onclick="clearLog()" class="panel-action-btn danger">🗑️ Clear</button>
     </div>
   </div>
