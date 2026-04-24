@@ -408,6 +408,8 @@ body {
   margin: 0 auto;
   box-sizing: border-box;
   overflow-x: hidden;
+  flex-grow: 1;
+  min-height: min-content;
 }
 
 /* RESPONSIVE PROFILE GRID (v1369) */
