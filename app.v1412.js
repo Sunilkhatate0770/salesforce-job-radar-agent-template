@@ -465,6 +465,12 @@ async function loadUserProfile() {
         renderBookmarkButtons();
         const countEl = document.getElementById('bookmarkCount');
         if (countEl) countEl.textContent = userBookmarks.length;
+
+        // If user is on bookmarks page, force a redraw now that data is here
+        const activeTab = localStorage.getItem('last_active_tab');
+        if (activeTab === 'bookmarks_page' || (document.getElementById('bookmarks_page') && document.getElementById('bookmarks_page').classList.contains('active'))) {
+          showBookmarks();
+        }
       }
       // Cloud Sync Retention (v1356 - Master MongoDB)
       if (data.profile.studyPlanTopics) {
@@ -3264,6 +3270,16 @@ function showBookmarks() {
   const container = document.getElementById('bookmarksContent');
   if (!container) {
     console.error('â Œ [UI] #bookmarksContent element missing!');
+    return;
+  }
+
+  // If we haven't loaded profile yet, show loading state
+  if (!cachedUserProfile && userBookmarks.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:60px 20px; color:var(--muted);">
+        <div class="spin" style="width:32px; height:32px; border:2px solid var(--blue); border-top-color:transparent; border-radius:50%; margin:0 auto 16px;"></div>
+        <div>Loading your cloud bookmarks...</div>
+      </div>`;
     return;
   }
   
