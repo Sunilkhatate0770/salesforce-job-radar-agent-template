@@ -122,16 +122,23 @@ export default async function(req, res) {
       let source = tursoProfile ? 'Turso (Primary)' : 'MongoDB (Legacy)';
 
       if (tursoProfile && mongoProfile) {
-        // Deep Merge Arrays: Skills, Bookmarks, and Tasks
-        const mergeArrays = (arr1, arr2) => Array.from(new Set([...(arr1 || []), ...(arr2 || [])]));
+        // Smart Merge Arrays: Deduplicate by content, not just reference
+        const mergeUnique = (arr1, arr2, key) => {
+          const map = new Map();
+          [...(arr1 || []), ...(arr2 || [])].forEach(item => {
+            const id = key ? (typeof item === 'object' ? item[key] : item) : item;
+            if (id) map.set(id, item);
+          });
+          return Array.from(map.values());
+        };
         
         profile = { 
           ...mongoProfile, 
           ...tursoProfile, 
-          skills: mergeArrays(tursoProfile.skills, mongoProfile.skills),
-          certifications: mergeArrays(tursoProfile.certifications, mongoProfile.certifications),
-          bookmarks: mergeArrays(tursoProfile.bookmarks, mongoProfile.bookmarks),
-          completedTasks: mergeArrays(tursoProfile.completedTasks, mongoProfile.completedTasks)
+          skills: mergeUnique(tursoProfile.skills, mongoProfile.skills),
+          certifications: mergeUnique(tursoProfile.certifications, mongoProfile.certifications),
+          bookmarks: mergeUnique(tursoProfile.bookmarks, mongoProfile.bookmarks, 'q'),
+          completedTasks: mergeUnique(tursoProfile.completedTasks, mongoProfile.completedTasks)
         };
         source = 'Unified Hybrid (Turso + Mongo)';
       }
