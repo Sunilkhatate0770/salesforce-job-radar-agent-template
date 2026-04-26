@@ -18,10 +18,13 @@ body {
 }
 
 #sidebar {
-  flex-shrink: 0 !important;
-  z-index: 100 !important;
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
   width: var(--sidebar-w) !important;
   min-width: var(--sidebar-w) !important;
+  z-index: 1000 !important;
   background:
     linear-gradient(180deg, rgba(17, 29, 53, 0.98), rgba(12, 21, 39, 0.98)),
     var(--surface) !important;
@@ -29,6 +32,7 @@ body {
   overflow-x: hidden !important;
   scrollbar-width: thin;
   padding-bottom: 72px !important;
+  border-right: 1px solid var(--border) !important;
 }
 
 #sidebar .sidebar-header {
@@ -210,7 +214,8 @@ body {
 }
 
 #main {
-  flex: 1 !important;
+  margin-left: var(--sidebar-w) !important;
+  width: calc(100% - var(--sidebar-w)) !important;
   min-width: 0 !important;
   font-family: var(--app-font-body) !important;
   padding-bottom: 84px !important;
