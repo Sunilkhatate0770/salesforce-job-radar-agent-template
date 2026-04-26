@@ -17,6 +17,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.v1409.css">
   <link rel="stylesheet" href="job-radar.fix.css?v=20260426">
+  <link rel="stylesheet" href="ui-shell.fix.css?v=20260426">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     window.handleCredentialResponse = function(response) {
@@ -297,21 +298,21 @@
 <!-- CONFIDENCE RATING MODAL (v1342) -->
 <div id="confidenceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:10001; align-items:center; justify-content:center;">
     <div style="background:var(--card-bg); width:90%; max-width:400px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); padding:2rem; text-align:center;">
-        <div style="font-size:3rem; margin-bottom:1rem;">=ï¿½ï¿½ï¿½</div>
+        <div class="confidence-modal-icon">REVIEW</div>
         <h2 style="font-family:'Plus Jakarta Sans',sans-serif; margin-bottom:0.5rem;">How confident are you?</h2>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:2rem;">Rate your understanding of this topic to schedule your next review.</p>
         
         <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
             <button onclick="saveRetention(1)" style="padding:15px; background:rgba(240,106,106,0.1); border:1px solid var(--red); border-radius:12px; color:var(--red); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ï¿½ï¿½ï¿½</div>
+                <div class="confidence-choice-label">HARD</div>
                 <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">HARD</div>
             </button>
             <button onclick="saveRetention(3)" style="padding:15px; background:rgba(244,197,66,0.1); border:1px solid var(--amber); border-radius:12px; color:var(--amber); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ï¿½ï¿½ï¿½</div>
+                <div class="confidence-choice-label">GOOD</div>
                 <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">GOOD</div>
             </button>
             <button onclick="saveRetention(5)" style="padding:15px; background:rgba(61,214,140,0.1); border:1px solid var(--green); border-radius:12px; color:var(--green); cursor:pointer;">
-                <div style="font-size:1.2rem;">=ï¿½ï¿½ï¿½</div>
+                <div class="confidence-choice-label">EASY</div>
                 <div style="font-size:0.7rem; margin-top:5px; font-weight:700;">EASY</div>
             </button>
         </div>
@@ -378,7 +379,7 @@
       </span>
       AI Profile Matching & Study Plan
     </div>
-    <div class="page-sub">Powered by Gemma 4 Local AI Engine Gï¿½ï¿½ Sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
+    <div class="page-sub">Powered by Gemma 4 Local AI Engine - sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
   </div>
   
   <!-- PREMIUM SYNC ARCHITECTURE (v1373) -->
@@ -958,12 +959,12 @@
   </div>
 </footer>
 
-<!-- Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½ ADD JOB MODAL Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½ -->
+<!-- ADD JOB MODAL -->
 <div id="addJobModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
   <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:600px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
     <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
       <div style="font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:8px;">
-        <span style="color:var(--amber);">Gï¿½ï¿½</span> Add Custom Job
+        <span style="color:var(--amber);">Job</span> Add Custom Job
       </div>
       <button onclick="closeModal('addJobModal')" style="background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
     </div>
@@ -985,7 +986,7 @@
         </div>
         <div>
           <label style="display:block; font-size:0.7rem; color:var(--muted); text-transform:uppercase; margin-bottom:6px;">Salary Range</label>
-          <input id="aj-sal" type="text" placeholder="â‚¹15-25 LPA" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
+          <input id="aj-sal" type="text" placeholder="INR 15-25 LPA" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:10px; border-radius:8px; font-family:inherit;">
         </div>
       </div>
       <div style="margin-bottom:15px;">
@@ -1029,8 +1030,8 @@
     </div>
     <div style="padding:1.5rem;">
       <div style="display:flex; gap:10px; margin-bottom:1.5rem;">
-        <button class="email-tab" onclick="selectEmailType('thankyou', this)">=ï¿½ï¿½ï¿½ Thank You</button>
-        <button class="email-tab" onclick="selectEmailType('withdraw', this)">Gï¿½ Withdraw</button>
+        <button class="email-tab" onclick="selectEmailType('thankyou', this)">Thank You</button>
+        <button class="email-tab" onclick="selectEmailType('withdraw', this)">Withdraw</button>
       </div>
       <div id="emailPreviewArea" style="background:var(--bg); border:1px solid var(--border); border-radius:12px; padding:1.5rem; min-height:200px; max-height:400px; overflow-y:auto; position:relative;">
         <div id="emailSubject" style="font-weight:700; color:var(--text); margin-bottom:15px; padding-bottom:10px; border-bottom:1px solid var(--border); display:none;"></div>
@@ -1054,19 +1055,19 @@
   </div>
 </div>
 
-<!-- Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½ PREP PANEL Gï¿½ï¿½Gï¿½ï¿½Gï¿½ï¿½ -->
+<!-- PREP PANEL -->
 <div id="prepPanel" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px;">
   <div style="background:var(--surface); border:1px solid var(--border); width:100%; max-width:700px; border-radius:20px; overflow:hidden; animation:modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
     <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02);">
       <div style="font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:8px;">
-        <span style="color:var(--green);">=ï¿½ï¿½ï¿½</span> Interview Preparation
+        <span style="color:var(--green);">Prep</span> Interview Preparation
       </div>
       <button onclick="closeModal('prepPanel')" style="background:none; border:none; color:var(--muted); font-size:1.5rem; cursor:pointer;">&times;</button>
     </div>
     <div id="prepContent" style="padding:1.5rem; max-height:70vh; overflow-y:auto;"></div>
     <div style="padding:1.2rem; border-top:1px solid var(--border); background:rgba(0,0,0,0.2); display:flex; gap:12px; justify-content:flex-end;">
       <button onclick="closeModal('prepPanel')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer;">Close</button>
-      <button onclick="generateMoreQuestions()" style="background:var(--green); color:black; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer;">=ï¿½ï¿½ï¿½ AI Expand (10 Qs)</button>
+      <button onclick="generateMoreQuestions()" style="background:var(--green); color:black; border:none; padding:10px 25px; border-radius:10px; font-weight:700; cursor:pointer;">AI Expand (10 Qs)</button>
     </div>
   </div>
 </div>
@@ -1075,7 +1076,7 @@
 <div class="modal-overlay" id="outreachModal" style="display:none;">
   <div class="modal-box" style="width: 400px;">
     <div class="modal-header">
-      <span>=ï¿½ï¿½ï¿½ Outreach Record</span>
+      <span>Outreach Record</span>
       <button onclick="closeModal('outreachModal')">&times;</button>
     </div>
     <div style="padding:1.5rem;">
@@ -1101,7 +1102,7 @@
 <div class="modal-overlay" id="coachModal" style="display:none;">
   <div class="modal-box" style="width: 550px; height: 80vh; display: flex; flex-direction: column;">
     <div class="modal-header">
-      <span>=ï¿½ï¿½ï¿½ AI Interview Coach</span>
+      <span>AI Interview Coach</span>
       <button onclick="closeModal('coachModal')">&times;</button>
     </div>
     <div id="coachChat" style="flex: 1; overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.15);">
@@ -1141,5 +1142,6 @@
 
 
 <script src="app.v1411.js"></script>
+<script src="ui-shell.fix.js?v=20260426"></script>
 </body>
 </html>

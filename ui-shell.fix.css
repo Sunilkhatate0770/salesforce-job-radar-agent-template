@@ -1,0 +1,350 @@
+/* Shared UI rescue layer for the legacy dashboard shell.
+   Keep this scoped to layout/navigation/common cards so feature CSS can evolve
+   independently without fighting the older global stylesheet. */
+
+:root {
+  --app-font-body: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  --app-font-display: 'Syne', 'Plus Jakarta Sans', sans-serif;
+  --app-font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --sidebar-w: 260px;
+}
+
+body {
+  font-family: var(--app-font-body) !important;
+  letter-spacing: 0.005em;
+}
+
+#sidebar {
+  width: var(--sidebar-w) !important;
+  min-width: var(--sidebar-w) !important;
+  background:
+    linear-gradient(180deg, rgba(17, 29, 53, 0.98), rgba(12, 21, 39, 0.98)),
+    var(--surface) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  padding-bottom: 72px !important;
+}
+
+#sidebar .sidebar-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 8 !important;
+  padding: 14px 16px 12px !important;
+  background: rgba(17, 29, 53, 0.98) !important;
+  backdrop-filter: blur(16px);
+}
+
+#sidebar .sidebar-header h2 {
+  font-family: var(--app-font-display) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.18 !important;
+  letter-spacing: 0.01em !important;
+}
+
+#sidebar .sidebar-header-row {
+  display: none !important;
+}
+
+#sidebar > div[style*="padding:0 1rem 1rem 1rem"] {
+  padding: 8px 12px !important;
+}
+
+#masterProfileStatus {
+  margin-top: 0 !important;
+  padding: 9px !important;
+  border: 1px solid rgba(59, 130, 246, 0.16) !important;
+  border-radius: 13px !important;
+  background: rgba(59, 130, 246, 0.055) !important;
+}
+
+#masterProfileStatus > div:first-child {
+  margin-bottom: 8px !important;
+}
+
+#sidebarSyncStatus {
+  max-height: 42px !important;
+  overflow: hidden !important;
+}
+
+#masterProfileStatus button,
+#btnViewProfileMatch,
+#sidebarSignOutBtn {
+  min-height: 30px !important;
+  padding: 7px 9px !important;
+  border-radius: 9px !important;
+  font-size: 0.68rem !important;
+}
+
+#sidebar .search-wrap {
+  position: sticky !important;
+  top: 76px !important;
+  z-index: 7 !important;
+  padding: 9px 12px !important;
+  background: rgba(17, 29, 53, 0.97) !important;
+  backdrop-filter: blur(16px);
+}
+
+#searchInput {
+  height: 34px !important;
+  border-radius: 10px !important;
+  font-family: var(--app-font-body) !important;
+  font-size: 0.74rem !important;
+}
+
+#sidebar .nav-parent-section {
+  padding: 5px 8px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.035) !important;
+}
+
+#sidebar .nav-parent-title {
+  min-height: 34px !important;
+  padding: 0 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border-radius: 10px !important;
+  font-family: var(--app-font-mono) !important;
+  font-size: 0.58rem !important;
+  line-height: 1 !important;
+  letter-spacing: 1.5px !important;
+  cursor: pointer;
+  user-select: none;
+}
+
+#sidebar .nav-parent-title:hover {
+  background: rgba(59, 130, 246, 0.08) !important;
+  color: #7cb7ff !important;
+  opacity: 1 !important;
+}
+
+#sidebar .nav-section-chevron {
+  margin-left: auto;
+  color: var(--text3);
+  font-size: 0.7rem;
+  transition: transform 0.18s ease;
+}
+
+#sidebar .nav-parent-section.collapsed .nav-section-chevron {
+  transform: rotate(-90deg);
+}
+
+#sidebar .nav-parent-section.collapsed .nav-item,
+#sidebar .nav-parent-section.collapsed .nav-parent-title:not(:first-child) {
+  display: none !important;
+}
+
+#sidebar .nav-item {
+  min-height: 33px !important;
+  padding: 0 8px 0 10px !important;
+  margin: 2px 0 !important;
+  gap: 9px !important;
+  border-left-width: 2px !important;
+  border-radius: 10px !important;
+  font-family: var(--app-font-body) !important;
+  font-size: 0.74rem !important;
+  line-height: 1.1 !important;
+  color: #86a0c4 !important;
+}
+
+#sidebar .nav-item svg {
+  width: 15px !important;
+  height: 15px !important;
+  flex: 0 0 15px !important;
+  opacity: 0.82 !important;
+  stroke-width: 2.2 !important;
+}
+
+#sidebar .nav-item .nav-label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#sidebar .nav-item .count {
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+  max-width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--app-font-mono) !important;
+  font-size: 0.54rem !important;
+  letter-spacing: 0.02em;
+  color: #6f86ad !important;
+  background: rgba(59, 130, 246, 0.095) !important;
+  border: 1px solid rgba(59, 130, 246, 0.08);
+}
+
+#sidebar .nav-item:hover {
+  color: var(--text) !important;
+  background: rgba(59, 130, 246, 0.075) !important;
+}
+
+#sidebar .nav-item.active {
+  color: #dceaff !important;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.06)) !important;
+  border-left-color: var(--blue) !important;
+}
+
+#sidebar .nav-item.active svg {
+  color: #58a6ff !important;
+  opacity: 1 !important;
+}
+
+#sidebar div[style*="INITIATE GLOBAL JOB SCAN"] {
+  margin-top: 10px !important;
+}
+
+#btnScanJobs {
+  min-height: 36px !important;
+  padding: 9px !important;
+  border-radius: 11px !important;
+  font-size: 0.68rem !important;
+}
+
+#main {
+  font-family: var(--app-font-body) !important;
+  padding-bottom: 84px !important;
+}
+
+#mainHeader {
+  height: 48px !important;
+  min-height: 48px !important;
+  background: rgba(7, 12, 24, 0.96) !important;
+}
+
+#headerTitle {
+  font-family: var(--app-font-display) !important;
+  font-size: 0.98rem !important;
+  letter-spacing: 0.015em !important;
+}
+
+.page {
+  padding: 18px 22px 96px !important;
+}
+
+#job_radar.page {
+  padding: 0 !important;
+}
+
+.page-title,
+#topicViewerTitle {
+  font-family: var(--app-font-display) !important;
+  font-size: clamp(1.25rem, 2.15vw, 1.92rem) !important;
+  line-height: 1.08 !important;
+  letter-spacing: -0.025em !important;
+  margin-bottom: 0.55rem !important;
+  text-wrap: balance;
+}
+
+.page-sub,
+#topicViewerSub {
+  font-family: var(--app-font-body) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.55 !important;
+  color: #8aa4c8 !important;
+}
+
+.qa-block,
+.content-card,
+.domain-card,
+.script-card,
+.sched-row,
+.vocab-item {
+  background: rgba(17, 29, 53, 0.84) !important;
+  border-color: rgba(59, 130, 246, 0.16) !important;
+}
+
+.qa-question {
+  min-height: 54px !important;
+}
+
+.qa-q-text {
+  font-family: var(--app-font-body) !important;
+  font-size: 0.88rem !important;
+  line-height: 1.42 !important;
+  letter-spacing: 0.002em !important;
+}
+
+.ans-p,
+.ans-list,
+.qa-answer,
+.page p,
+.page li {
+  font-family: var(--app-font-body) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.68 !important;
+}
+
+pre.code,
+code,
+.stat-value,
+.ft-time {
+  font-family: var(--app-font-mono) !important;
+}
+
+#floatingTimer {
+  right: 24px !important;
+  bottom: 20px !important;
+  max-width: min(300px, calc(100vw - 32px)) !important;
+  border-radius: 16px !important;
+}
+
+#floatingTimer .ft-topic {
+  max-width: 142px !important;
+}
+
+#confidenceModal > div {
+  background: rgba(7, 12, 24, 0.92) !important;
+  border: 1px solid rgba(59, 130, 246, 0.22) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.confidence-modal-icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  color: #8ec5ff;
+  font-family: var(--app-font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.confidence-choice-label {
+  font-family: var(--app-font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+@media (max-width: 1024px) {
+  #sidebar {
+    width: 284px !important;
+    min-width: 284px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  #sidebar .search-wrap {
+    top: 72px !important;
+  }
+
+  .page {
+    padding: 16px 14px 110px !important;
+  }
+
+  #floatingTimer {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 14px !important;
+    justify-content: center !important;
+  }
+}

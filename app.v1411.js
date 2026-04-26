@@ -1,7 +1,7 @@
 // Version: 2026-04-24-T1030 (Industrial Enrichment v1411)
 // =============================================
 const DASHBOARD_VERSION = "2026-04-24-T1630 (app.v1411.js - Production Dashboard Logic)";
-console.log('%c ðŸš€ Dashboard Version: 2026-04-24-T1630 (EXTREME LOGGING v1411)', 'color: #3b82f6; font-weight: bold; font-size: 1.2rem;');
+console.log('%c Dashboard Version: 2026-04-24-T1630 (EXTREME LOGGING v1411)', 'color: #3b82f6; font-weight: bold; font-size: 1.2rem;');
 if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => { for (let reg of regs) reg.unregister(); }); }
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
@@ -32,12 +32,12 @@ let currentPrepCompany = 'Cognizant';
 const PREP_REGISTRY = {
   "Cognizant": {
     focus: "Apex best practices, LWC event system, Governor Limits, DevOps",
-    questions: ["Explain your trigger handler pattern and why you chose it", "How do you handle bulk operations in Apex?", "Difference between before vs after triggers â€” when to use each?", "How does LWC parent-child communication work (events vs LMS)?", "What Governor Limits do you hit most and how do you avoid them?"],
+    questions: ["Explain your trigger handler pattern and why you chose it", "How do you handle bulk operations in Apex?", "Difference between before vs after triggers - when to use each?", "How does LWC parent-child communication work (events vs LMS)?", "What Governor Limits do you hit most and how do you avoid them?"],
     tips: ["Emphasize PD1+PD2 certs upfront", "Talk about code review experience", "Mention your Bitbucket/CI-CD pipeline work"]
   },
   "Deloitte India": {
     focus: "BFSI domain, FSC objects, data governance, integration patterns",
-    questions: ["Describe your financial services Salesforce implementations", "How did you handle FCRA/HMDA compliance in Salesforce?", "Explain Platform Events vs Triggers â€” when to pick each?"],
+    questions: ["Describe your financial services Salesforce implementations", "How did you handle FCRA/HMDA compliance in Salesforce?", "Explain Platform Events vs Triggers - when to pick each?"],
     tips: ["Lead with your mortgage domain expertise", "Prepare a 5-min story of your Experian credit bureau integration"]
   },
   "Salesforce Inc.": {
@@ -57,11 +57,11 @@ var TOPIC_DATA = {
     title: 'Deloitte Salesforce Interview (2026)',
     subtitle: 'Advanced architectural screening and scenario drills for Senior Roles.',
     blocks: [
-      { type: 'section', title: 'ðŸ—ï¸ Enterprise Architecture' },
+      { type: 'section', title: 'Enterprise Architecture' },
       { type: 'qa', question: 'How do you handle Large Data Volumes (LDV) in a Deloitte global org?', answer: '<p class="ans-p">Handling LDV requires a multi-layered approach to prevent locking and governor limit exhaustion:</p><ul class="ans-list"><li><b>Skinny Tables:</b> Request Salesforce Support to enable skinny tables to include frequently used fields and avoid joins.</li><li><b>Custom Indexes:</b> Use the Index checkbox on custom fields to optimize SOQL WHERE clauses.</li><li><b>Division:</b> Use divisions to segment data and improve performance in massive orgs.</li><li><b>Async Processing:</b> Use <code>Queueable</code> with <code>Database.AllowsCallouts</code> to offload processing and maintain UI responsiveness.</li></ul>' },
       { type: 'qa', question: 'Explain the importance of "Quality Engineering" at Deloitte.', answer: '<p class="ans-p">Quality Engineering (QE) is the evolution of QA, embedding testing into the entire lifecycle:</p><ul class="ans-list"><li><b>Shift Left:</b> Unit testing (Apex & Jest) is performed immediately during development.</li><li><b>Static Analysis:</b> Continuous use of PMD, Checkmarx, and Salesforce Code Analyzer (SFCA).</li><li><b>Automated Regression:</b> Using Copado or Jenkins pipelines to run all tests before merging into the Integration branch.</li></ul>' },
       { type: 'qa', question: 'Scenario: How to handle 100k+ record updates daily without hitting limits?', answer: '<p class="ans-p">Use <b>Batch Apex</b> with a targeted scope size (typically 200). If the logic is relatively simple, <b>Platform Events</b> can be used to decouple the update from the source transaction, allowing for much higher throughput and parallel processing.</p>' },
-      { type: 'section', title: 'ðŸ•’ April 2026 Interview Updates' },
+      { type: 'section', title: 'April 2026 Interview Updates' },
       { type: 'qa', question: 'Scenario: Write a trigger to store Contact count on Account without using Roll-up Summary.', answer: '<p class="ans-p">Since Account and Contact are standard objects in a lookup relationship (not Master-Detail), we must use Apex:</p><ol class="ans-list"><li><b>Collect Account IDs:</b> In <code>after insert</code>, <code>after update</code>, and <code>after delete</code>, collect all <code>AccountId</code> values into a <code>Set&lt;Id&gt;</code>.</li><li><b>Aggregate Query:</b> Run an <code>AggregateResult</code> query: <code>[SELECT AccountId, COUNT(Id) cnt FROM Contact WHERE AccountId IN :accIds GROUP BY AccountId]</code>.</li><li><b>Update Accounts:</b> Loop through the results, create new Account instances with the count, and perform a single <code>update</code> DML on the list.</li><li><b>Recursion:</b> Ensure you use a static boolean flag to prevent the update from re-triggering logic if other triggers exist.</li></ol>' },
       { type: 'qa', question: 'Compare Custom Settings vs. Custom Metadata for Deloitte projects.', answer: '<p class="ans-p"><b>Custom Metadata (Preferred):</b> Deployable via change sets/packages, queryable without DML limits, supports relationship fields, and perfect for app configurations/mappings. <b>Custom Settings:</b> Better for "Hierarchy" settings (user-specific values) or frequently updated "List" settings if the volume is low, but metadata is the modern standard for enterprise config.</p>' },
       { type: 'qa', question: 'Explain the 3 Layers of the Salesforce Security Model.', answer: '<p class="ans-p">Deloitte interviewers look for this hierarchy:</p><ol class="ans-list"><li><b>Object Level (CRUD):</b> Profiles and Permission Sets control what objects a user can see/edit.</li><li><b>Field Level (FLS):</b> Controls visibility/editability of specific fields within those objects.</li><li><b>Record Level (Sharing):</b> Controlled by OWD (baseline), Role Hierarchy (vertical), Sharing Rules (horizontal), and Apex Sharing (complex).</li></ol>' },
@@ -72,47 +72,47 @@ var TOPIC_DATA = {
     title: 'Accenture Salesforce Prep',
     subtitle: 'Focus on Global Delivery Model and Scalable Frameworks.',
     blocks: [
-      { type: 'section', title: 'ðŸ› ï¸ Scalable Development' },
+      { type: 'section', title: 'Scalable Development' },
       { type: 'qa', question: 'Why is a Trigger Framework mandatory in Accenture projects?', answer: '<p class="ans-p">Accenture utilizes frameworks like <b>fflib</b> or custom <b>Trigger Handlers</b> to ensure:</p><ul class="ans-list"><li><b>One Trigger Per Object:</b> Prevents unpredictable order of execution issues.</li><li><b>Recursion Control:</b> Uses static sets or boolean flags to prevent infinite loops.</li><li><b>Separation of Concerns:</b> Trigger only handles routing; business logic lives in Service or Domain classes.</li></ul>' },
       { type: 'qa', question: 'How to manage multi-org deployments using Unlocked Packages?', answer: '<p class="ans-p">Unlocked packages allow for modular development. We define dependencies in <code>sfdx-project.json</code> and use the <code>sf package version create</code> command. This ensures that changes in "Core Security" don\'t break "Regional Sales" modules unless explicitly updated.</p>' },
-      { type: 'section', title: 'ðŸ•’ April 2026 Interview Updates' },
+      { type: 'section', title: 'April 2026 Interview Updates' },
       { type: 'qa', question: 'LWC Lifecycle: How to capture child component data in the parent?', answer: '<p class="ans-p">Use <b>Custom Events</b>. The child dispatches an event using <code>this.dispatchEvent(new CustomEvent(\'myevent\', { detail: data }))</code>. The parent listens for it in the HTML using <code>onmyevent={handleEvent}</code>. For deep nesting, use <code>bubbles: true</code> and <code>composed: true</code>.</p>' },
       { type: 'qa', question: 'Scenario: Implement a progress bar for a 5-minute external API call.', answer: '<p class="ans-p">Since an HTTP callout cannot stay open for 5 minutes (timeout is 120s), we use a <b>Polling or Callback pattern</b>:</p><ol class="ans-list"><li><b>Initiate:</b> Apex calls the API, gets a "Job ID", and returns it to LWC.</li><li><b>Poll:</b> LWC uses <code>setInterval</code> to call another Apex method every 5-10 seconds to check the status of that Job ID.</li><li><b>Progress:</b> As the status updates (e.g., 20%, 50%), the LWC updates a <code>lightning-progress-bar</code>.</li><li><b>Complete:</b> Once status is "Success", clear the interval and show a toast message.</li></ol>' }
     ]
   },
   'fde_ag_concept': {
-    title: 'FDE Prep â€” Agentforce Core',
+    title: 'FDE Prep - Agentforce Core',
     subtitle: 'Architectural concepts for AI Specialists.',
     blocks: [
-      { type: 'section', title: 'ðŸ¤– Agentforce Architecture' },
+      { type: 'section', title: 'Agentforce Architecture' },
       { type: 'qa', question: 'What are the 5 core components of Agentforce?', answer: '<p class="ans-p"><b>1. Agent:</b> The AI persona/role. <b>2. Topics:</b> Task categories. <b>3. Actions:</b> Executable logic (Flow, Apex, etc.). <b>4. Atlas:</b> The reasoning engine. <b>5. Trust Layer:</b> Security and PII masking.</p>' },
       { type: 'qa', question: 'What is the ReAct pattern in Atlas?', answer: '<p class="ans-p"><b>Reason + Act.</b> The engine reasons about the user intent, decides on an action, executes it, observes the result, and loops until the final response is generated.</p>' },
       { type: 'qa', question: 'Dynamic Grounding vs. Hallucination.', answer: '<p class="ans-p">Grounding is the process of injecting real Salesforce record data into the prompt at runtime (RAG). This ensures the LLM answers based on facts, preventing it from making up information (hallucination).</p>' }
     ]
   },
   'fde_ag_scenario': {
-    title: 'FDE Prep â€” Agentforce Scenarios',
+    title: 'FDE Prep - Agentforce Scenarios',
     subtitle: 'Practical design and debugging challenges.',
     blocks: [
-      { type: 'section', title: 'ðŸ› ï¸ Design & Debugging' },
+      { type: 'section', title: 'Design & Debugging' },
       { type: 'qa', question: 'Scenario: Agent gives wrong product eligibility answers. Debug steps?', answer: '<p class="ans-p">1. Check <b>Conversation Simulator</b> logs. 2. Verify <b>Grounding Data</b> was correctly retrieved. 3. Review <b>Prompt Template</b> instructions for ambiguity. 4. Add <b>negative instructions</b> to the topic guardrails.</p>' },
       { type: 'qa', question: 'How to make Agentforce compliant in Mortgage?', answer: '<p class="ans-p">Enable <b>PII Masking</b> in the Trust Layer. Add <b>hard escalation rules</b> for TRID-sensitive keywords (e.g., "rate quote"). Use <b>System Prompts</b> to forbid legal advice.</p>' }
     ]
   },
   'fde_dc_concept': {
-    title: 'FDE Prep â€” Data Cloud Core',
+    title: 'FDE Prep - Data Cloud Core',
     subtitle: 'Unified profile and data orchestration.',
     blocks: [
-      { type: 'section', title: 'ðŸ“Š Data Cloud Lifecycle' },
-      { type: 'qa', question: 'Explain the Data Cloud lifecycle.', answer: '<p class="ans-p"><b>Ingest</b> (DLO) â†’ <b>Map</b> (DMO) â†’ <b>Resolve</b> (Unified Individual) â†’ <b>Insights</b> (Metrics) â†’ <b>Segment</b> (Audience) â†’ <b>Activate</b> (Destination).</p>' },
+      { type: 'section', title: 'Data Cloud Lifecycle' },
+      { type: 'qa', question: 'Explain the Data Cloud lifecycle.', answer: '<p class="ans-p"><b>Ingest</b> (DLO) -> <b>Map</b> (DMO) -> <b>Resolve</b> (Unified Individual) -> <b>Insights</b> (Metrics) -> <b>Segment</b> (Audience) -> <b>Activate</b> (Destination).</p>' },
       { type: 'qa', question: 'What is a Unified Individual?', answer: '<p class="ans-p">A master 360-degree profile created by <b>Identity Resolution</b> match rules. It links records from multiple systems (CRM, Web, Legacy) without destroying source data.</p>' }
     ]
   },
   'fde_dc_adv': {
-    title: 'FDE Prep â€” Data Cloud Advanced',
+    title: 'FDE Prep - Data Cloud Advanced',
     subtitle: 'Large scale orchestration and AI grounding.',
     blocks: [
-      { type: 'section', title: 'ðŸš€ Performance & AI' },
+      { type: 'section', title: 'Performance & AI' },
       { type: 'qa', question: 'What are Data Graphs and why use them for Agentforce?', answer: '<p class="ans-p">Data Graphs are <b>pre-joined, materialized views</b> of related records. They provide sub-second data retrieval for agent grounding, ensuring the AI has the full context without multiple slow SOQL queries.</p>' },
       { type: 'qa', question: 'Explain Zero Copy Partner Network.', answer: '<p class="ans-p">Allows Data Cloud to query data in-place from external warehouses like <b>Snowflake</b> or <b>BigQuery</b> without physically copying the data, reducing cost and latency.</p>' }
     ]
@@ -121,10 +121,10 @@ var TOPIC_DATA = {
     title: 'FDE Cheat Sheet',
     subtitle: 'Rapid-fire definitions and power phrases.',
     blocks: [
-      { type: 'section', title: 'âš¡ Rapid-Fire Definitions' },
+      { type: 'section', title: 'Rapid-Fire Definitions' },
       { type: 'qa', question: 'Atlas vs. Trust Layer', answer: '<p class="ans-p"><b>Atlas:</b> The brain (thinking/planning). <b>Trust Layer:</b> The shield (PII masking/security).</p>' },
       { type: 'qa', question: 'DLO vs. DMO', answer: '<p class="ans-p"><b>DLO (Data Lake Object):</b> Raw incoming data. <b>DMO (Data Model Object):</b> Clean, mapped data in the standard model.</p>' },
-      { type: 'section', title: 'ðŸŽ¯ Power Phrases' },
+      { type: 'section', title: 'Power Phrases' },
       { type: 'qa', question: 'How to sound like a Senior FDE?', answer: '<p class="ans-p">"Grounding is the foundation of accuracy; without it, you just have a generic chatbot."<br>"I separate read-only topics from write topics to manage risk profiles."<br>"Topic descriptions matter more than prompt engineering because Atlas routes before the LLM fires."</p>' }
     ]
   },
@@ -133,7 +133,7 @@ var TOPIC_DATA = {
     title: 'Salesforce 5 Layers of Security',
     subtitle: 'Complete breakdown of the Salesforce Security Model.',
     blocks: [
-      { type: 'section', title: 'ðŸ›¡ï¸ The Security Gates' },
+      { type: 'section', title: 'The Security Gates' },
       { type: 'qa', question: 'Layer 1: Organization Level Security?', answer: '<p class="ans-p">The first line of defense. Controls WHO can login and WHEN:</p><ul class="ans-list"><li><b>Login IP Ranges:</b> Restricts access to specific network addresses (Trusted IPs).</li><li><b>Login Hours:</b> Restricts access based on time of day (e.g., 9-5 only).</li><li><b>Password Policies:</b> Complexity, history, and lockout periods.</li></ul>' },
       { type: 'qa', question: 'Layer 2: Object Level Security (CRUD)?', answer: '<p class="ans-p">Controls WHAT objects a user can see and modify. Managed via <b>Profiles</b> (baseline) and <b>Permission Sets</b> (additive). Permissions include Create, Read, Edit, Delete, View All, and Modify All.</p>' },
       { type: 'qa', question: 'Layer 3: Field Level Security (FLS)?', answer: '<p class="ans-p">Controls which fields are visible/editable even if the user has object access. This is the <b>strongest</b> way to protect PII data. If a field is hidden via FLS, it cannot be seen in reports, search, or via API.</p>' },
@@ -145,7 +145,7 @@ var TOPIC_DATA = {
     title: 'Order of Execution (Master Class)',
     subtitle: 'The sub-second sequence of events when saving a record.',
     blocks: [
-      { type: 'section', title: 'â±ï¸ The 20-Step Sequence' },
+      { type: 'section', title: 'The 20-Step Sequence' },
       { type: 'qa', question: 'Explain the 20 steps of Salesforce Order of Execution in order.', answer: '<p class="ans-p">When a record is saved, Salesforce follows this strict sequence:</p><ol class="ans-list"><li><b>Initialize:</b> Loads original record from DB (if update).</li><li><b>Overwrite:</b> Overwrites old values with new values from request.</li><li><b>System Validation:</b> Checks required fields, data types, and field lengths.</li><li><b>Before-Save Flow:</b> Executes Record-Triggered Flows configured to run "Before the record is saved".</li><li><b>Before Triggers:</b> Executes all <code>before insert</code> or <code>before update</code> triggers.</li><li><b>Custom Validation:</b> Executes custom Validation Rules.</li><li><b>Duplicate Rules:</b> Checks for duplicate records.</li><li><b>Save:</b> Saves the record to the database (but does not commit).</li><li><b>After Triggers:</b> Executes all <code>after insert</code> or <code>after update</code> triggers.</li><li><b>Assignment Rules:</b> Executes Case or Lead assignment rules.</li><li><b>Auto-Response:</b> Executes auto-response rules.</li><li><b>Workflow:</b> Executes Workflow rules (Field updates, Tasks, Emails).</li><li><b>Workflow Re-execution:</b> If workflow updated a field, Before/After triggers fire ONE MORE TIME (but only once).</li><li><b>Escalation Rules:</b> Executes Case escalation rules.</li><li><b>After-Save Flow:</b> Executes Record-Triggered Flows (After-Save) and Process Builders.</li><li><b>Entitlements:</b> Executes entitlement processes.</li><li><b>Roll-up Summary:</b> Calculates roll-up summary fields and updates parent records.</li><li><b>Sharing:</b> Evaluates Criteria-Based Sharing.</li><li><b>Commit:</b> Commits all DML operations to the database.</li><li><b>Post-Commit:</b> Executes logic after commit (Email Alerts, Outbound Messages).</li></ol>' },
       { type: 'qa', question: 'What is the "Recursive Trigger" trap in the Order of Execution?', answer: '<p class="ans-p">If a workflow rule (Step 12) performs a field update, it causes the <b>Before and After triggers</b> to fire again. If your trigger logic performs another update without a static boolean flag to check "isExecuting", you can enter an infinite loop, eventually hitting the limit of 16 recursions or governor limits.</p>' },
       { type: 'qa', question: 'Why use Before-Save Flow (Step 4) instead of Before Trigger (Step 5)?', answer: '<p class="ans-p">Before-Save Flows are up to <b>10x faster</b> than Process Builder or Workflow and don\'t require extra DML. They should be used for simple same-record field updates. Before Triggers should be reserved for complex logic that requires Apex (e.g., calling a Service class or complex collections logic).</p>' }
@@ -155,7 +155,7 @@ var TOPIC_DATA = {
     title: 'Salesforce Flow Master Class',
     subtitle: 'Advanced design patterns and error handling.',
     blocks: [
-      { type: 'section', title: 'ðŸŒŠ Automation Strategy' },
+      { type: 'section', title: 'Automation Strategy' },
       { type: 'qa', question: 'How to handle "Mixed DML" errors in Flow?', answer: '<p class="ans-p">Mixed DML occurs when updating Setup (User) and Non-Setup (Account) objects in one transaction. Fix: Use an <b>Action element</b> with "Pause" or call an <b>Async Apex</b> action to separate the transactions.</p>' },
       { type: 'qa', question: 'What is a "Fault Path" and why use it?', answer: '<p class="ans-p">A Fault Path allows you to handle unexpected errors gracefully. Instead of the user seeing "An unhandled fault has occurred", you can log the error to a custom object, send a Slack alert, or show a friendly screen message.</p>' }
     ]
@@ -164,7 +164,7 @@ var TOPIC_DATA = {
     title: 'Sales Cloud Architecture',
     subtitle: 'Mastering the Lead-to-Cash lifecycle and Sales productivity.',
     blocks: [
-      { type: 'section', title: 'ðŸ’° Sales Pipeline & Productivity' },
+      { type: 'section', title: 'Sales Pipeline & Productivity' },
       { type: 'qa', question: 'How do you handle Multi-Currency and Advanced Currency Management (ACM)?', answer: '<p class="ans-p">Enable Multi-Currency in Company Information. <b>ACM</b> allows you to manage dated exchange rates within Opportunities. Note: ACM does NOT apply to custom objects or roll-up summaries; for those, you need custom Apex logic or third-party tools.</p>' },
       { type: 'qa', question: 'Explain the Opportunity Split feature.', answer: '<p class="ans-p">Opportunity Splits allow multiple team members to share credit for an Opportunity. <b>Revenue Splits</b> must total 100%, while <b>Overlay Splits</b> can total any percentage. Both rely on Opportunity Teams being enabled.</p>' },
       { type: 'qa', question: 'What is Collaborative Forecasting?', answer: '<p class="ans-p">A tool to predict sales based on the Opportunity pipeline. It supports various forecast types (Revenue, Quantity, Product Families) and allows for adjustments by managers to provide a "best-case" estimate.</p>' },
@@ -175,7 +175,7 @@ var TOPIC_DATA = {
     title: 'Service Cloud Architecture',
     subtitle: 'High-performance support, Omni-channel, and KCS.',
     blocks: [
-      { type: 'section', title: 'ðŸ› ï¸ Service Excellence & Knowledge' },
+      { type: 'section', title: 'Service Excellence & Knowledge' },
       { type: 'qa', question: 'What is Knowledge Centered Service (KCS) in Salesforce?', answer: '<p class="ans-p">KCS involves capturing knowledge during the support process. Agents can search the <b>Knowledge Base</b>, attach articles to cases, and "Promote to Article" from a Case comment. This requires <b>Knowledge User</b> licenses and Article Type configurations.</p>' },
       { type: 'qa', question: 'Omni-Channel: Capacity vs. Weight?', answer: '<p class="ans-p"><b>Capacity:</b> The total work an agent can handle (e.g., 100 units). <b>Weight:</b> The "cost" of a specific work item (e.g., a Chat = 20 units, a Case = 50 units). Omni-Channel routes work until the agent\'s total weight reaches their capacity.</p>' },
       { type: 'qa', question: 'How to implement "Follow-the-Sun" support?', answer: '<p class="ans-p">Use <b>Business Hours</b> and <b>Holiday</b> settings combined with <b>Case Assignment Rules</b> or Omni-Channel. Rules check the current time and route the case to the queue active in that specific time zone (e.g., APAC, EMEA, US).</p>' },
@@ -186,7 +186,7 @@ var TOPIC_DATA = {
     title: 'Experience Cloud (Communities)',
     subtitle: 'Building secure and performant portals for Partners & Customers.',
     blocks: [
-      { type: 'section', title: 'ðŸŒ Portal Architecture & Security' },
+      { type: 'section', title: 'Portal Architecture & Security' },
       { type: 'qa', question: 'Difference between Customer Community vs. Partner Community licenses?', answer: '<p class="ans-p"><b>Customer Community:</b> High volume, limited access (no Leads, Opportunities, or Campaigns). <b>Partner Community:</b> Full access to Sales objects (Leads, Deals, MDF) and supports <b>Advanced Sharing</b> (Share Groups/Apex Sharing).</p>' },
       { type: 'qa', question: 'How to manage Brand Consistency across multiple Communities?', answer: '<p class="ans-p">Use the <b>Experience Builder Theme</b>. Define global colors, fonts, and CSS. For cross-community reuse, package your brand as a <b>Lightning Bolt Template</b> or use a shared <b>LWC Design System</b>.</p>' },
       { type: 'qa', question: 'What is a "Share Group" in Experience Cloud?', answer: '<p class="ans-p">Share Groups are used with <b>Customer Community Plus</b> or <b>Partner</b> licenses to share records owned by community users with internal users. Since community users don\'t exist in the standard Role Hierarchy, Share Groups bridge that gap.</p>' },
@@ -358,12 +358,12 @@ window.syncProfile = async function(platform) {
   const originalHtmlN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Sync & Analyze';
 
   if (platform === 'LinkedIn' && btnL) { 
-    btnL.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">â†»</span> Analyzing Profile...'; 
+    btnL.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">...</span> Analyzing Profile...'; 
     btnL.style.background = 'var(--blue)';
     btnL.style.opacity = '0.9'; 
   }
   if (platform === 'Naukri' && btnN) { 
-    btnN.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">â†»</span> Scanning Resume...'; 
+    btnN.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">...</span> Scanning Resume...'; 
     btnN.style.background = '#ff7555';
     btnN.style.opacity = '0.9'; 
   }
@@ -397,7 +397,7 @@ window.syncProfile = async function(platform) {
 
       if (statusEl) {
         statusEl.style.display = 'block';
-        statusEl.innerHTML = 'âœ“ ' + platform + ' profile synced & saved to cloud';
+        statusEl.innerHTML = 'OK ' + platform + ' profile synced & saved to cloud';
         setTimeout(function() { statusEl.style.display = 'none'; }, 8000);
       }
       await loadUserProfile();
@@ -647,7 +647,7 @@ async function generateDynamicQA(topicId) {
   const topicName = topicConfig[topicId] ? topicConfig[topicId].name : topicId;
 
   btn.disabled = true;
-  btn.textContent = 'â³ Gemma 4 is generating Q&A...';
+  btn.textContent = 'Gemma 4 is generating Q&A...';
   
   try {
     const prompt = `You are a Senior Salesforce Interviewer. Generate 5 highly technical and scenario-based interview questions for the topic: "${topicName}". 
@@ -684,7 +684,7 @@ Do not include any conversational text before or after the JSON.`;
       <div class="qa-block" style="margin-bottom:15px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:12px; overflow:hidden;">
         <div class="qa-question" onclick="toggleQA(this)" style="padding:15px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
           <span class="qa-q-text" style="font-weight:700; font-size:0.9rem; color:var(--text);">${idx + 1}. ${item.question}</span>
-          <span class="qa-chevron">â–¼</span>
+          <span class="qa-chevron">v</span>
         </div>
         <div class="qa-answer" style="padding:0 15px 15px; font-size:0.85rem; color:rgba(255,255,255,0.8); line-height:1.6;">
           ${item.answer.replace(/\n/g, '<br>')}
@@ -1067,7 +1067,7 @@ async function stopTracking() {
   var activeEl = document.getElementById('currentlyStudying');
   var lightEl = document.getElementById('activeLight');
   var timerEl = document.getElementById('floatingTimer');
-  if (activeEl) activeEl.textContent = 'â€”';
+  if (activeEl) activeEl.textContent = '-';
   if (lightEl) lightEl.style.display = 'none';
   if (timerEl) timerEl.style.display = 'none';
   if (floatingTimerInterval) {
@@ -2121,7 +2121,7 @@ async function smartApply(hash) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ðŸš€ Automation launched! Look at your taskbar for a new Chrome window.');
+      alert('Automation launched. Look at your taskbar for a new Chrome window.');
     } else {
       alert('Failed to launch automation: ' + data.error);
     }
@@ -2137,7 +2137,7 @@ async function generateCoverLetter(hash) {
   const btnIcon = document.getElementById(`cl_icon_${hash}`);
   const outputEl = document.getElementById(`cl_output_${hash}`);
   
-  if (btnIcon) btnIcon.textContent = 'â³';
+  if (btnIcon) btnIcon.textContent = '...';
   outputEl.style.display = 'block';
   outputEl.innerHTML = '<span style="color:var(--muted);">Gemma 4 is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
 
@@ -2160,11 +2160,11 @@ Do not include placeholders like [Your Name] or [Date], just write the core body
     const data = await res.json();
     
     outputEl.innerHTML = data.response;
-    if (btnIcon) btnIcon.textContent = 'âœ…';
+    if (btnIcon) btnIcon.textContent = 'OK';
     
   } catch(e) {
-    outputEl.innerHTML = '<span style="color:var(--red);">âš ï¸ Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
-    if (btnIcon) btnIcon.textContent = 'âŒ';
+    outputEl.innerHTML = '<span style="color:var(--red);">Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
+    if (btnIcon) btnIcon.textContent = 'Error';
   }
 }
 
@@ -2758,7 +2758,7 @@ function updateSyncModalUI(profile) {
 
   if (p.linkedin && p.linkedin.synced) {
       document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('liSyncStatus').innerHTML = 'âœ… Linked';
+      document.getElementById('liSyncStatus').innerHTML = 'OK Linked';
       if (liCard) {
         liCard.style.borderColor = '#10b981';
         liCard.style.background = 'rgba(16,185,129,0.05)';
@@ -2778,7 +2778,7 @@ function updateSyncModalUI(profile) {
 
   if (p.naukri && p.naukri.synced) {
       document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('nkSyncStatus').innerHTML = 'âœ… Linked';
+      document.getElementById('nkSyncStatus').innerHTML = 'OK Linked';
       if (nkCard) {
         nkCard.style.borderColor = '#10b981';
         nkCard.style.background = 'rgba(16,185,129,0.05)';
@@ -2905,7 +2905,7 @@ User Input: ${answer}`;
     
   } catch (e) {
     statusEl.style.display = 'none';
-    addChatMessage('ai', 'âš ï¸ Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
+    addChatMessage('ai', 'Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
     console.error('AI Interview Error:', e);
   }
 }
@@ -2967,7 +2967,7 @@ function toggleVoiceInput() {
       micBtn.style.background = 'var(--red)';
       micBtn.style.color = 'white';
       micBtn.style.boxShadow = '0 0 15px rgba(255, 59, 48, 0.5)';
-      micBtn.innerHTML = 'ðŸ›‘';
+      micBtn.textContent = 'Stop';
     }
     if (input) input.placeholder = "Listening... Speak your answer now.";
   };
@@ -3004,7 +3004,7 @@ function stopRecordingUI() {
     micBtn.style.background = 'var(--card)';
     micBtn.style.color = 'var(--text)';
     micBtn.style.boxShadow = 'none';
-    micBtn.innerHTML = 'ðŸŽ¤';
+    micBtn.textContent = 'Mic';
   }
   if (input) {
     input.placeholder = "Type or speak your answer here...";
@@ -3523,7 +3523,7 @@ function moveTo(id, newStatus) {
   savePipeline();
   renderBoard();
   logActivity(`Moved <strong>${job.company}</strong> from ${oldStatus.toUpperCase()} to ${newStatus.toUpperCase()}`, 'success');
-  if (newStatus === 'applied') showToast('ðŸš€ Application recorded!');
+  if (newStatus === 'applied') showToast('Application recorded.');
 }
 
 function switchRadarSubTab(tab) {
@@ -3713,7 +3713,7 @@ function saveOutreach() {
   savePipeline();
   renderBoard();
   closeModal('outreachModal');
-  showToast('ðŸ”— Outreach recorded for ' + selectedJobForOutreach.company);
+  showToast('Outreach recorded for ' + selectedJobForOutreach.company);
   logActivity(`Log outreach to <strong>${selectedJobForOutreach.outreach.name}</strong> (${selectedJobForOutreach.company})`, 'info');
 }
 
@@ -3725,7 +3725,7 @@ async function requestNotifications() {
   }
   const permission = await Notification.requestPermission();
   if (permission === "granted") {
-    showToast("ðŸš€ Reminders enabled!");
+    showToast("Reminders enabled.");
     scheduleReminders();
   }
 }
@@ -3749,7 +3749,7 @@ function scheduleReminders() {
 // Phase 3 Stubs
 async function openAIAssistant(jobId) {
   const job = pipelineJobs.find(j => j.id === jobId);
-  showToast(`ðŸ¤– Analyzing JD for ${job.company}...`);
+  showToast(`Analyzing JD for ${job.company}...`);
   setTimeout(() => {
      alert(`AI Suggestions for ${job.company}:\n1. Highlight your ${job.score > 90 ? 'PD2 Certification' : 'LWC experience'}.\n2. Emphasize Mortgage domain expertise.\n3. Mention Agentforce Specialist role.`);
   }, 1000);
@@ -3800,7 +3800,7 @@ async function triggerEmailGeneration() {
 
 function copyGeneratedEmail() {
   const text = document.getElementById('emailBody').textContent;
-  navigator.clipboard.writeText(text).then(() => showToast('ðŸ“‹ Copied!'));
+  navigator.clipboard.writeText(text).then(() => showToast('Copied.'));
 }
 
 function openPrepPanel(company) {
@@ -3880,7 +3880,7 @@ function submitCustomJob() {
   pipelineJobs.unshift(newJob);
   savePipeline(); renderBoard();
   closeModal('addJobModal');
-  showToast('â­ Job added!');
+  showToast('Job added.');
 }
 
 function updateAnalytics() {

@@ -185,20 +185,22 @@ export default async function handler(req, res) {
       else if (url === '/api/jobs' && method === 'GET') {
         if (isMongoConnected) {
           const records = await JobRecord.find({}).sort({ createdAt: -1 }).lean();
-          const debugJobs = [{ title: 'DEBUG: SERVER IS LIVE', company: 'DATABASE CONNECTED', status: 'new', job_hash: 'debug-1' }, ...records];
           console.log(`[DB] Brute Force | Found: ${records.length} jobs | Status: ${isMongoConnected}`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ records: debugJobs, dbStatus: isMongoConnected }));
+          res.end(JSON.stringify({
+            records,
+            dbStatus: true,
+            source: 'mongodb',
+            count: records.length
+          }));
         } else {
-          const errorJob = { 
-            title: 'DEBUG: MONGO CONNECTION FAILED', 
-            company: process.env.MONGODB_URI ? 'URI FOUND BUT FAILED' : 'URI MISSING IN VERCEL',
-            location: 'Check Vercel Environment Variables',
-            status: 'new',
-            job_hash: 'error-1' 
-          };
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ records: [errorJob], dbStatus: false }));
+          res.end(JSON.stringify({
+            records: [],
+            dbStatus: false,
+            source: 'cache',
+            error: process.env.MONGODB_URI ? 'mongodb_connection_failed' : 'missing_mongodb_uri'
+          }));
         }
       }
       else if (url === '/api/jobs/analytics' && method === 'GET') {
