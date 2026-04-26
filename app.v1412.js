@@ -544,8 +544,6 @@ function renderProfileMatchPage(profile) {
         </div>
       </div>
       
-      </div>
-      
       <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:16px; padding:20px; display:flex; align-items:center; justify-content:space-between; min-width:0; overflow:hidden;">
         <div style="min-width:0;">
           <div style="font-weight:700; font-size:1.1rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${profile.currentRole || 'Salesforce Professional'}</div>
