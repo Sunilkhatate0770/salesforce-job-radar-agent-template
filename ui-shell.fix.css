@@ -9,25 +9,17 @@
   --sidebar-w: 260px;
 }
 
+/* COMMON STYLES */
 body {
-  display: flex !important;
-  flex-direction: row !important;
   font-family: var(--app-font-body) !important;
   letter-spacing: 0.005em;
-  overflow: hidden !important;
+  background: var(--bg) !important;
+  margin: 0;
+  padding: 0;
 }
 
 #sidebar {
-  position: fixed !important;
-  left: 0 !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: var(--sidebar-w) !important;
-  min-width: var(--sidebar-w) !important;
-  z-index: 1000 !important;
-  background:
-    linear-gradient(180deg, rgba(17, 29, 53, 0.98), rgba(12, 21, 39, 0.98)),
-    var(--surface) !important;
+  background: var(--surface) !important; /* Start with solid surface */
   overflow-y: auto !important;
   overflow-x: hidden !important;
   scrollbar-width: thin;
@@ -35,13 +27,48 @@ body {
   border-right: 1px solid var(--border) !important;
 }
 
+/* DESKTOP LAYOUT ENFORCEMENT (>= 1025px) */
+@media (min-width: 1025px) {
+  body {
+    display: flex !important;
+    flex-direction: row !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  #sidebar {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    width: var(--sidebar-w) !important;
+    min-width: var(--sidebar-w) !important;
+    z-index: 1000 !important;
+    background: 
+      linear-gradient(180deg, rgba(17, 29, 53, 0.99), rgba(12, 21, 39, 0.99)),
+      var(--surface) !important;
+  }
+
+  #main {
+    margin-left: var(--sidebar-w) !important;
+    width: calc(100% - var(--sidebar-w)) !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* SIDEBAR INTERNAL COMPONENTS */
 #sidebar .sidebar-header {
   position: sticky !important;
   top: 0 !important;
-  z-index: 8 !important;
+  z-index: 101 !important;
   padding: 14px 16px 12px !important;
-  background: rgba(17, 29, 53, 0.98) !important;
-  backdrop-filter: blur(16px);
+  background: rgba(17, 29, 53, 1) !important; /* Solid on top */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 #sidebar .sidebar-header h2 {
@@ -67,10 +94,6 @@ body {
   background: rgba(59, 130, 246, 0.055) !important;
 }
 
-#masterProfileStatus > div:first-child {
-  margin-bottom: 8px !important;
-}
-
 #sidebarSyncStatus {
   max-height: 42px !important;
   overflow: hidden !important;
@@ -88,10 +111,10 @@ body {
 #sidebar .search-wrap {
   position: sticky !important;
   top: 76px !important;
-  z-index: 7 !important;
+  z-index: 100 !important;
   padding: 9px 12px !important;
-  background: rgba(17, 29, 53, 0.97) !important;
-  backdrop-filter: blur(16px);
+  background: rgba(17, 29, 53, 1) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
 #searchInput {
@@ -99,11 +122,11 @@ body {
   border-radius: 10px !important;
   font-family: var(--app-font-body) !important;
   font-size: 0.74rem !important;
+  background: rgba(255, 255, 255, 0.03) !important;
 }
 
 #sidebar .nav-parent-section {
   padding: 5px 8px !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.035) !important;
 }
 
 #sidebar .nav-parent-title {
@@ -118,29 +141,6 @@ body {
   line-height: 1 !important;
   letter-spacing: 1.5px !important;
   cursor: pointer;
-  user-select: none;
-}
-
-#sidebar .nav-parent-title:hover {
-  background: rgba(59, 130, 246, 0.08) !important;
-  color: #7cb7ff !important;
-  opacity: 1 !important;
-}
-
-#sidebar .nav-section-chevron {
-  margin-left: auto;
-  color: var(--text3);
-  font-size: 0.7rem;
-  transition: transform 0.18s ease;
-}
-
-#sidebar .nav-parent-section.collapsed .nav-section-chevron {
-  transform: rotate(-90deg);
-}
-
-#sidebar .nav-parent-section.collapsed .nav-item,
-#sidebar .nav-parent-section.collapsed .nav-parent-title:not(:first-child) {
-  display: none !important;
 }
 
 #sidebar .nav-item {
@@ -152,43 +152,7 @@ body {
   border-radius: 10px !important;
   font-family: var(--app-font-body) !important;
   font-size: 0.74rem !important;
-  line-height: 1.1 !important;
   color: #86a0c4 !important;
-}
-
-#sidebar .nav-item svg {
-  width: 15px !important;
-  height: 15px !important;
-  flex: 0 0 15px !important;
-  opacity: 0.82 !important;
-  stroke-width: 2.2 !important;
-}
-
-#sidebar .nav-item .nav-label {
-  min-width: 0;
-  flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#sidebar .nav-item .count {
-  margin-left: auto !important;
-  flex: 0 0 auto !important;
-  max-width: 70px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: var(--app-font-mono) !important;
-  font-size: 0.54rem !important;
-  letter-spacing: 0.02em;
-  color: #6f86ad !important;
-  background: rgba(59, 130, 246, 0.095) !important;
-  border: 1px solid rgba(59, 130, 246, 0.08);
-}
-
-#sidebar .nav-item:hover {
-  color: var(--text) !important;
-  background: rgba(59, 130, 246, 0.075) !important;
 }
 
 #sidebar .nav-item.active {
@@ -197,36 +161,19 @@ body {
   border-left-color: var(--blue) !important;
 }
 
-#sidebar .nav-item.active svg {
-  color: #58a6ff !important;
-  opacity: 1 !important;
-}
-
-#sidebar div[style*="INITIATE GLOBAL JOB SCAN"] {
-  margin-top: 10px !important;
-}
-
-#btnScanJobs {
-  min-height: 36px !important;
-  padding: 9px !important;
-  border-radius: 11px !important;
-  font-size: 0.68rem !important;
-}
-
+/* MAIN CONTENT COMPONENTS */
 #main {
-  margin-left: var(--sidebar-w) !important;
-  width: calc(100% - var(--sidebar-w)) !important;
-  min-width: 0 !important;
   font-family: var(--app-font-body) !important;
   padding-bottom: 84px !important;
-  display: flex !important;
-  flex-direction: column !important;
 }
 
 #mainHeader {
   height: 48px !important;
   min-height: 48px !important;
-  background: rgba(7, 12, 24, 0.96) !important;
+  background: rgba(7, 12, 24, 0.98) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
 }
 
 #headerTitle {
@@ -243,149 +190,51 @@ body {
   padding: 0 !important;
 }
 
-.page-title,
-#topicViewerTitle {
-  font-family: var(--app-font-display) !important;
-  font-size: clamp(1.25rem, 2.15vw, 1.92rem) !important;
-  line-height: 1.08 !important;
-  letter-spacing: -0.025em !important;
-  margin-bottom: 0.55rem !important;
-  text-wrap: balance;
-}
-
-.page-sub,
-#topicViewerSub {
-  font-family: var(--app-font-body) !important;
-  font-size: 0.86rem !important;
-  line-height: 1.55 !important;
-  color: #8aa4c8 !important;
-}
-
-.qa-block,
-.content-card,
-.domain-card,
-.script-card,
-.sched-row,
-.vocab-item {
-  background: rgba(17, 29, 53, 0.84) !important;
-  border-color: rgba(59, 130, 246, 0.16) !important;
-}
-
-.qa-question {
-  min-height: 54px !important;
-}
-
-.qa-q-text {
-  font-family: var(--app-font-body) !important;
-  font-size: 0.88rem !important;
-  line-height: 1.42 !important;
-  letter-spacing: 0.002em !important;
-}
-
-.ans-p,
-.ans-list,
-.qa-answer,
-.page p,
-.page li {
-  font-family: var(--app-font-body) !important;
-  font-size: 0.86rem !important;
-  line-height: 1.68 !important;
-}
-
-pre.code,
-code,
-.stat-value,
-.ft-time {
-  font-family: var(--app-font-mono) !important;
-}
-
-#floatingTimer {
-  right: 24px !important;
-  bottom: 20px !important;
-  max-width: min(300px, calc(100vw - 32px)) !important;
-  border-radius: 16px !important;
-}
-
-#floatingTimer .ft-topic {
-  max-width: 142px !important;
-}
-
-#confidenceModal > div {
-  background: rgba(7, 12, 24, 0.92) !important;
-  border: 1px solid rgba(59, 130, 246, 0.22) !important;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
-}
-
-.confidence-modal-icon {
-  width: 54px;
-  height: 54px;
-  margin: 0 auto 16px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.24);
-  color: #8ec5ff;
-  font-family: var(--app-font-mono);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.confidence-choice-label {
-  font-family: var(--app-font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.08em;
-  opacity: 0.9;
-}
-
+/* RESPONSIVE LAYOUT OVERRIDES (Tablet/Mobile) */
 @media (max-width: 1024px) {
   body {
     display: block !important;
+    height: auto !important;
+    overflow: visible !important;
   }
+  
   #main {
-    width: 100% !important;
     margin-left: 0 !important;
+    width: 100% !important;
+    display: block !important;
   }
+
   #sidebar {
+    position: fixed !important;
+    left: -284px !important; /* HIDDEN BY DEFAULT */
     width: 284px !important;
-    min-width: 284px !important;
-    left: -284px !important; /* Fully hide the 284px sidebar */
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
+    transition: left 0.3s var(--ease) !important;
+    background: #111d35 !important; /* Solid dark for mobile */
+    box-shadow: 20px 0 60px rgba(0,0,0,0.6) !important;
   }
+
   #sidebar.mobile-open {
     left: 0 !important;
   }
+
+  .page {
+    padding: 68px 16px 110px !important;
+  }
+
+  #sidebar .sidebar-header,
+  #sidebar .search-wrap {
+    background: #111d35 !important;
+    position: sticky !important;
+  }
+  
+  #sidebar .sidebar-header { top: 0 !important; }
+  #sidebar .search-wrap { top: 76px !important; }
 }
 
 @media (max-width: 768px) {
-  body {
-    display: block !important; /* Switch from flex-row to block for mobile overlay mode */
-  }
-  #main {
-    width: 100% !important;
-    margin-left: 0 !important;
-  }
-  #sidebar .search-wrap {
-    position: sticky !important;
-    top: 88px !important; /* Calibrated for mobile brand header */
-    background: var(--surface) !important;
-    z-index: 99 !important;
-  }
-  #sidebar .sidebar-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 101 !important;
-    background: var(--surface) !important;
-  }
-  #sidebar > * {
-    /* Reset order */
-  }
-
-  .page {
-    padding: 68px 14px 110px !important; /* Increased padding-top to clear the 48px sticky header */
-  }
-
   #floatingTimer {
     left: 12px !important;
     right: 12px !important;
