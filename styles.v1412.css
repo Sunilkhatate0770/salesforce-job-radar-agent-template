@@ -132,6 +132,10 @@ body {
 .sidebar-header {
   padding: 1.2rem 1rem 0.8rem;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface); /* Ensure opaque background for stickiness */
 }
 
 .stat-value {
@@ -160,6 +164,11 @@ body {
 .search-wrap {
   padding: 0.7rem 0.8rem;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 96px; /* Sticks below the header */
+  z-index: 99;
+  background: var(--surface);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Added shadow for depth during scroll */
 }
 
 #searchInput {

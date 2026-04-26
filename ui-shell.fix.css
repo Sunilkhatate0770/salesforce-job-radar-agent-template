@@ -339,7 +339,16 @@ code,
 
 @media (max-width: 768px) {
   #sidebar .search-wrap {
-    top: 72px !important;
+    position: sticky !important;
+    top: 98px !important; /* Adjusted to stick below the mobile sidebar brand header */
+    background: var(--surface) !important;
+    z-index: 10 !important;
+  }
+  #sidebar .sidebar-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 11 !important;
+    background: var(--surface) !important;
   }
 
   .page {
