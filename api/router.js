@@ -93,14 +93,24 @@ export default async function(req, res) {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    // 2. PROFILE ENDPOINTS (Hybrid Search)
+    // 2. PROFILE ENDPOINTS (Hybrid Search & Smart Merge)
     if (path === 'profile/data') {
-      let profile = await TursoDB.getProfile(userId);
-      let source = 'Turso (Primary)';
-      if (!profile) {
-        profile = await UserProfile.findOne({ userId }).lean();
-        source = 'MongoDB (Legacy)';
+      let tursoProfile = await TursoDB.getProfile(userId);
+      let mongoProfile = await UserProfile.findOne({ userId }).lean();
+      
+      // Smart Merge: Use Turso as base, but fallback to Mongo for empty fields
+      let profile = tursoProfile || mongoProfile;
+      let source = tursoProfile ? 'Turso (Primary)' : 'MongoDB (Legacy)';
+
+      if (tursoProfile && mongoProfile) {
+        // If Turso exists but is "New" (no skills), pull from Mongo
+        if ((!tursoProfile.skills || tursoProfile.skills.length === 0) && mongoProfile.skills?.length > 0) {
+          console.log(`[PROFILE] Smart Merging: Borrowing skills from Legacy Mongo for ${userId}`);
+          profile = { ...mongoProfile, ...tursoProfile, skills: mongoProfile.skills, certifications: mongoProfile.certifications };
+          source = 'Hybrid (Turso + Mongo Legacy)';
+        }
       }
+
       console.log(`[PROFILE] Fetch for ${userId} -> Source: ${source}, Found: ${!!profile}`);
       return res.status(200).json({ exists: !!profile, profile, storageSource: source });
     }
