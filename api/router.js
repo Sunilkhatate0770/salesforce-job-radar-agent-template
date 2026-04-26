@@ -78,15 +78,25 @@ export default async function(req, res) {
   try {
     // 1. AUTH ENDPOINTS
     if (path === 'auth/google' && req.method === 'POST') {
-      const { token } = req.body;
-      const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
-      const payload = ticket.getPayload();
-      const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
-      
-      // Save to NEW Turso Tier
-      await TursoDB.saveUser(userData);
-      
-      return res.status(200).json({ success: true, user: userData });
+      try {
+        const { token } = req.body;
+        const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
+        const payload = ticket.getPayload();
+        const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
+        
+        // Save to NEW Turso Tier (Safe attempt)
+        try {
+          await TursoDB.saveUser(userData);
+          console.log(`[AUTH] User ${userData.id} synced to Turso tier.`);
+        } catch (dbErr) {
+          console.error('[AUTH] Turso sync failed but continuing:', dbErr.message);
+        }
+        
+        return res.status(200).json({ success: true, user: userData });
+      } catch (authErr) {
+        console.error('[AUTH] Google Verify Failed:', authErr.message);
+        return res.status(401).json({ success: false, error: 'Authentication failed. Check GOOGLE_CLIENT_ID.' });
+      }
     }
 
     // --- REQUIRE AUTH FOR DATA ROUTES ---
