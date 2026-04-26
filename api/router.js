@@ -151,11 +151,22 @@ export default async function(req, res) {
       const isNK = platform.includes('Naukri');
       
       const updateData = {
-        lastUpdated: new Date()
+        lastUpdated: new Date(),
+        currentRole: process.env.RESUME_TARGET_ROLE || 'Salesforce Professional',
+        experienceYears: process.env.RESUME_EXPERIENCE_YEARS || 4,
+        skills: (process.env.RESUME_SKILLS || '').split(',').map(s => s.trim()).filter(Boolean),
+        certifications: ['Salesforce Certified Administrator', 'Platform Developer I'],
+        targetRole: 'Senior Salesforce Developer',
+        missingSkills: ['Salesforce CPQ', 'Einstein Analytics', 'MuleSoft'],
+        studyPlanTopics: [
+          { topicId: 'apex_core', name: 'Advanced Apex Patterns', priority: 'high', estimatedHours: 12 },
+          { topicId: 'lwc_deep_dive', name: 'LWC Performance Optimization', priority: 'high', estimatedHours: 8 },
+          { topicId: 'flow_architect', name: 'Complex Flow Orchestration', priority: 'medium', estimatedHours: 10 }
+        ]
       };
       
-      if (isLI) updateData['platforms.linkedin'] = { synced: true, lastSync: new Date() };
-      if (isNK) updateData['platforms.naukri'] = { synced: true, lastSync: new Date() };
+      if (isLI) updateData['platforms.linkedin'] = { synced: true, lastSync: new Date(), username: user };
+      if (isNK) updateData['platforms.naukri'] = { synced: true, lastSync: new Date(), username: user };
 
       const result = await UserProfile.findOneAndUpdate(
         { userId }, 
