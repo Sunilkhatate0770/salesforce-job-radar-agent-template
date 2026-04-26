@@ -160,7 +160,6 @@
 
         const chevron = document.createElement('span');
         chevron.className = 'nav-section-chevron';
-        chevron.textContent = 'v';
         title.appendChild(chevron);
 
         const toggle = () => {

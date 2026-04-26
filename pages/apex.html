@@ -64,7 +64,7 @@ for(<span class="cls">Contact</span> c : Trigger.new) {
         c.Description = accMap.get(c.AccountId).Name;
     }
 }</pre>
-    <div class="tip-box"><div class="tip-label">Key rule to remember</div><p>Collect in a Set ΓåÆ Query once with IN clause ΓåÆ Process from a Map. This pattern: one SOQL query handles 200 records. Never put SOQL or DML inside a for loop over sObjects.</p></div>
+    <div class="tip-box"><div class="tip-label">Key rule to remember</div><p>Collect in a Set &rarr; Query once with IN clause &rarr; Process from a Map. This pattern: one SOQL query handles 200 records. Never put SOQL or DML inside a for loop over sObjects.</p></div>
   </div>
 </div>
 
