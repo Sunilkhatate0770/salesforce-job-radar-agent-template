@@ -4,6 +4,17 @@ import mongoose from 'mongoose';
 import { UserProfile, JobRecord, StudySession } from '../src/models/models.js';
 import { TursoDB } from '../src/db/turso_driver.js';
 
+/**
+ * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
+ * ---------------------------------------------------------
+ * PRIMARY WRITE (HOT): MongoDB Atlas (process.env.MONGODB_URI)
+ * ARCHIVAL TIER (COLD): Turso Tier (TursoDB)
+ * 
+ * RULE: All new data must hit MongoDB first. Data is migrated to Turso
+ * automatically via the checkAndArchiveOverflow() engine to maintain 
+ * the 512MB MongoDB limit. READS must merge both tiers.
+ */
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 let cachedDb = null;
