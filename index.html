@@ -81,51 +81,48 @@
       <div style="width:6px; height:6px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></div>
       <div style="font-size:0.6rem; color:#10b981; font-weight:600;">Synced to Agent Data Layer</div>
     </div>
-  </div>
-
-
-  <div class="sidebar-header-row" style="display:flex; align-items:center; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.01);">
-    <div id="userProfile" style="display:none; align-items:center; gap:12px; flex:1; overflow:hidden;">
-      <img id="userPicture" src="" style="width:34px; height:34px; border-radius:50%; border:2px solid var(--blue); background:var(--card-bg); flex-shrink:0;">
-      <div style="overflow:hidden; flex:1;">
-        <div id="userName" style="font-weight:700; font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-        <div id="userEmail" style="font-size:0.55rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div style="padding:0 1rem 1rem 1rem;">
-
-    <!-- MASTER PROFILE STATUS -->
-    <div id="masterProfileStatus" style="margin-top:18px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05);">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-            <div style="font-size:0.65rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Professional Sync</div>
-            <span id="syncPlatformCount" style="font-size:0.6rem; padding:2px 6px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:4px; color:var(--blue);">0 Linked</span>
-        </div>
-        
-        <div id="sidebarSyncStatus" style="display:flex; flex-direction:column; gap:8px;">
-            <div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">No platforms linked yet</div>
-        </div>
-
-        <button onclick="openSyncModal()" style="width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.25); border-radius:12px; color:var(--blue); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px;">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            Refresh Sync Data
-        </button>
-    </div>
-
-    <!-- View Profile Match Button (shown after sync) -->
-    <button id="btnViewProfileMatch" onclick="showPage('profile_match')" style="display:none; width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); border-radius:12px; color:#c4b5fd; cursor:pointer; transition:all 0.2s; align-items:center; justify-content:center; gap:8px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
-      Profile Intelligence
-    </button>
-
-    <button id="sidebarSignOutBtn" onclick="signOut()" style="width:100%; margin-top:10px; padding:7px; font-size:0.68rem; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--muted); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(239,68,68,0.1)';this.style.borderColor='rgba(239,68,68,0.25)';this.style.color='#ef4444'" onmouseleave="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--muted)'">Sign Out</button>
-  </div>
   <div class="search-wrap">
     <div style="position:relative; width:100%;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--muted); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input type="text" id="searchInput" placeholder="Search topics..." oninput="filterSidebar(this.value)" style="padding-left:32px !important;">
     </div>
+  </div>
+
+  <div class="sidebar-header-row" style="display:flex; align-items:center; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.01);">
+      <div id="userProfile" style="display:none; align-items:center; gap:12px; flex:1; overflow:hidden;">
+        <img id="userPicture" src="" style="width:34px; height:34px; border-radius:50%; border:2px solid var(--blue); background:var(--card-bg); flex-shrink:0;">
+        <div style="overflow:hidden; flex:1;">
+          <div id="userName" style="font-weight:700; font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+          <div id="userEmail" style="font-size:0.55rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:0 1rem 1rem 1rem;">
+      <!-- MASTER PROFILE STATUS -->
+      <div id="masterProfileStatus" style="margin-top:18px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+              <div style="font-size:0.65rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Professional Sync</div>
+              <span id="syncPlatformCount" style="font-size:0.6rem; padding:2px 6px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:4px; color:var(--blue);">0 Linked</span>
+          </div>
+          <div id="sidebarSyncStatus" style="display:flex; flex-direction:column; gap:8px;">
+              <div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">No platforms linked yet</div>
+          </div>
+          <button onclick="openSyncModal()" style="width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(139,92,246,0.1)); border:1px solid rgba(59,130,246,0.25); border-radius:12px; color:var(--blue); cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              Refresh Sync Data
+          </button>
+      </div>
+      <button id="btnViewProfileMatch" onclick="showPage('profile_match')" style="display:none; width:100%; margin-top:12px; padding:10px; font-size:0.75rem; font-weight:600; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(139,92,246,0.1); border:1px solid rgba(139,92,246,0.2); border-radius:12px; color:#c4b5fd; cursor:pointer; transition:all 0.2s; align-items:center; justify-content:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M12 20V10"></path><path d="M18 20V4"></path><path d="M6 20v-4"></path></svg>
+        Profile Intelligence
+      </button>
+      <button id="sidebarSignOutBtn" onclick="signOut()" style="width:100%; margin-top:10px; padding:7px; font-size:0.68rem; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--muted); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(239,68,68,0.1)';this.style.borderColor='rgba(239,68,68,0.25)';this.style.color='#ef4444'" onmouseleave="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--muted)'">Sign Out</button>
+    </div>
+
+    <!-- NAVIGATION SECTIONS -->
+    <!-- ... (rest of the navigation items) ... -->
+    <div id="sidebarNavContent"></div>
   </div>
 
   <div class="nav-parent-section">

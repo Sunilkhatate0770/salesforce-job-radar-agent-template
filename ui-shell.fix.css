@@ -340,20 +340,18 @@ code,
 @media (max-width: 768px) {
   #sidebar .search-wrap {
     position: sticky !important;
-    top: 92px !important; 
+    top: 88px !important; /* Calibrated for mobile brand header */
     background: var(--surface) !important;
     z-index: 99 !important;
-    order: 2 !important;
   }
   #sidebar .sidebar-header {
     position: sticky !important;
     top: 0 !important;
     z-index: 101 !important;
     background: var(--surface) !important;
-    order: 1 !important;
   }
   #sidebar > * {
-    order: 3 !important;
+    /* Reset order */
   }
 
   .page {

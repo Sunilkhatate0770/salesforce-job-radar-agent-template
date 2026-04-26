@@ -136,11 +136,10 @@ body {
   top: 0;
   z-index: 101;
   background: var(--surface);
-  order: 1; /* Force to top in flex container */
 }
 
 #sidebar > * {
-  order: 3; /* Push all other content below header and search */
+  /* Reset default order */
 }
 
 .stat-value {
@@ -174,7 +173,6 @@ body {
   z-index: 99;
   background: var(--surface);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  order: 2; /* Force below header but above other content */
 }
 
 #searchInput {
