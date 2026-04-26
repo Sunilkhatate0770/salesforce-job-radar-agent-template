@@ -18,15 +18,21 @@
   --jr-amber: #f59e0b;
   --jr-red: #ef4444;
   --jr-violet: #8b5cf6;
-  --jr-header-h: 58px;
-  --jr-analytics-h: 52px;
-  --jr-filter-h: 42px;
+  --jr-header-h: 72px; /* Increased to breathe */
+  --jr-analytics-h: 64px; /* Increased to breathe */
+  --jr-filter-h: 48px;
   background: var(--jr-bg);
   color: var(--jr-text);
   font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   min-height: calc(100vh - var(--header-h, 48px));
   padding: 0 !important;
   overflow: hidden;
+}
+
+/* Hide redundant shell title in Radar mode */
+body:has(#job_radar.active) #headerTitle {
+  opacity: 0;
+  pointer-events: none;
 }
 
 #job_radar * {
@@ -89,15 +95,22 @@
 #job_radar .pstat {
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
-  max-width: 140px;
-  min-width: 92px;
-  flex: 1 1 0;
-  background: var(--jr-surface) !important;
+  gap: 8px !important;
+  min-width: 0;
+  flex: 1;
+  background: rgba(30, 48, 85, 0.4) !important;
   border: 1px solid var(--jr-border) !important;
-  border-radius: 8px !important;
-  padding: 5px 10px !important;
+  border-radius: 12px !important;
+  padding: 8px 12px !important;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#job_radar .pstat:hover {
+  background: rgba(30, 48, 85, 0.6) !important;
+  border-color: var(--jr-blue) !important;
+  transform: translateY(-1px);
+}
 }
 
 #job_radar .pstat:hover {
@@ -200,18 +213,18 @@
 
 #job_radar .met-val {
   font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace !important;
-  font-size: 14px !important;
+  font-size: 16px !important;
   line-height: 1 !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
   color: var(--jr-text) !important;
 }
 
 #job_radar .met-lbl {
-  font-size: 9px !important;
+  font-size: 8.5px !important;
   line-height: 1.2 !important;
   color: var(--jr-text3) !important;
   text-transform: uppercase;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.8px !important;
   white-space: nowrap;
 }
 
@@ -317,13 +330,16 @@
 }
 
 #job_radar .radar-tabs {
-  height: 38px;
+  height: 40px;
   display: flex !important;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding: 0 20px !important;
   background: var(--jr-bg2);
   border-bottom: 1px solid var(--jr-border);
+  position: sticky;
+  top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h)) !important;
+  z-index: 28;
 }
 
 #job_radar .radar-tab-btn {
@@ -352,12 +368,12 @@
   border-bottom: 1px solid var(--jr-border) !important;
   display: flex !important;
   align-items: center !important;
-  gap: 6px !important;
+  gap: 12px !important;
   flex-wrap: nowrap !important;
-  padding: 7px 20px !important;
+  padding: 8px 20px !important;
   position: sticky !important;
-  top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h) + 38px) !important;
-  z-index: 28 !important;
+  top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h) + 40px) !important;
+  z-index: 27 !important;
 }
 
 #job_radar .filter-label {
