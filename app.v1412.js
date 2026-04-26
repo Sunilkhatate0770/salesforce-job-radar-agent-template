@@ -2930,7 +2930,8 @@ document.addEventListener('visibilitychange', function() {
   try {
     await Promise.all([
       fetchJobsList(),
-      renderHistory()
+      renderHistory(),
+      loadUserProfile()
     ]);
   } catch(e) { console.warn('Background preload partially failed', e); }
 })();
