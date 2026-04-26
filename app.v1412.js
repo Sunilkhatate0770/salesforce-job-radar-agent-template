@@ -1974,9 +1974,15 @@ async function fetchJobsList() {
 
     const dbBadge = document.getElementById('dbStatusBadge');
     if (dbBadge) {
-      dbBadge.textContent = data.dbStatus ? 'Database Connected' : 'Cache Mode';
+      dbBadge.textContent = data.dbStatus ? 'Live Tier' : 'Cache Mode';
       dbBadge.style.background = data.dbStatus ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.12)';
       dbBadge.style.color = data.dbStatus ? 'var(--green)' : 'var(--amber)';
+    }
+
+    const archiveBadge = document.getElementById('archiveStatusBadge');
+    if (archiveBadge && data.storageStats && data.storageStats.archived > 0) {
+      archiveBadge.style.display = 'inline-block';
+      archiveBadge.textContent = `${data.storageStats.archived} Archived`;
     }
 
     if (addedCount > 0) {

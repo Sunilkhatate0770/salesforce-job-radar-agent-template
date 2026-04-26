@@ -1,4 +1,5 @@
 import { UserProfile, JobRecord, StudySession } from '../src/models/models.js';
+import { pushToArchive, fetchFromArchive } from '../src/db/archive.js';
 import mongoose from 'mongoose';
 import { OAuth2Client } from 'google-auth-library';
 import fetch from 'node-fetch';
@@ -29,6 +30,34 @@ async function getUserId(req) {
   } catch (e) { 
     console.error('Auth verification failed:', e.message);
     return null; 
+  }
+}
+
+async function checkAndArchiveOverflow(userId) {
+  try {
+    const MAX_MONGO_JOBS = 1500;
+    const count = await JobRecord.countDocuments({ userId });
+    
+    if (count > MAX_MONGO_JOBS) {
+      console.log(`[Overflow] MongoDB Full (${count} jobs). Moving 500 to Archive...`);
+      
+      // Select 500 oldest 'ignored' jobs to move
+      const toMove = await JobRecord.find({ userId, status: 'ignored' })
+        .sort({ createdAt: 1 })
+        .limit(500)
+        .lean();
+        
+      if (toMove.length > 0) {
+        const result = await pushToArchive(toMove);
+        if (result.success) {
+          const ids = toMove.map(j => j._id);
+          await JobRecord.deleteMany({ _id: { $in: ids } });
+          console.log(`[Overflow] Successfully archived ${toMove.length} jobs.`);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Overflow] Error during archival:', e.message);
   }
 }
 
@@ -254,19 +283,33 @@ export default async function(req, res) {
     // 5. JOBS ENDPOINTS
     if (path === 'jobs') {
       const jobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ createdAt: -1 }).limit(100).lean();
+      
+      // UNIFIED FETCH: Fetch from Archive if requested or as fallback
+      const archived = await fetchFromArchive({ userId }, 50);
+      const unifiedJobs = [...jobs, ...archived];
+      
+      // Trigger overflow check in background
+      checkAndArchiveOverflow(userId);
+
       const debugJobs = [{ 
-        title: 'DEBUG: PREMIUM UI ACTIVE', 
-        company: 'ROUTER V1402', 
+        title: 'STORAGE STATUS: MULTI-DB ACTIVE', 
+        company: 'UNIFIED STORAGE V1', 
         status: 'new', 
-        job_hash: 'debug-premium',
-        salary: '₹18–25 LPA',
-        company_type: 'Product Company',
-        experience: '4+ Years',
+        job_hash: 'debug-storage',
+        salary: 'Tiered Overflow Active',
+        company_type: 'System Component',
+        experience: jobs.length + archived.length + ' Total Jobs',
         probability: 'high',
-        match_score: 95,
-        why_apply: '<strong>Premium UI Active:</strong> Dashboard now supports full-fidelity job cards with salary and match logic.'
-      }, ...jobs];
-      return res.status(200).json({ records: debugJobs, dbStatus: true, count: jobs.length });
+        match_score: 100,
+        why_apply: `<strong>Unified Tier Active:</strong> Managing ${jobs.length} Live jobs (Mongo) and ${archived.length} Archived jobs (Turso/Supabase).`
+      }, ...unifiedJobs];
+
+      return res.status(200).json({ 
+        records: debugJobs, 
+        dbStatus: true, 
+        count: jobs.length + archived.length,
+        storageStats: { live: jobs.length, archived: archived.length }
+      });
     }
     if (path === 'jobs/analytics') {
       const latestJobs = await JobRecord.find({}).sort({ fetched_at: -1 }).limit(200).lean();
