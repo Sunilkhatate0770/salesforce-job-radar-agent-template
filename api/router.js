@@ -246,6 +246,11 @@ export default async function(req, res) {
 
   } catch (e) {
     console.error('Hybrid API Error:', e);
-    return res.status(500).json({ success: false, error: e.message });
+    return res.status(500).json({ 
+      success: false, 
+      error: e.message,
+      stack: e.stack,
+      hint: 'This error is coming from the Vercel Serverless Function.'
+    });
   }
 }
