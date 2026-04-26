@@ -182,10 +182,18 @@ export default async function(req, res) {
     }
 
     if (path === 'profile/match') {
-      const profile = await TursoDB.getProfile(userId);
-      const jobs = await TursoDB.getJobAnalytics(userId);
-      console.log(`[MATCH] Analyzing ${jobs.length} jobs for ${userId}`);
-      const filtered = jobs.filter(j => (j.match_score || 0) >= 60);
+      const tursoProfile = await TursoDB.getProfile(userId);
+      const mongoProfile = await UserProfile.findOne({ userId }).lean();
+      const profile = tursoProfile || mongoProfile;
+
+      // Get Jobs from both tiers
+      const tursoJobs = await TursoDB.getJobAnalytics(userId);
+      const mongoJobs = await JobRecord.find({ userId }).lean();
+      const allJobs = [...tursoJobs, ...mongoJobs];
+
+      console.log(`[MATCH] Analyzing ${allJobs.length} total jobs for ${userId}`);
+      const filtered = allJobs.filter(j => (j.match_score || 0) >= 60);
+      
       const topMatchedSkills = {};
       const topMissingSkills = {};
       filtered.forEach(j => {
@@ -195,7 +203,13 @@ export default async function(req, res) {
         missing.forEach(s => topMissingSkills[s] = (topMissingSkills[s] || 0) + 1);
       });
       const sortSkills = (obj) => Object.entries(obj).sort((a,b) => b[1] - a[1]).slice(0, 10).map(([k,v]) => ({ _id: k, count: v }));
-      return res.status(200).json({ exists: !!profile, profile, matched_skills: sortSkills(topMatchedSkills), missing_skills: sortSkills(topMissingSkills) });
+      return res.status(200).json({ 
+        exists: !!profile, 
+        profile, 
+        matched_skills: sortSkills(topMatchedSkills), 
+        missing_skills: sortSkills(topMissingSkills),
+        storageSource: 'Unified Hybrid'
+      });
     }
 
     // 3. JOBS ENDPOINTS
@@ -216,9 +230,11 @@ export default async function(req, res) {
     }
 
     if (path === 'jobs/analytics') {
-      const jobs = await TursoDB.getJobAnalytics(userId);
-      console.log(`[ANALYTICS] Returning ${jobs.length} records for ${userId}`);
-      return res.status(200).json(jobs);
+      const tursoJobs = await TursoDB.getJobAnalytics(userId);
+      const mongoJobs = await JobRecord.find({ userId }).lean();
+      const combined = [...tursoJobs, ...mongoJobs];
+      console.log(`[ANALYTICS] Hybrid Merging ${combined.length} records for ${userId}`);
+      return res.status(200).json(combined);
     }
 
     // 4. STUDY ENDPOINTS
