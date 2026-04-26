@@ -10,11 +10,16 @@
 }
 
 body {
+  display: flex !important;
+  flex-direction: row !important;
   font-family: var(--app-font-body) !important;
   letter-spacing: 0.005em;
+  overflow: hidden !important;
 }
 
 #sidebar {
+  flex-shrink: 0 !important;
+  z-index: 100 !important;
   width: var(--sidebar-w) !important;
   min-width: var(--sidebar-w) !important;
   background:
@@ -205,8 +210,12 @@ body {
 }
 
 #main {
+  flex: 1 !important;
+  min-width: 0 !important;
   font-family: var(--app-font-body) !important;
   padding-bottom: 84px !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 #mainHeader {
