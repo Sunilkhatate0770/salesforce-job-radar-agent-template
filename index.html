@@ -82,6 +82,14 @@
       <div style="font-size:0.6rem; color:#10b981; font-weight:600;">Synced to Agent Data Layer</div>
     </div>
   </div>
+  
+  <div class="search-wrap">
+    <div style="position:relative; width:100%;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--muted); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="searchInput" placeholder="Search topics..." oninput="filterSidebar(this.value)" style="padding-left:32px !important;">
+    </div>
+  </div>
+
 
   <div class="sidebar-header-row" style="display:flex; align-items:center; justify-content:space-between; padding:15px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.01);">
     <div id="userProfile" style="display:none; align-items:center; gap:12px; flex:1; overflow:hidden;">
@@ -120,12 +128,7 @@
 
     <button id="sidebarSignOutBtn" onclick="signOut()" style="width:100%; margin-top:10px; padding:7px; font-size:0.68rem; font-family:'Plus Jakarta Sans',sans-serif; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--muted); cursor:pointer; transition: all 0.2s;" onmouseenter="this.style.background='rgba(239,68,68,0.1)';this.style.borderColor='rgba(239,68,68,0.25)';this.style.color='#ef4444'" onmouseleave="this.style.background='rgba(255,255,255,0.04)';this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='var(--muted)'">Sign Out</button>
   </div>
-  <div class="search-wrap">
-    <div style="position:relative; width:100%;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--muted); pointer-events:none;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" id="searchInput" placeholder="Search topics..." oninput="filterSidebar(this.value)" style="padding-left:32px !important;">
-    </div>
-  </div>
+  <!-- SEARCH (v1412) moved to top for better accessibility --  <!-- Search bar removed from here -->
 
   <div class="nav-parent-section">
     <div class="nav-parent-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;vertical-align:middle;margin-right:6px;"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> DASHBOARD & PLANNING</div>

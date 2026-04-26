@@ -2656,6 +2656,13 @@ function filterSidebar(val) {
     }
   });
 
+  // Handle revision alerts visibility
+  const revAlerts = document.getElementById('revisionAlerts');
+  if (revAlerts) {
+    if (query) revAlerts.style.display = 'none';
+    else revAlerts.style.display = 'block';
+  }
+
   // Also filter standalone titles if any (like "100 Scenario Mix")
   sectionTitles.forEach(title => {
     if (title.textContent.toLowerCase().includes(query)) {
