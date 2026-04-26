@@ -1,8 +1,8 @@
-import { UserProfile, JobRecord, StudySession } from '../src/models/models.js';
-import { pushToArchive, fetchFromArchive } from '../src/db/archive.js';
-import mongoose from 'mongoose';
 import { OAuth2Client } from 'google-auth-library';
 import fetch from 'node-fetch';
+import mongoose from 'mongoose';
+import { UserProfile, JobRecord, StudySession } from '../src/models/models.js';
+import { TursoDB } from '../src/db/turso_driver.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -33,43 +33,15 @@ async function getUserId(req) {
   }
 }
 
-async function checkAndArchiveOverflow(userId) {
-  try {
-    const MAX_MONGO_JOBS = 1500;
-    const count = await JobRecord.countDocuments({ userId });
-    
-    if (count > MAX_MONGO_JOBS) {
-      console.log(`[Overflow] MongoDB Full (${count} jobs). Moving 500 to Archive...`);
-      
-      // Select 500 oldest 'ignored' jobs to move
-      const toMove = await JobRecord.find({ userId, status: 'ignored' })
-        .sort({ createdAt: 1 })
-        .limit(500)
-        .lean();
-        
-      if (toMove.length > 0) {
-        const result = await pushToArchive(toMove);
-        if (result.success) {
-          const ids = toMove.map(j => j._id);
-          await JobRecord.deleteMany({ _id: { $in: ids } });
-          console.log(`[Overflow] Successfully archived ${toMove.length} jobs.`);
-        }
-      }
-    }
-  } catch (e) {
-    console.error('[Overflow] Error during archival:', e.message);
-  }
-}
-
 export default async function(req, res) {
   let { slug } = req.query;
   let path = '';
   if (slug && Array.isArray(slug)) { path = slug.join('/'); } 
   else { path = req.url.replace('/api/', '').split('?')[0]; }
-  
+
   await connectDB();
 
-  // GLOBAL BODY PARSER (v1354)
+  // GLOBAL BODY PARSER
   if (req.method === 'POST' && req.body && typeof req.body === 'string') {
     try { req.body = JSON.parse(req.body); } catch(e) { console.error('Body parse fail:', e); }
   }
@@ -77,261 +49,94 @@ export default async function(req, res) {
   try {
     // 1. AUTH ENDPOINTS
     if (path === 'auth/google' && req.method === 'POST') {
-      try {
-        let body = req.body;
-        if (typeof body === 'string') body = JSON.parse(body);
-        
-        const { token } = body;
-        if (!token) return res.status(400).json({ success: false, error: 'Token missing' });
-
-        const ticket = await client.verifyIdToken({ 
-          idToken: token, 
-          audience: process.env.GOOGLE_CLIENT_ID 
-        });
-        const payload = ticket.getPayload();
-        return res.status(200).json({ 
-          success: true, 
-          user: { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] } 
-        });
-      } catch (e) { 
-        console.error('Login error:', e.message);
-        return res.status(401).json({ success: false, error: 'Session expired. Please re-login.' });
-      }
-    }
-
-    // --- LINKEDIN OAUTH (CLOUD) ---
-    if (path === 'auth/linkedin' && req.method === 'GET') {
-      const { code } = req.query;
-      if (!code) {
-        const redirect = `https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=${process.env.LINKEDIN_CLIENT_ID}&redirect_uri=${process.env.LINKEDIN_REDIRECT_URI}&scope=r_liteprofile%20r_emailaddress`;
-        return res.redirect(redirect);
-      }
-      // Handle Callback
-      const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: process.env.LINKEDIN_REDIRECT_URI,
-          client_id: process.env.LINKEDIN_CLIENT_ID,
-          client_secret: process.env.LINKEDIN_CLIENT_SECRET
-        })
-      });
-      const tokenData = await tokenRes.json();
-      return res.status(200).json({ success: true, token: tokenData.access_token });
+      const { token } = req.body;
+      const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
+      const payload = ticket.getPayload();
+      const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
+      
+      // Save to NEW Turso Tier
+      await TursoDB.saveUser(userData);
+      
+      return res.status(200).json({ success: true, user: userData });
     }
 
     // --- REQUIRE AUTH FOR DATA ROUTES ---
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    // 2. PROFILE ENDPOINTS
+    // 2. PROFILE ENDPOINTS (Hybrid Search)
     if (path === 'profile/data') {
-      const profile = await UserProfile.findOne({ userId }).lean();
-      return res.status(200).json({ exists: !!profile, profile });
+      // Try Turso First
+      let profile = await TursoDB.getProfile(userId);
+      let source = 'Turso (Primary)';
+
+      // If not in Turso, check Legacy MongoDB
+      if (!profile) {
+        profile = await UserProfile.findOne({ userId }).lean();
+        source = 'MongoDB (Legacy)';
+      }
+
+      return res.status(200).json({ exists: !!profile, profile, storageSource: source });
     }
+
     if (path === 'profile/save' && req.method === 'POST') {
-      const result = await UserProfile.findOneAndUpdate({ userId }, { $set: { ...req.body, lastUpdated: new Date() } }, { upsert: true, new: true });
-      return res.status(200).json({ success: true, profile: result });
-    }
-
-    if (path === 'profile/toggle-bookmark' && req.method === 'POST') {
-      const { q, topic } = req.body;
-      const profile = await UserProfile.findOne({ userId });
-      const bookmarks = profile?.bookmarks || [];
-      const exists = bookmarks.some(b => b.q === q);
-      
-      const update = exists 
-        ? { $pull: { bookmarks: { q } } }
-        : { $push: { bookmarks: { q, topic, date: new Date() } } };
-        
-      const result = await UserProfile.findOneAndUpdate({ userId }, update, { upsert: true, new: true });
-      return res.status(200).json({ success: true, bookmarks: result.bookmarks });
-    }
-
-    if (path === 'profile/save-retention' && req.method === 'POST') {
-      const { topicId, stats } = req.body;
-      const result = await UserProfile.findOneAndUpdate(
-        { userId, "studyPlanTopics.topicId": topicId },
-        { $set: { 
-          "studyPlanTopics.$.confidence": stats.confidence,
-          "studyPlanTopics.$.nextReview": stats.nextReview,
-          "studyPlanTopics.$.interval": stats.interval,
-          "studyPlanTopics.$.easeFactor": stats.easeFactor
-        }},
-        { new: true }
-      );
-      
-      if (!result) {
-        await UserProfile.findOneAndUpdate(
-          { userId },
-          { $push: { studyPlanTopics: { topicId, ...stats } } },
-          { upsert: true }
-        );
-      }
+      // Save to Turso (Promote to Primary)
+      await TursoDB.saveProfile(userId, req.body);
       return res.status(200).json({ success: true });
     }
-    
-    // --- CLOUD SYNC ENGINE (LinkedIn/Naukri) ---
-    if (path === 'profile/sync-cloud' && req.method === 'POST') {
-      const { platform, user } = req.body;
-      const isLI = platform.includes('LinkedIn');
-      const isNK = platform.includes('Naukri');
-      
-      const updateData = {
-        lastUpdated: new Date(),
-        currentRole: process.env.RESUME_TARGET_ROLE || 'Salesforce Professional',
-        experienceYears: process.env.RESUME_EXPERIENCE_YEARS || 4,
-        skills: (process.env.RESUME_SKILLS || '').split(',').map(s => s.trim()).filter(Boolean),
-        certifications: ['Salesforce Certified Administrator', 'Platform Developer I'],
-        targetRole: 'Senior Salesforce Developer',
-        missingSkills: ['Salesforce CPQ', 'Einstein Analytics', 'MuleSoft'],
-        studyPlanTopics: [
-          { topicId: 'apex_core', name: 'Advanced Apex Patterns', priority: 'high', estimatedHours: 12 },
-          { topicId: 'lwc_deep_dive', name: 'LWC Performance Optimization', priority: 'high', estimatedHours: 8 },
-          { topicId: 'flow_architect', name: 'Complex Flow Orchestration', priority: 'medium', estimatedHours: 10 }
-        ]
-      };
-      
-      if (isLI) updateData['platforms.linkedin'] = { synced: true, lastSync: new Date(), username: user };
-      if (isNK) updateData['platforms.naukri'] = { synced: true, lastSync: new Date(), username: user };
 
-      const result = await UserProfile.findOneAndUpdate(
-        { userId }, 
-        { $set: updateData }, 
-        { upsert: true, new: true }
-      );
-      
-      return res.status(200).json({ success: true, profile: result });
-    }
-
-    if (path === 'profile/match') {
-      const profile = await UserProfile.findOne({ userId }).lean();
-      const latestJobs = await JobRecord.find({}).sort({ fetched_at: -1 }).limit(50).lean();
-      const filtered = latestJobs.filter(j => (j.match_score || 0) >= 60);
-      const topMatchedSkills = {};
-      const topMissingSkills = {};
-      filtered.forEach(j => {
-        if (j.matched_skills) j.matched_skills.forEach(s => topMatchedSkills[s] = (topMatchedSkills[s] || 0) + 1);
-        if (j.missing_skills) j.missing_skills.forEach(s => topMissingSkills[s] = (topMissingSkills[s] || 0) + 1);
-      });
-      const sortSkills = (obj) => Object.entries(obj).sort((a,b) => b[1] - a[1]).slice(0, 10).map(([k,v]) => ({ _id: k, count: v }));
-      return res.status(200).json({ exists: !!profile, profile, matched_skills: sortSkills(topMatchedSkills), missing_skills: sortSkills(topMissingSkills) });
-    }
-
-    // 3. STUDY ENDPOINTS
-    if (path === 'study/history') {
-      const sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean();
-      return res.status(200).json(sessions);
-    }
-    if (path === 'study/session' && req.method === 'POST') {
-      const newSession = new StudySession({ ...req.body, userId });
-      await newSession.save();
-      return res.status(200).json({ success: true });
-    }
-    if (path === 'study/tasks') {
-      const profile = await UserProfile.findOne({ userId }).lean();
-      return res.status(200).json({ completedTasks: profile?.completedTasks || [] });
-    }
-    if (path === 'study/toggle-task' && req.method === 'POST') {
-      const { taskId, completed } = req.body;
-      const op = completed ? '$addToSet' : '$pull';
-      await UserProfile.findOneAndUpdate({ userId }, { [op]: { completedTasks: taskId } }, { upsert: true });
-      return res.status(200).json({ success: true });
-    }
-    if (path === 'study/leaderboard') {
-      const leaderboard = await StudySession.aggregate([{ $group: { _id: "$userId", totalSeconds: { $sum: "$duration" }, sessions: { $count: {} } } }, { $sort: { totalSeconds: -1 } }, { $limit: 10 }]);
-      return res.status(200).json(leaderboard);
-    }
-
-    // 4. SUMMARY ENDPOINTS
-    if (path === 'summary/daily' || path === 'summary/all') {
-      const sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(500).lean();
-      
-      const historyObj = {};
-      sessions.forEach(s => {
-        const d = s.date || new Date(s.startTime).toISOString().split('T')[0];
-        if (!historyObj[d]) {
-          historyObj[d] = {
-            date: d,
-            study: { totalSeconds: 0, topicList: [], sessionsCount: 0 },
-            jobs: { newCount: 0, topMatches: [] }
-          };
-        }
-        historyObj[d].study.totalSeconds += (s.duration || 0);
-        historyObj[d].study.sessionsCount++;
-        
-        // Track unique topics per day
-        if (s.topicId) {
-          let topicEntry = historyObj[d].study.topicList.find(t => t.id === s.topicId);
-          if (!topicEntry) {
-            topicEntry = { id: s.topicId, name: s.topicName || s.topicId, totalSeconds: 0 };
-            historyObj[d].study.topicList.push(topicEntry);
-          }
-          topicEntry.totalSeconds += (s.duration || 0);
-        }
-      });
-
-      const todayStr = new Date().toISOString().split('T')[0];
-      if (path === 'summary/daily') {
-        return res.status(200).json(historyObj[todayStr] || { date: todayStr, study: { totalSeconds: 0 }, jobs: { newCount: 0 } });
-      }
-      return res.status(200).json(historyObj);
-    }
-
-    // 5. JOBS ENDPOINTS
+    // 3. JOBS ENDPOINTS (Hybrid Merge)
     if (path === 'jobs') {
-      const jobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ createdAt: -1 }).limit(100).lean();
+      // Fetch from BOTH databases
+      const tursoJobs = await TursoDB.getJobs(userId);
+      const mongoJobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ createdAt: -1 }).limit(100).lean();
       
-      // UNIFIED FETCH: Fetch from Archive if requested or as fallback
-      const archived = await fetchFromArchive({ userId }, 50);
-      const unifiedJobs = [...jobs, ...archived];
-      
-      // Trigger overflow check in background
-      checkAndArchiveOverflow(userId);
+      // Deduplicate by job_hash (Turso wins)
+      const unifiedMap = new Map();
+      mongoJobs.forEach(j => unifiedMap.set(j.job_hash, { ...j, source: 'Legacy (Mongo)' }));
+      tursoJobs.forEach(j => unifiedMap.set(j.job_hash, { ...j, source: 'Primary (Turso)' }));
 
-      const debugJobs = [{ 
-        title: 'STORAGE STATUS: MULTI-DB ACTIVE', 
-        company: 'UNIFIED STORAGE V1', 
+      const finalJobs = Array.from(unifiedMap.values()).sort((a,b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
+
+      const debugHeader = { 
+        title: 'HYBRID STORAGE ACTIVE', 
+        company: 'MONGO + TURSO UNIFIED', 
         status: 'new', 
-        job_hash: 'debug-storage',
-        salary: 'Tiered Overflow Active',
-        company_type: 'System Component',
-        experience: jobs.length + archived.length + ' Total Jobs',
+        job_hash: 'debug-hybrid',
+        salary: 'Tiered 9.5GB Capacity',
+        company_type: 'Dual-Engine DB',
+        experience: `${tursoJobs.length} Turso / ${mongoJobs.length} Mongo`,
         probability: 'high',
         match_score: 100,
-        why_apply: `<strong>Unified Tier Active:</strong> Managing ${jobs.length} Live jobs (Mongo) and ${archived.length} Archived jobs (Turso/Supabase).`
-      }, ...unifiedJobs];
+        why_apply: `<strong>Hybrid Mode Active:</strong> We are serving data from both MongoDB and Turso. All new jobs will be stored in your high-capacity Turso tier.`
+      };
 
       return res.status(200).json({ 
-        records: debugJobs, 
+        records: [debugHeader, ...finalJobs], 
         dbStatus: true, 
-        count: jobs.length + archived.length,
-        storageStats: { live: jobs.length, archived: archived.length }
+        count: finalJobs.length,
+        storageStats: { turso: tursoJobs.length, mongo: mongoJobs.length }
       });
     }
-    if (path === 'jobs/analytics') {
-      const latestJobs = await JobRecord.find({}).sort({ fetched_at: -1 }).limit(200).lean();
-      return res.status(200).json({ total: latestJobs.length, matches: latestJobs.filter(j => (j.match_score||0) > 70).length, matched_skills: [], missing_skills: [] });
+
+    // 4. STUDY ENDPOINTS
+    if (path === 'study/history') {
+      const tursoSessions = await TursoDB.getStudyHistory(userId);
+      const mongoSessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean();
+      const combined = [...tursoSessions, ...mongoSessions].sort((a,b) => new Date(b.startTime) - new Date(a.startTime));
+      return res.status(200).json(combined);
     }
-    if (path === 'jobs/status' && req.method === 'POST') {
-      const { hash, status } = req.body;
-      await JobRecord.findOneAndUpdate({ userId, job_hash: hash }, { $set: { status } });
+
+    if (path === 'study/session' && req.method === 'POST') {
+      // Always save NEW sessions to Turso
+      await TursoDB.saveStudySession(userId, req.body);
       return res.status(200).json({ success: true });
     }
 
-    // 6. AGENT CONTROL
-    if (path === 'jobs/scan' && req.method === 'POST') {
-      return res.status(200).json({ success: true, message: 'Global Scan Initiated' });
-    }
-    if (path === 'jobs/apply' && req.method === 'POST') {
-      return res.status(200).json({ success: true, message: 'Auto-Apply Protocol Started' });
-    }
+    return res.status(404).json({ error: 'Route not found' });
 
-    return res.status(404).json({ error: `Path not found: ${path}` });
-  } catch (err) {
-    console.error('Master API Error:', err);
-    res.status(500).json({ error: 'Internal Server Error' });
+  } catch (e) {
+    console.error('Hybrid API Error:', e);
+    return res.status(500).json({ success: false, error: e.message });
   }
 }

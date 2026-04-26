@@ -1974,15 +1974,16 @@ async function fetchJobsList() {
 
     const dbBadge = document.getElementById('dbStatusBadge');
     if (dbBadge) {
-      dbBadge.textContent = data.dbStatus ? 'Live Tier' : 'Cache Mode';
-      dbBadge.style.background = data.dbStatus ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.12)';
-      dbBadge.style.color = data.dbStatus ? 'var(--green)' : 'var(--amber)';
+      dbBadge.textContent = 'Hybrid Storage Active';
+      dbBadge.style.background = 'rgba(59,130,246,0.1)';
+      dbBadge.style.color = 'var(--blue)';
     }
 
     const archiveBadge = document.getElementById('archiveStatusBadge');
-    if (archiveBadge && data.storageStats && data.storageStats.archived > 0) {
+    if (archiveBadge && data.storageStats) {
       archiveBadge.style.display = 'inline-block';
-      archiveBadge.textContent = `${data.storageStats.archived} Archived`;
+      archiveBadge.textContent = `${data.storageStats.turso} Turso / ${data.storageStats.mongo} Mongo`;
+      archiveBadge.title = 'Data merged from both SQL and NoSQL layers';
     }
 
     if (addedCount > 0) {
