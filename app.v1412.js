@@ -431,8 +431,12 @@ async function loadUserProfile() {
   try {
     // CACHE-BUST: Ensure we get fresh synced flags from the cloud
     const res = await apiFetch('/api/profile/data?cb=' + Date.now());
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.log('â Œ [Profile] Cloud fetch failed (Status: ' + res.status + '). User might be logged out.');
+      return;
+    }
     const data = await res.json();
+    console.log('ðŸ“¦ [Profile] Cloud Data Received:', data);
     
     if (data.exists && data.profile) {
       cachedUserProfile = data.profile;
