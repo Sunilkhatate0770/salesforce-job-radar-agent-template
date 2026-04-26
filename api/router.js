@@ -155,14 +155,29 @@ export default async function(req, res) {
     }
 
     if (path === 'profile/save' && req.method === 'POST') {
-      console.log(`[PROFILE] Saving data for ${userId}`);
-      await TursoDB.saveProfile(userId, req.body);
+      console.log(`[PROFILE] Saving data to Primary Mongo for ${userId}`);
+      await UserProfile.findOneAndUpdate(
+        { userId },
+        { ...req.body, userId, updatedAt: new Date() },
+        { upsert: true, new: true }
+      );
       return res.status(200).json({ success: true });
     }
 
     if (path === 'profile/toggle-bookmark' && req.method === 'POST') {
-      console.log(`[BOOKMARK] Toggling for ${userId}`);
-      const bookmarks = await TursoDB.toggleBookmark(userId, req.body);
+      console.log(`[BOOKMARK] Toggling in Primary Mongo for ${userId}`);
+      const profile = await UserProfile.findOne({ userId });
+      let bookmarks = profile?.bookmarks || [];
+      const bookmark = req.body;
+      
+      const exists = bookmarks.some(b => b.q === bookmark.q);
+      if (exists) {
+        bookmarks = bookmarks.filter(b => b.q !== bookmark.q);
+      } else {
+        bookmarks.push({ ...bookmark, date: new Date() });
+      }
+
+      await UserProfile.findOneAndUpdate({ userId }, { bookmarks }, { upsert: true });
       return res.status(200).json({ success: true, bookmarks });
     }
 
@@ -216,8 +231,9 @@ export default async function(req, res) {
     }
 
     if (path === 'study/session' && req.method === 'POST') {
-      console.log(`[STUDY] Saving new session for ${userId}`);
-      await TursoDB.saveStudySession(userId, req.body);
+      console.log(`[STUDY] Saving session to Primary Mongo for ${userId}`);
+      const session = new StudySession({ ...req.body, userId });
+      await session.save();
       return res.status(200).json({ success: true });
     }
 
@@ -234,7 +250,17 @@ export default async function(req, res) {
 
     if (path === 'study/toggle-task' && req.method === 'POST') {
       const { taskId, completed } = req.body;
-      const tasks = await TursoDB.toggleTask(userId, taskId, completed);
+      console.log(`[TASK] Toggling task ${taskId} in Primary Mongo for ${userId}`);
+      
+      const profile = await UserProfile.findOne({ userId });
+      let tasks = profile?.completedTasks || [];
+      if (completed) {
+        if (!tasks.includes(taskId)) tasks.push(taskId);
+      } else {
+        tasks = tasks.filter(id => id !== taskId);
+      }
+      
+      await UserProfile.findOneAndUpdate({ userId }, { completedTasks: tasks }, { upsert: true });
       return res.status(200).json({ success: true, completedTasks: tasks });
     }
 
