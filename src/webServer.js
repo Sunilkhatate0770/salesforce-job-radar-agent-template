@@ -208,6 +208,22 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: true, completedTasks: [] }));
         }
       }
+      else if (url === '/api/study/reset' && method === 'POST') {
+        if (isMongoConnected) {
+          await StudySession.deleteMany({ userId });
+          await TaskStatus.deleteMany({ userId });
+          await UserProfile.findOneAndUpdate(
+            { userId },
+            { userId, studyPlanTopics: [], studyStreak: { current: 0, best: 0, lastDate: '' }, updatedAt: new Date() },
+            { upsert: true }
+          );
+        }
+        fs.mkdirSync(CACHE_DIR, { recursive: true });
+        fs.writeFileSync(path.join(CACHE_DIR, 'study-tracker.json'), JSON.stringify({ sessions: [], completedTasks: [], topics: {} }, null, 2));
+        fs.writeFileSync(path.join(CACHE_DIR, 'daily-summaries.json'), JSON.stringify({}, null, 2));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, completedTasks: [], sessions: [] }));
+      }
       else if (url === '/api/jobs' && method === 'GET') {
         if (isMongoConnected) {
           const records = await JobRecord.find({}).sort({ createdAt: -1 }).lean();

@@ -537,6 +537,17 @@ export default async function(req, res) {
       return res.status(200).json({ success: true, completedTasks });
     }
 
+    if (path === 'study/reset' && req.method === 'POST') {
+      await StudySession.deleteMany({ userId });
+      await TaskStatus.deleteMany({ userId });
+      await UserProfile.findOneAndUpdate(
+        { userId },
+        { userId, studyPlanTopics: [], studyStreak: { current: 0, best: 0, lastDate: '' }, updatedAt: new Date() },
+        { upsert: true }
+      );
+      return res.status(200).json({ success: true, completedTasks: [], sessions: [] });
+    }
+
     if (path === 'study/leaderboard') {
       const rows = await StudySession.aggregate([
         { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
@@ -578,6 +589,13 @@ export default async function(req, res) {
       const todayStr = new Date().toISOString().split('T')[0];
       if (path === 'summary/daily') return res.status(200).json(historyObj[todayStr] || { date: todayStr, study: { totalSeconds: 0 }, jobs: { newCount: 0 } });
       return res.status(200).json(historyObj);
+    }
+
+    if (path === 'jobs/apply' && req.method === 'POST') {
+      return res.status(409).json({
+        success: false,
+        error: 'Auto Apply is only available from the local desktop server because it needs a browser session on this machine.'
+      });
     }
 
     if (path.startsWith('ai/') && req.method === 'POST') {

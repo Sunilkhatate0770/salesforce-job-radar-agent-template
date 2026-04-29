@@ -965,7 +965,7 @@ async function saveSession(session) {
 
 async function toggleTask(index) {
   try {
-    const res = await fetch('/api/study/toggle-task', {
+    const res = await apiFetch('/api/study/toggle-task', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ index })
@@ -1804,7 +1804,7 @@ async function updateTrackerUI(useCache = false) {
 async function resetTracker() {
   if (confirm('Reset ALL study data? This will wipe your local and cloud database. This cannot be undone.')) {
     try {
-      await fetch('/api/study/reset', { method: 'POST' });
+      await apiFetch('/api/study/reset', { method: 'POST' });
       
       // Clear localStorage
       const keys = Object.keys(localStorage);
@@ -4023,6 +4023,11 @@ function openEmailModal(jobId) {
     return;
   }
   document.getElementById('emailModal').style.display = 'flex';
+  const subject = document.getElementById('emailSubject');
+  if (subject) {
+    subject.style.display = 'none';
+    subject.textContent = '';
+  }
   document.getElementById('emailBody').textContent = `Ready to compose for ${selectedJobForEmail.company}...`;
 }
 
@@ -4047,9 +4052,24 @@ async function triggerEmailGeneration() {
       job: { ...selectedJobForEmail, role },
       prompt
     });
-    body.textContent = responseText;
+    const subjectMatch = responseText.match(/^Subject:\s*(.+)$/im);
+    if (subjectMatch && subject) {
+      subject.textContent = subjectMatch[1].trim();
+      subject.style.display = 'block';
+      body.textContent = responseText.replace(/^Subject:\s*.+\n*/im, '').trim();
+    } else {
+      if (subject) {
+        subject.style.display = 'none';
+        subject.textContent = '';
+      }
+      body.textContent = responseText;
+    }
     logActivity(`Generated ${currentEmailType} email for <strong>${selectedJobForEmail.company}</strong>`, 'ai');
   } catch (e) {
+    if (subject) {
+      subject.style.display = 'none';
+      subject.textContent = '';
+    }
     body.textContent = "AI email generation is unavailable right now. Please try again shortly.";
   } finally {
     loading.style.display = 'none';
@@ -4057,7 +4077,10 @@ async function triggerEmailGeneration() {
 }
 
 function copyGeneratedEmail() {
-  const text = document.getElementById('emailBody').textContent;
+  const subject = document.getElementById('emailSubject');
+  const body = document.getElementById('emailBody');
+  const subjectText = subject && subject.style.display !== 'none' && subject.textContent ? `Subject: ${subject.textContent}\n\n` : '';
+  const text = subjectText + (body ? body.textContent : '');
   navigator.clipboard.writeText(text).then(() => showToast('Copied.'));
 }
 
@@ -4228,7 +4251,10 @@ function showToast(msg) {
   setTimeout(() => t.style.transform = 'translateX(-50%) translateY(100px)', 3000);
 }
 
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
 function exportLog() {
   if (!activityLog.length) {
     showToast('No activity log entries to export yet.');
