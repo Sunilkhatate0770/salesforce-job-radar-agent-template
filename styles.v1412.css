@@ -1331,17 +1331,22 @@ pre.code .num {
 }
 
 .tracker-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1.2rem;
-  transition: border-color 0.2s;
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 
 .tracker-card:hover {
-  border-color: var(--blue);
+  border-color: rgba(59,130,246,0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 15px rgba(59,130,246,0.1);
 }
 
 .tracker-card::before {
@@ -1349,10 +1354,11 @@ pre.code .num {
   position: absolute;
   top: 0;
   left: 0;
-  height: 3px;
+  height: 4px;
   width: var(--progress, 0%);
   background: linear-gradient(90deg, var(--blue), var(--cyan));
-  transition: width 0.5s;
+  box-shadow: 0 0 12px rgba(59,130,246,0.6);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tracker-topic {
@@ -1474,13 +1480,23 @@ pre.code .num {
 }
 
 .stat-box {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem 1.2rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 1.2rem;
   flex: 1;
   min-width: 150px;
   text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+  border-color: rgba(59,130,246,0.3);
 }
 
 .stat-value {

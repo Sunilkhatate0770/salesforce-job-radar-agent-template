@@ -2042,19 +2042,59 @@ async function fetchJobAnalytics() {
     const companiesEl = document.getElementById('topCompaniesTrends');
     
     if (matchedEl && data.matched_skills) {
-      matchedEl.innerHTML = data.matched_skills.length ? data.matched_skills.map(s => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span>${s._id}</span> <span style="font-weight:700;">${s.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
+      matchedEl.innerHTML = data.matched_skills.length ? data.matched_skills.map(s => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; transition:all 0.2s;"><span style="color:var(--text);">${s._id}</span> <span style="font-weight:700; color:var(--green);">${s.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
     if (missingEl && data.missing_skills) {
-      missingEl.innerHTML = data.missing_skills.length ? data.missing_skills.map(s => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span>${s._id}</span> <span style="font-weight:700;">${s.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
+      missingEl.innerHTML = data.missing_skills.length ? data.missing_skills.map(s => `
+        <div onclick="openSkillCoach('${s._id.replace(/'/g, "\\'")}')" 
+             style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; cursor:pointer; transition:all 0.2s;"
+             onmouseover="this.style.background='rgba(59,130,246,0.1)'; this.style.paddingLeft='5px';"
+             onmouseout="this.style.background='transparent'; this.style.paddingLeft='0';">
+          <span style="color:var(--amber); display:flex; align-items:center; gap:5px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            ${s._id}
+          </span>
+          <span style="font-weight:700; color:var(--text);">${s.count}</span>
+        </div>
+      `).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
     if (companiesEl && data.top_companies) {
-      companiesEl.innerHTML = data.top_companies.length ? data.top_companies.map(c => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span>${c._id}</span> <span style="font-weight:700;">${c.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
+      companiesEl.innerHTML = data.top_companies.length ? data.top_companies.map(c => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span style="color:var(--text);">${c._id}</span> <span style="font-weight:700; color:var(--blue);">${c.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
   } catch (e) {
     console.error('Failed to fetch analytics', e);
+  }
+}
+
+window.openSkillCoach = async function(skill) {
+  const modal = document.getElementById('coachModal');
+  const chat = document.getElementById('coachChat');
+  if (!modal || !chat) return;
+  
+  modal.style.display = 'flex';
+  chat.innerHTML = `<div style="background: linear-gradient(135deg, var(--blue), var(--cyan)); color: white; padding: 15px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(59,130,246,0.3);">
+    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px; opacity:0.8;">Industrial AI Coach</div>
+    Generating a specialized 3-day study plan to master <strong>${skill}</strong>...
+  </div>`;
+  
+  try {
+    const prompt = `Create a concise, highly actionable 3-day study plan for a Salesforce Developer to master ${skill}. Focus on real-world scenarios and specific concepts needed to pass a technical interview. Formatting: use short paragraphs and bullet points.`;
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({ model: 'gemma4:e4b', prompt, stream: false })
+    });
+    if (!response.ok) throw new Error('AI unreachable');
+    const data = await response.json();
+    chat.innerHTML += `<div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text); padding: 15px; border-radius: 12px 12px 0 12px; margin-top: 15px; max-width: 90%; font-size: 0.85rem; align-self: flex-end; backdrop-filter: blur(10px); line-height: 1.6;">
+      ${data.response.replace(/\n/g, '<br>')}
+    </div>`;
+  } catch (e) {
+    chat.innerHTML += `<div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); padding: 12px; border-radius: 12px; margin-top: 10px;">
+      Local AI Engine (gemma4:e4b) is offline or unreachable. Please start Ollama.
+    </div>`;
   }
 }
 
@@ -3569,7 +3609,7 @@ function renderJobCard(job) {
     : 'Recent';
 
   return `
-    <div class="jcard-v3" id="card-${job.id}" data-prob="${job.prob || 'medium'}">
+    <div class="jcard-v3" id="card-${job.id}" data-prob="${job.prob || 'medium'}" draggable="true" ondragstart="handleDragStart(event, '${job.id}')">
       <div class="jcard-top">
         <div class="jcard-company-block">
            <div class="jcard-icon">${escapeHtml(job.icon || 'SF')}</div>
@@ -3647,6 +3687,65 @@ function getFollowUpStatus(job) {
   if (days >= 7) return { label: 'FOLLOW-UP', class: 'warn' };
   return null;
 }
+
+// --- Drag and Drop Handlers ---
+window.handleDragStart = function(e, jobId) {
+  e.dataTransfer.setData('text/plain', jobId);
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.target.classList.add('dragging'), 0);
+}
+
+window.handleDragOver = function(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  if (!e.currentTarget.classList.contains('drag-over')) {
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+window.handleDragLeave = function(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+window.handleDrop = async function(e, status) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const jobId = e.dataTransfer.getData('text/plain');
+  if (!jobId) return;
+  
+  const job = pipelineJobs.find(j => j.id === jobId);
+  if (!job || job.status === status) return;
+  
+  const oldStatus = job.status;
+  job.status = status;
+  if (status === 'applied') job.dateApplied = new Date().toISOString();
+  
+  renderBoard(); // Optimistic UI update
+  
+  // Sync animation
+  const card = document.getElementById('card-' + jobId);
+  if (card) {
+    card.style.opacity = '0.5';
+    card.style.transform = 'scale(0.98)';
+  }
+  
+  try {
+    showToast(`Moved ${job.company} to ${status.toUpperCase()}`);
+    logActivity(`Moved <strong>${job.company}</strong> from ${oldStatus.toUpperCase()} to ${status.toUpperCase()}`, 'success');
+    
+    // Sync with backend
+    await savePipeline();
+    
+    if (card) {
+      card.style.opacity = '1';
+      card.style.transform = 'scale(1)';
+    }
+  } catch (err) {
+    console.error('Drag drop sync failed', err);
+    showToast('Failed to save changes. Check connection.', true);
+  }
+}
+// -----------------------------
 
 function moveTo(id, newStatus) {
   const job = pipelineJobs.find(j => j.id === id);
@@ -4208,3 +4307,39 @@ window.addEventListener('beforeunload', function() {
   if (floatingTimerInterval) { clearInterval(floatingTimerInterval); floatingTimerInterval = null; }
   if (window._jobRadarInterval) { clearInterval(window._jobRadarInterval); window._jobRadarInterval = null; }
 });
+
+// =============================================
+// AGENTFORCE: Prompt Simulation Logic
+// =============================================
+window.runAgentforceSimulation = async function() {
+  const sysEl = document.getElementById('agentforceSystemPrompt');
+  const usrEl = document.getElementById('agentforceUserPrompt');
+  const outBox = document.getElementById('agentforceOutput');
+  const outText = document.getElementById('agentforceOutputText');
+  
+  if (!usrEl.value.trim()) {
+    showToast('Please enter a user prompt.');
+    return;
+  }
+  
+  outBox.style.display = 'block';
+  outText.innerHTML = '<span style="color:var(--muted);">Executing simulation on gemma4:e4b...</span>';
+  
+  try {
+    let finalPrompt = usrEl.value;
+    if (sysEl.value.trim()) {
+      finalPrompt = "SYSTEM: " + sysEl.value + "\n\nUSER: " + usrEl.value;
+    }
+    
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      body: JSON.stringify({ model: 'gemma4:e4b', prompt: finalPrompt, stream: false })
+    });
+    
+    if (!response.ok) throw new Error('Ollama connection failed');
+    const data = await response.json();
+    outText.innerHTML = escapeHtml(data.response).replace(/\n/g, '<br>');
+  } catch (err) {
+    outText.innerHTML = '<span style="color:var(--red);">Error: AI Engine (Ollama/gemma4:e4b) is unreachable. Ensure the local service is running.</span>';
+  }
+};

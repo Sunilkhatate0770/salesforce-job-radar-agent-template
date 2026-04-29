@@ -79,6 +79,7 @@
   <button id="tab-pipeline" class="radar-tab-btn active" onclick="switchRadarSubTab('pipeline')">Pipeline</button>
   <button id="tab-insights" class="radar-tab-btn" onclick="switchRadarSubTab('insights')">Insights</button>
   <button id="tab-development" class="radar-tab-btn" onclick="switchRadarSubTab('development')">Readiness</button>
+  <button id="tab-agentforce" class="radar-tab-btn" onclick="switchRadarSubTab('agentforce')" style="color:#a78bfa; border-color:transparent;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;display:inline;vertical-align:text-bottom;margin-right:4px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Agentforce</button>
 </div>
 
 <div id="radar-pipeline-view" class="radar-view">
@@ -104,7 +105,7 @@
         <span>Backlog</span>
         <span class="col-count" id="count-todo">0</span>
       </div>
-      <div class="kanban-body" id="list-todo"></div>
+      <div class="kanban-body" id="list-todo" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'todo')"></div>
     </div>
 
     <div class="kanban-col-v3" id="col-applied">
@@ -112,7 +113,7 @@
         <span>Applied</span>
         <span class="col-count" id="count-applied">0</span>
       </div>
-      <div class="kanban-body" id="list-applied"></div>
+      <div class="kanban-body" id="list-applied" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'applied')"></div>
     </div>
 
     <div class="kanban-col-v3" id="col-interview">
@@ -120,7 +121,7 @@
         <span>Interview</span>
         <span class="col-count" id="count-interview">0</span>
       </div>
-      <div class="kanban-body" id="list-interview"></div>
+      <div class="kanban-body" id="list-interview" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'interview')"></div>
     </div>
 
     <div class="kanban-col-v3" id="col-offer">
@@ -128,7 +129,7 @@
         <span>Offer</span>
         <span class="col-count" id="count-offer">0</span>
       </div>
-      <div class="kanban-body" id="list-offer"></div>
+      <div class="kanban-body" id="list-offer" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'offer')"></div>
     </div>
 
     <div class="kanban-col-v3" id="col-rejected">
@@ -136,7 +137,7 @@
         <span>Rejected</span>
         <span class="col-count" id="count-rejected">0</span>
       </div>
-      <div class="kanban-body" id="list-rejected"></div>
+      <div class="kanban-body" id="list-rejected" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'rejected')"></div>
     </div>
   </div>
 </div>
@@ -229,6 +230,46 @@
         <div class="dev-note-item">
           <span class="dev-note-title">Let the insights tab drive study focus.</span>
           <span class="dev-note-copy">Repeated missing skills should turn into study topics and profile updates instead of staying passive observations.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="radar-agentforce-view" class="radar-view" style="display:none;">
+  <div class="insights-grid-v3" style="grid-template-columns: 1fr;">
+    <section class="insight-card-v3 wide-card" style="background: linear-gradient(145deg, rgba(139,92,246,0.05), rgba(59,130,246,0.05)); border-color: rgba(139,92,246,0.2);">
+      <div class="insight-heading" style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h3 style="color:var(--violet, #a78bfa); display:flex; align-items:center; gap:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Agentforce Prompt Engineering Lab
+          </h3>
+          <p>Test and simulate Salesforce Agentforce prompts locally using the Gemma 4 engine.</p>
+        </div>
+        <div style="background: rgba(139,92,246,0.1); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(139,92,246,0.3); font-size: 0.7rem; color: var(--violet, #a78bfa); font-weight: 700;">gemma4:e4b</div>
+      </div>
+      
+      <div style="margin-top: 20px; display:flex; flex-direction:column; gap:15px;">
+        <div>
+          <label style="display:block; margin-bottom:5px; font-size:0.8rem; color:var(--muted);">System Persona (Context)</label>
+          <textarea id="agentforceSystemPrompt" style="width:100%; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-family:'IBM Plex Mono',monospace; font-size:0.8rem; min-height:60px;" placeholder="You are an expert Salesforce Agentforce AI. Your goal is to..."></textarea>
+        </div>
+        <div>
+          <label style="display:block; margin-bottom:5px; font-size:0.8rem; color:var(--text);">User Prompt (Task)</label>
+          <textarea id="agentforceUserPrompt" style="width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:12px; font-size:0.9rem; min-height:100px; transition: border-color 0.2s;" placeholder="Generate an apex trigger that..."></textarea>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end;">
+          <button onclick="runAgentforceSimulation()" style="background:linear-gradient(135deg, #8b5cf6, #3b82f6); color:white; border:none; padding:10px 24px; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Execute Simulation
+          </button>
+        </div>
+        
+        <div id="agentforceOutput" style="display:none; margin-top:20px; background:rgba(255,255,255,0.02); border:1px solid rgba(139,92,246,0.2); border-radius:12px; padding:16px;">
+          <div style="font-size:0.75rem; color:#a78bfa; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; font-weight:700;">Simulation Result</div>
+          <div id="agentforceOutputText" style="font-size:0.85rem; color:var(--text); line-height:1.6; font-family:'IBM Plex Mono',monospace;"></div>
         </div>
       </div>
     </section>
