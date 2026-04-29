@@ -28,6 +28,7 @@ let currentBoardFilter = 'all';
 let currentBoardSearch = '';
 let currentRadarSubTab = 'pipeline';
 let currentPrepCompany = 'Cognizant';
+let cachedHistories = {};
 
 const PREP_REGISTRY = {
   "Cognizant": {
@@ -790,7 +791,7 @@ async function checkAuth() {
   
   // If we reach here, the token is likely invalid
   // But we only show the overlay if we are CERTAIN it's a 401/403
-  return true; 
+  return false; 
 }
 var floatingTimerInterval = null;
 
@@ -2161,6 +2162,7 @@ async function generateCoverLetter(hash) {
   const outputEl = document.getElementById(`cl_output_${hash}`);
   
   if (btnIcon) btnIcon.textContent = '...';
+  if (!outputEl) return;
   outputEl.style.display = 'block';
   outputEl.innerHTML = '<span style="color:var(--muted);">Gemma 4 is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
 
@@ -2756,7 +2758,7 @@ function goToResult(pageId, idx) {
   }, 200);
 }
 
-let cachedHistories = {};
+// cachedHistories declared at top with other globals
 
 async function showHistoryModal(date) {
   const h = cachedHistories[date];
@@ -3932,7 +3934,7 @@ async function triggerEmailGeneration() {
     const prompt = `Write a professional ${currentEmailType} email for a Salesforce Developer role at ${selectedJobForEmail.company}. Role: ${selectedJobForEmail.role}. Candidate: Sunil Khatate (4 yrs exp, PD2).`;
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
-      body: JSON.stringify({ model: 'gemma:4b', prompt, stream: false })
+      body: JSON.stringify({ model: 'gemma4:e4b', prompt, stream: false })
     });
     if (!response.ok) throw new Error('AI unreachable');
     const data = await response.json();
@@ -4170,6 +4172,17 @@ document.addEventListener('click', function(e) {
 });
 
 // =============================================
+// SAFETY STUBS: Functions that may be defined in inline HTML scripts
+// These no-ops prevent ReferenceError if called before HTML scripts load
+// =============================================
+if (typeof renderStreakBadge !== 'function') { window.renderStreakBadge = function() {}; }
+if (typeof renderBookmarkButtons !== 'function') { window.renderBookmarkButtons = function() {}; }
+if (typeof renderRevisionAlerts !== 'function') { window.renderRevisionAlerts = function() {}; }
+if (typeof showBookmarks !== 'function') { window.showBookmarks = function() {}; }
+if (typeof updateSyncModalUI !== 'function') { window.updateSyncModalUI = function() {}; }
+if (typeof updateSidebarProfileStatus !== 'function') { window.updateSidebarProfileStatus = function() {}; }
+
+// =============================================
 // INIT: Render streaks + bookmarks on load
 // =============================================
 window.addEventListener('DOMContentLoaded', function() {
@@ -4186,4 +4199,12 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+});
+
+// =============================================
+// CLEANUP: Prevent memory leaks on page unload
+// =============================================
+window.addEventListener('beforeunload', function() {
+  if (floatingTimerInterval) { clearInterval(floatingTimerInterval); floatingTimerInterval = null; }
+  if (window._jobRadarInterval) { clearInterval(window._jobRadarInterval); window._jobRadarInterval = null; }
 });
