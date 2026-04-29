@@ -293,3 +293,31 @@ public class <span class="cls">LoanTriggerTest</span> {
     <div class="tip-box"><div class="tip-label">Key rules</div><p>1. Always use Test.startTest/stopTest to get fresh limits and complete async. 2. Always test bulk (200 records). 3. Use System.assertEquals(expected, actual, 'message') &mdash; the message tells you what failed. 4. Use @TestSetup for shared data &mdash; it runs once and is rolled back between test methods. 5. SeeAllData=false by default (test data isolation). Never use SeeAllData=true unless absolutely necessary.</p></div>
   </div>
 </div>
+
+<div class="qa-block">
+  <div class="qa-question" onclick="toggleQA(this)">
+    <span class="qa-q-text">Lookup vs Master-Detail: Explain the differences in depth (Security, Deletion, Limits).</span>
+    <span class="qa-q-label lbl-apex">DATA MODEL</span>
+    <span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+  </div>
+  <div class="qa-answer">
+    <p class="ans-p">This is a fundamental architect-level question. Here is the breakdown:</p>
+    <table class="comparison-table">
+      <tr><th>Feature</th><th>Master-Detail</th><th>Lookup</th></tr>
+      <tr><td><b>Relationship</b></td><td>Parent is mandatory (usually).</td><td>Parent is optional.</td></tr>
+      <tr><td><b>Deletion</b></td><td><b>Cascade Delete:</b> If parent is deleted, child is deleted.</td><td>Parent deletion can be blocked, or child field cleared.</td></tr>
+      <tr><td><b>Security</b></td><td>Child inherits security from Parent. No separate OWD.</td><td>Child has its own OWD and sharing rules.</td></tr>
+      <tr><td><b>Roll-up Summary</b></td><td>Supported natively on Parent.</td><td>Not supported natively (requires Trigger/Flow).</td></tr>
+      <tr><td><b>Max per Object</b></td><td><b>2</b> per object.</td><td><b>40</b> per object.</td></tr>
+      <tr><td><b>Owner Field</b></td><td>Child does not have an Owner field.</td><td>Child has its own Owner field.</td></tr>
+    </table>
+    <p class="ans-p"><b>Advanced Scenarios:</b></p>
+    <ul class="ans-list">
+      <li><b>Conversion:</b> You can convert a Lookup to Master-Detail ONLY IF all existing child records have a value in the lookup field.</li>
+      <li><b>Standard Objects:</b> You cannot create a Master-Detail relationship where a Standard Object is the child (except for specific system relationships like Account-Contact).</li>
+      <li><b>Reparenting:</b> By default, Master-Detail records cannot be reparented. You must explicitly enable "Allow reparenting" in the field settings.</li>
+    </ul>
+    <div class="tip-box"><div class="tip-label">Strategic Choice</div><p>Use <b>Master-Detail</b> when the child record cannot exist without the parent (tight coupling) or when you need native Roll-up Summary fields. Use <b>Lookup</b> when records have independent lifecycles or require different sharing models.</p></div>
+  </div>
+</div>
+

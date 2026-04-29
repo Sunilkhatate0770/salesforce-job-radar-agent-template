@@ -11,6 +11,7 @@
   <li><b>Identity Resolution:</b> Using Match Rules (fuzzy/exact) and Reconciliation Rules to unify multiple records into a single 'Unified Individual'.</li>
   <li><b>Activation:</b> Sending segments or insights back to Salesforce or external endpoints.</li>
 </ul>
+<div class="tip-box"><div class="tip-label">Architectural Note</div><p>Data Cloud is not just a storage layer; it's a <b>hyperscale processing engine</b>. When asked about 'Unified Individual', explain that it's a virtual record that represents a person across all their different data points (email, phone, customer ID) without actually merging the original records.</p></div>
 </div></div>
 
 <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Scenario: Sharing records from Sales Rep to Senior Manager while skipping the Junior Manager.</span><span class="qa-q-label lbl-sec">SECURITY</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
@@ -62,4 +63,5 @@ WHERE Id = :taskId</pre>
   <li><b>Lookup:</b> Use if a Loan can exist without an Account, or if different security/sharing is needed for Loans compared to Accounts.</li>
 </ul>
 <p class="ans-p"><b>Pro-Tip:</b> You cannot have a Master-Detail on a Standard Object if the child is also a Standard Object (except specific ones like Account-Contact which is a special lookup).</p>
+<div class="tip-box"><div class="tip-label">Expert Scenario</div><p>If you need to convert a Master-Detail back to a Lookup, you must first delete all <b>Roll-up Summary</b> fields on the parent. This is a common 'gotcha' question in onsite interviews.</p></div>
 </div></div>

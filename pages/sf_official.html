@@ -12,6 +12,7 @@
   <li><b>Add Actions:</b> Assign standard or custom actions (Flows, Apex @InvocableMethod, Prompt Templates) to specific topics.</li>
   <li><b>Activate & Deploy:</b> Activate the agent and deploy it to a channel like Experience Cloud, Messaging, or Slack.</li>
 </ol>
+<div class="tip-box"><div class="tip-label">Interview Pro-Tip</div><p>If asked about 'Atlas', mention that it's the reasoning engine that uses the <b>ReAct</b> (Reason + Act) loop to evaluate user intent against available topics and actions. This shows you understand the 'brain' of the agent, not just the setup.</p></div>
 </div></div>
 
 <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are the different types of agents in Agentforce?</span><span class="qa-q-label lbl-domain">AGENTFORCE</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
@@ -162,4 +163,5 @@ public static List<Account> getAccountsByIndustry(String industry) {
   <li><b>Apex Sharing:</b> Programmatically create <code>__Share</code> records for complex logic.</li>
   <li><b>Team Sharing:</b> Use Account/Case/Opportunity Teams to grant access.</li>
 </ul>
+<div class="tip-box"><div class="tip-label">Deep Knowledge</div><p>Remember that 'View All' and 'Modify All' permissions on an object (via Profile or Permission Set) override all sharing rules and OWD. Also, Apex triggers and most classes run in <b>System Mode</b> (ignoring sharing) unless you explicitly use <code>with sharing</code> or <code>inherited sharing</code>.</p></div>
 </div></div>

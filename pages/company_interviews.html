@@ -99,7 +99,12 @@ trigger LoanTrigger on Loan__c (after update) {
             if (l.Status__c != Trigger.oldMap.get(l.Id).Status__c) { /* status changed */ }
     }
 }</pre>
+    </div></div>
 
+    <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Compare Custom Metadata vs. Custom Settings. When do you use which?</span><span class="qa-q-label lbl-apex">ARAGO</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <p class="ans-p"><b>Custom Metadata:</b> Best for app configurations. Deployable via changesets/packages. Queryable without counting against SOQL limits. Supports relationship fields.</p>
+    <p class="ans-p"><b>Custom Settings (Hierarchy):</b> Best for user/profile specific settings (e.g., 'Disable Triggers for Admin'). <b>Custom Settings (List):</b> Legacy, replaced by metadata for most cases.</p>
+    <div class="tip-box"><div class="tip-label">Key Difference</div><p>Use Metadata for logic control (e.g., mapping values) and Hierarchy Settings for person-specific overrides.</p></div>
     </div></div>
     <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How would you structure a Trigger Framework?</span><span class="qa-q-label lbl-apex">ARAGO</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
     <p class="ans-p"><b>Layers: Trigger → Handler → Service → Selector → Helper</b></p>
@@ -448,6 +453,19 @@ List&lt;Loan__c&gt; after = [SELECT Id FROM Loan__c WHERE Status__c='Applied']; 
     </ul>
     <pre class="code">// CORRECT &mdash; callout first, then DML
 HttpResponse res = new Http().send(req);
+if (res.getStatusCode() == 200) {
+    update records;
+}
+</pre>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain Shadow DOM and CSS Encapsulation in LWC.</span><span class="qa-q-label lbl-lwc">MS ROUND 2</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">LWC uses a <b>Shadow DOM</b> polyfill (Lightning Web Security or LWC Shadow DOM). This ensures that CSS defined in one component does not "leak" out and affect other components. Global CSS cannot penetrate the shadow boundary unless using <b>CSS Custom Properties (Variables)</b> or specific <code>::part</code> styling (if supported).</p>
+<ul class="ans-list">
+  <li><b>Encapsulation:</b> <code>id</code> attributes are unique within the component but can be duplicated across the page without conflict.</li>
+  <li><b>Styling:</b> Use <code>:host</code> to style the component's outer element.</li>
+</ul>
+</div></div>
 update loan;</pre>
 
     </div></div>
@@ -517,7 +535,7 @@ String status = raw.containsKey('loanStatus') ? (String)raw.get('loanStatus') : 
     </div></div>
 
     <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Project 2 &mdash; OpenAI + Salesforce AI Integration</span><span class="qa-q-label lbl-domain">PROJECT</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
-    <p class="ans-p">Automated document analysis using GPT Vision API. Used Platform Events + Queueable. Result: Document review time dropped from 2.5 hours to 8 minutes.</p>
+    <p class="ans-p">Implemented an autonomous document processing engine. When a borrower uploads a PDF via LWC, a <b>Platform Event</b> is published. A subscriber trigger calls a <b>Queueable</b> class which sends the file blob to the <b>OpenAI GPT Vision API</b> via a secure REST callout. The AI extracts key metrics (Salary, Employer, Tax ID), and the result is updated back to the Loan record. <b>Result:</b> Manual review time was slashed by 95%.</p>
     </div></div>
 
     <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Communication between LWC components?</span><span class="qa-q-label lbl-lwc">LWC COMM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
@@ -535,6 +553,15 @@ String status = raw.containsKey('loanStatus') ? (String)raw.get('loanStatus') : 
     <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How to call LWC into a record page and open record pages from LWC?</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
     <p class="ans-p"><b>Call LWC into Record Page:</b> Expose the component by adding <code>lightning__RecordPage</code> to the <code>target</code> list in <code>js-meta.xml</code>. Use <code>App Builder</code> to drag it onto the page.</p>
     <p class="ans-p"><b>Open Record Page from LWC:</b> Use <code>this[NavigationMixin.Navigate]({ type: 'standard__recordPage', ... })</code> with the record ID and <code>actionName: 'view'</code>.</p>
+    </div></div>
+    <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the difference between SOSL and SOQL and when to use which?</span><span class="qa-q-label lbl-apex">ADVANCED</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <p class="ans-p"><b>SOQL (Salesforce Object Query Language):</b> Used to query a specific object and its related records (child-to-parent or parent-to-child). <b>Use Case:</b> Fetching specific fields where you know the object name and criteria.</p>
+    <p class="ans-p"><b>SOSL (Salesforce Object Search Language):</b> Used to search a string across multiple objects simultaneously. <b>Use Case:</b> A global search bar where you don't know which object contains the string. SOSL is faster for text-based searching but only returns IDs and Name by default (though you can specify fields).</p>
+    </div></div>
+
+    <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Deep Dive: Master-Detail vs Lookup Relationship.</span><span class="qa-q-label lbl-domain">DATA MODEL</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <p class="ans-p">In a **Master-Detail** relationship, the child record inherits the security and deletion behavior of the parent. If the parent is deleted, the child is deleted (Cascade Delete). You can also create **Roll-up Summary** fields on the parent. In a **Lookup** relationship, records are loosely coupled; the child has its own owner and sharing rules, and deleting the parent doesn't necessarily delete the child.</p>
+    <div class="tip-box"><div class="tip-label">Advanced Tip</div><p>You can convert a Lookup to Master-Detail ONLY if all existing child records have a parent selected. You cannot have more than 2 Master-Detail relationships on an object, but you can have up to 40 Lookups.</p></div>
     </div></div>
   </div>
 </div>
