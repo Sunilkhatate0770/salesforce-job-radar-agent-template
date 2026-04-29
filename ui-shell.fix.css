@@ -196,6 +196,22 @@ body {
   padding: 0 !important;
 }
 
+/* ===== TABLET LAYOUT (769 - 1024px) ===== */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .page {
+    padding: 18px 18px 80px !important;
+  }
+
+  /* Reduce grid column minimums */
+  .universal-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)) !important;
+  }
+
+  .sync-cta-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+  }
+}
+
 /* ===== MOBILE LAYOUT OVERRIDES (< 769px) ===== */
 @media (max-width: 768px) {
   body {
@@ -232,12 +248,162 @@ body {
     z-index: 1000 !important;
   }
 
+  /* Fixed mobile header */
+  #mainHeader {
+    height: 60px !important;
+    min-height: 60px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 2000 !important;
+    padding: 0 12px !important;
+  }
+
   /* Pages need clearance for fixed mobile header (60px) */
   .page {
-    padding-top: calc(60px + 18px) !important;
+    padding: calc(60px + 16px) 14px 80px 14px !important;
   }
 
   #job_radar.page {
     padding-top: 0 !important;
+  }
+
+  /* Text size consistency for mobile */
+  .page-title {
+    font-size: 1.3rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .page-sub {
+    font-size: 0.78rem !important;
+    margin-bottom: 1.2rem !important;
+    padding-bottom: 0.8rem !important;
+  }
+
+  .qa-q-text {
+    font-size: 0.82rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .qa-q-label {
+    font-size: 0.58rem !important;
+    padding: 2px 6px !important;
+  }
+
+  .ans-p {
+    font-size: 0.78rem !important;
+    line-height: 1.7 !important;
+  }
+
+  .nav-parent-title {
+    font-size: 0.6rem !important;
+    padding: 0.35rem 0.8rem 0.5rem !important;
+  }
+
+  /* Card padding */
+  .content-card {
+    padding: 1.1rem !important;
+    border-radius: 12px !important;
+  }
+
+  /* Grid to single column */
+  .universal-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* Sync CTA grid */
+  .sync-cta-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  /* Stat boxes 2-column on mobile */
+  .stats-row {
+    flex-wrap: wrap !important;
+  }
+  .stat-box {
+    flex: 1 1 calc(50% - 0.5rem) !important;
+    min-width: 0 !important;
+    padding: 0.8rem !important;
+  }
+  .stat-value {
+    font-size: 1.3rem !important;
+  }
+  .stat-label {
+    font-size: 0.62rem !important;
+  }
+
+  /* Tracker adjustments */
+  .tracker-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .tracker-card {
+    padding: 1rem !important;
+  }
+  .tracker-topic {
+    font-size: 0.82rem !important;
+  }
+  .tracker-time {
+    font-size: 0.95rem !important;
+  }
+
+  /* Bookmark cards */
+  .bookmark-card {
+    padding: 14px 16px !important;
+  }
+
+  /* Script and domain text */
+  .script-text {
+    font-size: 0.78rem !important;
+    line-height: 1.7 !important;
+  }
+  .domain-card p,
+  .domain-card ul li {
+    font-size: 0.75rem !important;
+  }
+  .vocab-word {
+    font-size: 0.82rem !important;
+  }
+  .vocab-def {
+    font-size: 0.74rem !important;
+  }
+}
+
+/* ===== ULTRA-SMALL SCREENS (< 400px) ===== */
+@media (max-width: 400px) {
+  .page {
+    padding: calc(60px + 12px) 10px 72px 10px !important;
+  }
+
+  .page-title {
+    font-size: 1.1rem !important;
+  }
+
+  .page-sub {
+    font-size: 0.72rem !important;
+  }
+
+  #mainHeader {
+    padding: 0 8px !important;
+  }
+
+  #headerTitle {
+    font-size: 0.75rem !important;
+    max-width: 140px !important;
+  }
+
+  /* All cards compact */
+  .content-card,
+  .qa-block,
+  .star-card,
+  .script-card {
+    border-radius: 8px !important;
+  }
+
+  .stat-box {
+    flex: 1 1 100% !important;
   }
 }

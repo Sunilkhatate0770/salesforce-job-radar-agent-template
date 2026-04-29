@@ -928,6 +928,67 @@ body:has(#job_radar.active) #headerTitle {
     flex-basis: min(86vw, 320px) !important;
     max-height: none !important;
   }
+
+  /* Mobile text sizes for Job Radar */
+  #job_radar .radar-brand-title {
+    font-size: 12px !important;
+  }
+
+  #job_radar .radar-brand-kicker {
+    font-size: 8px !important;
+  }
+
+  #job_radar .jcard-company {
+    font-size: 11px !important;
+  }
+
+  #job_radar .jcard-role {
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  #job_radar .jcard-why {
+    font-size: 10px !important;
+    line-height: 1.45 !important;
+  }
+
+  #job_radar .meta-pill {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+
+  #job_radar .skill-tag,
+  #job_radar .skill-gap-tag {
+    font-size: 9px !important;
+    padding: 3px 7px !important;
+  }
+
+  #job_radar .jcard-btn {
+    font-size: 10px !important;
+    padding: 8px 10px !important;
+    flex-basis: calc(50% - 4px) !important;
+  }
+
+  #job_radar .insight-heading h3 {
+    font-size: 13px !important;
+  }
+
+  #job_radar .insight-heading p {
+    font-size: 10px !important;
+  }
+
+  #job_radar .met .met-val {
+    font-size: 11px !important;
+  }
+
+  #job_radar .met .met-label {
+    font-size: 8px !important;
+  }
+
+  #job_radar .fb {
+    font-size: 9px !important;
+    padding: 4px 8px !important;
+  }
 }
 
 /* ===== ENHANCED OVERLAP PREVENTION LAYER (v1412-UI-FIX) ===== */

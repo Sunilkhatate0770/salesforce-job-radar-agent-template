@@ -55,6 +55,16 @@ svg {
   --sidebar-w: 280px;
   --page-max-w: 1400px;
   --fluid-pad: clamp(1rem, 5vw, 2.5rem);
+
+  /* Fluid Typography Scale */
+  --fs-xs: clamp(0.62rem, 0.5vw + 0.5rem, 0.72rem);
+  --fs-sm: clamp(0.72rem, 0.5vw + 0.58rem, 0.82rem);
+  --fs-base: clamp(0.8rem, 0.5vw + 0.65rem, 0.92rem);
+  --fs-md: clamp(0.88rem, 0.6vw + 0.7rem, 1.05rem);
+  --fs-lg: clamp(1.1rem, 1vw + 0.7rem, 1.5rem);
+  --fs-xl: clamp(1.4rem, 2vw + 0.8rem, 2.2rem);
+  --fs-mono-xs: clamp(0.58rem, 0.4vw + 0.5rem, 0.68rem);
+  --fs-mono-sm: clamp(0.65rem, 0.4vw + 0.55rem, 0.75rem);
 }
 
 * {
@@ -230,7 +240,7 @@ body {
   align-items: center;
   gap: 12px;
   padding: 0.5rem 1rem 0.5rem 1.2rem;
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
   cursor: pointer;
   border-left: 3px solid transparent;
@@ -647,7 +657,7 @@ body {
 }
 
 .page-title {
-  font-size: clamp(1.2rem, 3vw, 2.2rem);
+  font-size: var(--fs-xl);
   /* Dynamic title scaling */
   font-weight: 800;
   margin-bottom: 0.5rem;
@@ -657,7 +667,7 @@ body {
 }
 
 .page-sub {
-  font-size: clamp(0.75rem, 1vw + 0.5rem, 0.9rem);
+  font-size: var(--fs-sm);
   color: var(--muted);
   margin-bottom: 2rem;
   padding-bottom: 1rem;
@@ -688,7 +698,7 @@ body {
 }
 
 .qa-q-text {
-  font-size: 0.9rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   line-height: 1.5;
@@ -767,7 +777,7 @@ body {
 }
 
 .ans-p {
-  font-size: 0.83rem;
+  font-size: var(--fs-sm);
   color: #b8c8e8;
   line-height: 1.75;
   margin-bottom: 0.8rem;
@@ -1346,7 +1356,7 @@ pre.code .num {
 }
 
 .tracker-topic {
-  font-size: 0.88rem;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text);
   margin-bottom: 0.5rem;
@@ -1483,7 +1493,7 @@ pre.code .num {
 }
 
 .stat-label {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-top: 0.3rem;
   text-transform: uppercase;
@@ -1734,7 +1744,7 @@ pre.code .num {
   /* Hide 'day' text on mobile */
 
   .page {
-    padding-top: 90px !important;
+    padding-top: calc(60px + 18px) !important;
     width: 100%;
   }
 
@@ -1744,6 +1754,52 @@ pre.code .num {
 
   .profile-pill {
     padding: 4px 8px !important;
+  }
+
+  /* Modal responsiveness */
+  .modal-box {
+    width: 95vw !important;
+    max-width: 550px !important;
+    max-height: 85vh !important;
+  }
+
+  /* Table horizontal scroll on mobile */
+  .comparison-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Code blocks horizontal scroll */
+  pre.code {
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Stat boxes stack on mobile */
+  .stat-box {
+    min-width: 0;
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+
+  /* Schedule rows stack */
+  .sched-row {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .sched-time {
+    min-width: 0;
+  }
+
+  /* Chart bar labels */
+  .chart-bar-label {
+    min-width: 80px;
+    font-size: var(--fs-mono-xs);
+  }
+
+  /* Floating timer z-index fix */
+  #floatingTimer {
+    z-index: 1000 !important;
   }
 }
 
@@ -2461,20 +2517,96 @@ pre.code .num {
 
 @media (max-width: 480px) {
   .page-title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
   }
 
   .qa-q-text {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
   }
 
   .ans-p {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+    line-height: 1.7;
   }
 
   pre.code {
-    font-size: 0.7rem;
-    padding: 0.8rem;
+    font-size: 0.68rem;
+    padding: 0.7rem;
+    max-width: calc(100vw - 2.5rem);
+  }
+
+  /* Cards become full width */
+  .content-card {
+    padding: 1rem !important;
+    border-radius: 10px !important;
+  }
+
+  /* Vocab grid single column */
+  .vocab-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Domain grid single column */
+  .domain-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Sync card adjustments */
+  .sync-card-premium {
+    padding: 24px 18px;
+    min-height: 240px;
+  }
+
+  .sync-icon-box {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+
+  /* Stat boxes full width */
+  .stat-box {
+    flex: 1 1 100%;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  /* Tracker card font sizes */
+  .tracker-time {
+    font-size: 0.95rem;
+  }
+
+  /* Schedule adjustments */
+  .sched-time {
+    font-size: 0.68rem;
+    min-width: 0;
+  }
+
+  .sched-act {
+    font-size: 0.78rem;
+  }
+
+  /* Summary chips */
+  .sum-chip {
+    font-size: 0.68rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .sum-chip b {
+    font-size: 0.88rem;
+  }
+
+  /* Profile page */
+  .profile-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* Search input */
+  #searchInput {
+    font-size: 0.78rem;
+    padding: 0.5rem 0.7rem;
   }
 }
 
