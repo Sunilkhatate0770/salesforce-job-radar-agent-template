@@ -1923,9 +1923,8 @@ function renderTimelineView(container, dates, histories, todayStr, yestStr) {
     const isToday = (date === todayStr);
     const isYesterday = (date === yestStr);
     const jobsCount = h.jobs ? h.jobs.newCount : 0;
-    const breakdown = h.study.breakdown || {};
-    const topicIds = h.study.topics || [];
-    const previewIds = topicIds.slice(0, 3);
+    const topicList = h.study.topicList || [];
+    const previewTopics = topicList.slice(0, 3);
     
     const colors = ['#4f8ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
     const accent = isToday ? '#10b981' : colors[idx % colors.length];
@@ -1938,18 +1937,18 @@ function renderTimelineView(container, dates, histories, todayStr, yestStr) {
             <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">${isToday ? 'Today' : (isYesterday ? 'Yesterday' : date)}</div>
             <div style="font-size:1.3rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${formatTime((h.study && h.study.totalSeconds) ? h.study.totalSeconds : 0)}</div>
           </div>
-          <button onclick="showHistoryModal('${date}')" style="background:${accent}22; color:${accent}; border:1px solid ${accent}44; padding:8px 15px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:0.2s;">ðŸ” View Deep Info</button>
+          <button onclick="showHistoryModal('${date}')" style="background:${accent}22; color:${accent}; border:1px solid ${accent}44; padding:8px 15px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer; transition:0.2s;">ðŸ”  View Deep Info</button>
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-          ${previewIds.length > 0 ? previewIds.map(tid => {
-            const name = (breakdown[tid] ? breakdown[tid].name : (topicConfig[tid] ? topicConfig[tid].name : tid));
+          ${previewTopics.length > 0 ? previewTopics.map(t => {
+            const name = t.name || t.id;
             return `<span style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--muted); padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
               ${name}
             </span>`;
-          }).join('') : '<span style="font-size:0.65rem; color:var(--muted); font-style:italic;">No topics logged</span>'}
-          ${topicIds.length > 3 ? `<span style="font-size:0.65rem; color:var(--blue); padding:3px 0;">+${topicIds.length - 3} more</span>` : ''}
+          }).join('') : `<span style="font-size:0.65rem; color:var(--muted); opacity:0.5;">No specific topics logged</span>`}
+          ${topicList.length > 3 ? `<span style="font-size:0.65rem; color:var(--blue); padding:3px 0;">+${topicList.length - 3} more</span>` : ''}
         </div>
         
         <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
