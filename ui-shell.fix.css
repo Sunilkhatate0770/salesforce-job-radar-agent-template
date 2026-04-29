@@ -1,17 +1,52 @@
 /* Shared UI rescue layer for the legacy dashboard shell.
    Keep this scoped to layout/navigation/common cards so feature CSS can evolve
-   independently without fighting the older global stylesheet. */
+   independently without fighting the older global stylesheet.
+   v1413 — Responsive hardening & collapsed-section fix */
 
 :root {
   --app-font-body: 'Outfit', 'Plus Jakarta Sans', sans-serif;
   --app-font-display: 'Syne', 'Plus Jakarta Sans', sans-serif;
   --app-font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
-  --sidebar-w: 260px;
+  --sidebar-w: 280px;
 }
+
+/* =======================================
+   Z-INDEX HIERARCHY (single source of truth)
+   =========================================
+   Login overlay:  99999
+   Toast:          20000
+   Modals:         10001 — 10005
+   Sidebar:        10000
+   Sidebar overlay: 9999
+   Main header:    2000
+   Floating timer: 1000
+   Page content:   1
+   ========================================= */
 
 /* LOGIN OVERLAY - MUST BE ON TOP OF EVERYTHING */
 #loginOverlay {
-  z-index: 99999 !important; /* Maximum priority */
+  z-index: 99999 !important;
+}
+
+/* SIDEBAR OVERLAY — mobile dim background when menu is open */
+#sidebarOverlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(2px) !important;
+  -webkit-backdrop-filter: blur(2px) !important;
+  z-index: 9999 !important;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease !important;
+}
+
+#sidebarOverlay[style*="display: block"],
+#sidebarOverlay[style*="display:block"] {
+  opacity: 1;
 }
 
 /* COMMON STYLES */
@@ -33,14 +68,14 @@ body {
   border-right: 1px solid var(--border) !important;
 }
 
-/* SIDE-BY-SIDE DESKTOP LAYOUT (>= 769px) */
+/* ===== SIDE-BY-SIDE DESKTOP LAYOUT (>= 769px) ===== */
 @media (min-width: 769px) {
   body {
     display: flex !important;
     flex-direction: row !important;
     height: 100dvh !important;
     overflow: hidden !important;
-    padding-left: var(--sidebar-w) !important; /* Physical wall for content */
+    padding-left: var(--sidebar-w) !important;
   }
 
   #sidebar {
@@ -50,8 +85,8 @@ body {
     bottom: 0 !important;
     width: var(--sidebar-w) !important;
     min-width: var(--sidebar-w) !important;
-    z-index: 10000 !important; /* Above main, below login */
-    background: #0d1526 !important; /* Solid dark */
+    z-index: 10000 !important;
+    background: #0d1526 !important;
   }
 
   #main {
@@ -63,9 +98,14 @@ body {
     overflow-y: auto !important;
     position: relative !important;
   }
+
+  /* Hide sidebar overlay on desktop */
+  #sidebarOverlay {
+    display: none !important;
+  }
 }
 
-/* SIDEBAR INTERNAL COMPONENTS */
+/* ===== SIDEBAR INTERNAL COMPONENTS ===== */
 #sidebar .sidebar-header {
   position: sticky !important;
   top: 0 !important;
@@ -93,6 +133,16 @@ body {
   font-family: var(--app-font-body) !important;
   font-size: 0.74rem !important;
   color: #86a0c4 !important;
+  transition: all 0.15s ease !important;
+}
+
+/* ===== CRITICAL FIX: Nav section collapse/expand ===== */
+#sidebar .nav-parent-section.collapsed > .nav-item {
+  display: none !important;
+}
+
+#sidebar .nav-parent-section > .nav-item {
+  overflow: hidden;
 }
 
 #sidebar .nav-section-chevron {
@@ -103,7 +153,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s ease;
+  transition: transform 0.25s ease;
 }
 
 #sidebar .nav-section-chevron::after {
@@ -125,16 +175,17 @@ body {
   color: #dceaff !important;
   background: rgba(59, 130, 246, 0.15) !important;
   border-left: 2px solid var(--blue) !important;
+  box-shadow: inset 0 0 12px rgba(59, 130, 246, 0.06);
 }
 
-/* MAIN CONTENT COMPONENTS */
+/* ===== MAIN CONTENT COMPONENTS ===== */
 #mainHeader {
   height: 48px !important;
   min-height: 48px !important;
   background: rgba(7, 12, 24, 0.98) !important;
   position: sticky !important;
   top: 0 !important;
-  z-index: 50 !important;
+  z-index: 2000 !important;
 }
 
 .page {
@@ -145,15 +196,16 @@ body {
   padding: 0 !important;
 }
 
-/* MOBILE LAYOUT OVERRIDES (< 769px) */
+/* ===== MOBILE LAYOUT OVERRIDES (< 769px) ===== */
 @media (max-width: 768px) {
   body {
     display: block !important;
     height: auto !important;
-    overflow: visible !important;
-    padding-left: 0 !important; /* Reset padding on mobile */
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding-left: 0 !important;
   }
-  
+
   #main {
     margin-left: 0 !important;
     width: 100% !important;
@@ -162,14 +214,14 @@ body {
 
   #sidebar {
     position: fixed !important;
-    left: -284px !important; 
-    width: 284px !important;
+    left: calc(-1 * var(--sidebar-w) - 4px) !important;
+    width: var(--sidebar-w) !important;
     top: 0 !important;
     bottom: 0 !important;
     z-index: 10000 !important;
-    transition: left 0.3s var(--ease) !important;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background: #111d35 !important;
-    box-shadow: 20px 0 60px rgba(0,0,0,0.6) !important;
+    box-shadow: 20px 0 60px rgba(0, 0, 0, 0.6) !important;
   }
 
   #sidebar.mobile-open {
@@ -177,6 +229,15 @@ body {
   }
 
   .mobile-toggle {
-    z-index: 1000 !important; /* Below login overlay */
+    z-index: 1000 !important;
+  }
+
+  /* Pages need clearance for fixed mobile header (60px) */
+  .page {
+    padding-top: calc(60px + 18px) !important;
+  }
+
+  #job_radar.page {
+    padding-top: 0 !important;
   }
 }

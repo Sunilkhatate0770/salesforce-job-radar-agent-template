@@ -113,11 +113,6 @@ body:has(#job_radar.active) #headerTitle {
   border-color: var(--jr-blue) !important;
   transform: translateY(-1px);
 }
-}
-
-#job_radar .pstat:hover {
-  border-color: var(--jr-border2) !important;
-}
 
 #job_radar .pdot {
   width: 6px !important;
@@ -541,23 +536,26 @@ body:has(#job_radar.active) #headerTitle {
 }
 
 #job_radar .jcard-v3 {
-  background: var(--jr-surface) !important;
+  background: linear-gradient(135deg, rgba(17, 29, 53, 0.95), rgba(22, 34, 64, 0.85)) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border: 1px solid var(--jr-border) !important;
-  border-radius: 11px !important;
-  padding: 13px !important;
+  border-radius: 14px !important;
+  padding: 14px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 9px !important;
+  gap: 10px !important;
   min-height: 0 !important;
   position: relative !important;
   overflow: hidden !important;
-  box-shadow: none !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 #job_radar .jcard-v3:hover {
-  border-color: var(--jr-border2) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.35) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.08) !important;
 }
 
 #job_radar .jcard-v3::before {
@@ -644,6 +642,7 @@ body:has(#job_radar.active) #headerTitle {
   min-height: 38px !important;
   max-height: 38px !important;
   flex: 0 0 38px !important;
+  position: relative !important;
 }
 
 #job_radar .score-chip-value {
@@ -651,6 +650,11 @@ body:has(#job_radar.active) #headerTitle {
   font-size: 9px !important;
   font-weight: 700 !important;
   color: var(--jr-text) !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 2 !important;
 }
 
 #job_radar .jcard-stage-row {
@@ -910,14 +914,19 @@ body:has(#job_radar.active) #headerTitle {
 
   #job_radar .kanban-board-v3 {
     height: auto !important;
+    max-height: none !important;
     min-height: 0 !important;
     padding: 14px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    flex-wrap: nowrap !important;
   }
 
   #job_radar .kanban-col-v3 {
-    width: 86vw !important;
-    min-width: 86vw !important;
-    flex-basis: 86vw !important;
+    width: min(86vw, 320px) !important;
+    min-width: min(86vw, 320px) !important;
+    flex-basis: min(86vw, 320px) !important;
+    max-height: none !important;
   }
 }
 

@@ -52,7 +52,7 @@ svg {
   --header-h: 48px;
   --analytics: 52px;
   --flt: 42px;
-  --sidebar-w: 260px;
+  --sidebar-w: 280px;
   --page-max-w: 1400px;
   --fluid-pad: clamp(1rem, 5vw, 2.5rem);
 }
@@ -82,14 +82,14 @@ body {
 
 /* SIDEBAR */
 #sidebar {
-  width: 260px;
-  min-width: 260px;
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
   background: var(--surface);
   border-right: 1px solid var(--border);
   height: 100dvh;
   position: sticky;
   top: 0;
-  z-index: 100; /* Ensure sidebar is above main content headers */
+  z-index: 10000;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -207,6 +207,11 @@ body {
 
 .nav-parent-section:last-child {
   border-bottom: none;
+}
+
+/* Collapse/expand children */
+.nav-parent-section.collapsed > .nav-item {
+  display: none !important;
 }
 
 .nav-parent-title {
@@ -1664,7 +1669,7 @@ pre.code .num {
 @media (max-width: 768px) {
   #sidebar {
     position: fixed;
-    left: calc(-1 * var(--sidebar-w));
+    left: calc(-1 * var(--sidebar-w) - 4px);
     top: 0;
     bottom: 0;
     width: var(--sidebar-w);
@@ -2352,7 +2357,7 @@ pre.code .num {
 /* RESPONSIVE DESIGN ENGINE (v1343 Refactor) */
 @media (max-width: 1024px) {
   #sidebar {
-    width: 280px;
+    width: var(--sidebar-w);
   }
 
   .tracker-grid {
@@ -2384,11 +2389,11 @@ pre.code .num {
 
   #sidebar {
     position: fixed;
-    left: -280px;
+    left: calc(-1 * var(--sidebar-w) - 4px);
     top: 0;
     bottom: 0;
-    width: 280px;
-    z-index: 9999;
+    width: var(--sidebar-w);
+    z-index: 10000;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 20px 0 50px rgba(0, 0, 0, 0.5);
     padding-bottom: env(safe-area-inset-bottom);

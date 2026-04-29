@@ -246,7 +246,32 @@ export default async function(req, res) {
       const mongoJobs = await JobRecord.find({ userId }).lean();
       const combined = [...tursoJobs, ...mongoJobs];
       console.log(`[ANALYTICS] Hybrid Merging ${combined.length} records for ${userId}`);
-      return res.status(200).json(combined);
+
+      // Aggregate matched skills, missing skills, and top companies
+      const matchedMap = {};
+      const missingMap = {};
+      const companyMap = {};
+
+      combined.forEach(j => {
+        const matched = typeof j.matched_skills === 'string' ? JSON.parse(j.matched_skills || '[]') : (j.matched_skills || []);
+        const missing = typeof j.missing_skills === 'string' ? JSON.parse(j.missing_skills || '[]') : (j.missing_skills || []);
+        const company = j.company || 'Unknown';
+        
+        matched.forEach(s => { if (s) matchedMap[s] = (matchedMap[s] || 0) + 1; });
+        missing.forEach(s => { if (s) missingMap[s] = (missingMap[s] || 0) + 1; });
+        if (company) companyMap[company] = (companyMap[company] || 0) + 1;
+      });
+
+      const sortEntries = (obj) => Object.entries(obj)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([k, v]) => ({ _id: k, count: v }));
+
+      return res.status(200).json({
+        matched_skills: sortEntries(matchedMap),
+        missing_skills: sortEntries(missingMap),
+        top_companies: sortEntries(companyMap)
+      });
     }
 
     // 4. STUDY ENDPOINTS

@@ -2531,7 +2531,8 @@ let isNavigating = false;
 async function showPage(id) {
   if (isNavigating) return;
   isNavigating = true;
-  console.log(`%c ðŸ“‘ [TAB SWITCH] -> ${id}`, 'background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;');
+  console.log(`%c [TAB SWITCH] -> ${id}`, 'background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;');
+  try {
   
   // Ensure the page content is loaded before showing
   await ensurePageLoaded(id);
@@ -2566,7 +2567,12 @@ async function showPage(id) {
   if (page) { 
     console.log(`âœ¨ [NAV] ENABLING PAGE: #${page.id}`);
     page.classList.add('active');
-    page.style.setProperty('display', 'block', 'important'); 
+    // Use flex for job_radar (it's a flex container), block for everything else
+    if (id === 'job_radar') {
+      page.style.setProperty('display', 'flex', 'important');
+    } else {
+      page.style.setProperty('display', 'block', 'important');
+    }
     
     const finalStyle = getComputedStyle(page);
     console.log(`ðŸ“Š [NAV] #${page.id} COMPUTED STATE:
@@ -2591,8 +2597,20 @@ async function showPage(id) {
         await updateTrackerUI(); 
     }
     if (id === 'job_radar') {
-        console.log('ðŸ›°ï¸ [NAV] Activating Job Radar Dashboard...');
-        fetchJobsList(); 
+        console.log('[NAV] Activating Job Radar Dashboard...');
+        fetchJobsList();
+        // Auto-refresh: poll every 5 minutes while tab is active
+        if (window._jobRadarInterval) clearInterval(window._jobRadarInterval);
+        window._jobRadarInterval = setInterval(() => {
+          const radarPage = document.getElementById('job_radar');
+          if (radarPage && radarPage.classList.contains('active')) {
+            console.log('[RADAR] Auto-refresh triggered...');
+            fetchJobsList();
+          } else {
+            clearInterval(window._jobRadarInterval);
+            window._jobRadarInterval = null;
+          }
+        }, 5 * 60 * 1000);
     }
     if (id === 'profile_match') { 
         console.log('ðŸ‘¤ [NAV] Analyzing Profile Match...');
@@ -2603,7 +2621,6 @@ async function showPage(id) {
         console.log('â­  [NAV] Activating Bookmarks View...');
         if (typeof showBookmarks === 'function') showBookmarks();
     }
-    isNavigating = false;
   }
 
   // UI Updates
@@ -2616,15 +2633,24 @@ async function showPage(id) {
   const mainEl = document.getElementById('main');
   if (mainEl) mainEl.scrollTop = 0;
   
-  // Mobile Sidebar Close
+  // Mobile Sidebar Close (guard against double-toggle)
   const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
   if (sidebar && sidebar.classList.contains('mobile-open')) {
-    if (typeof toggleMobileSidebar === 'function') toggleMobileSidebar();
+    sidebar.classList.remove('mobile-open');
+    if (sidebarOverlay) sidebarOverlay.style.display = 'none';
+    document.body.style.overflow = '';
   }
 
   const cfg = topicConfig[id];
   if (cfg && !cfg.noTimer) startTracking(id);
   renderBookmarkButtons();
+
+  } catch (err) {
+    console.error('[NAV] showPage() error:', err);
+  } finally {
+    isNavigating = false;
+  }
 }
 function toggleQA(el) { 
   const isOpen = el.parentElement.classList.toggle('open'); 
@@ -3330,11 +3356,17 @@ function toggleMobileSidebar() {
   const isOpen = sidebar.classList.contains('mobile-open');
   if (isOpen) {
     sidebar.classList.remove('mobile-open');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+      overlay.style.opacity = '0';
+      setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
     document.body.style.overflow = '';
   } else {
     sidebar.classList.add('mobile-open');
-    if (overlay) overlay.style.display = 'block';
+    if (overlay) {
+      overlay.style.display = 'block';
+      requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+    }
     document.body.style.overflow = 'hidden';
   }
 }
@@ -3694,12 +3726,27 @@ function renderInsights() {
     </div>
   `).join('');
 
-  // 3. Weekly Velocity (Phase 5B)
+  // 3. Weekly Velocity (Real data from pipeline)
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const data = [2, 5, 3, 8, 4, 1, 0]; // Mock application counts
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
+  const weekData = [0, 0, 0, 0, 0, 0, 0];
+  pipelineJobs.forEach(j => {
+    if (j.dateApplied) {
+      const applied = new Date(j.dateApplied);
+      const diffDays = Math.floor((now - applied) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 0 && diffDays < 7) {
+        const appliedDay = applied.getDay();
+        const idx = appliedDay === 0 ? 6 : appliedDay - 1; // Convert to Mon=0..Sun=6
+        weekData[idx]++;
+      }
+    }
+  });
+  const maxVel = Math.max(...weekData, 1);
   velocity.innerHTML = days.map((d, i) => `
     <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px;">
-      <div style="width:100%; background:linear-gradient(to top, var(--blue), var(--cyan)); height:${(data[i]/10)*100}px; border-radius:4px 4px 0 0; opacity:0.8;"></div>
+      <div style="font-size:0.65rem; font-weight:700; color:var(--text2);">${weekData[i]}</div>
+      <div style="width:100%; background:linear-gradient(to top, var(--blue), var(--cyan)); height:${Math.max((weekData[i]/maxVel)*120, 4)}px; border-radius:4px 4px 0 0; opacity:${weekData[i] > 0 ? '0.8' : '0.15'}; transition:height 0.6s ease;"></div>
       <div style="font-size:0.55rem; color:var(--muted);">${d}</div>
     </div>
   `).join('');
