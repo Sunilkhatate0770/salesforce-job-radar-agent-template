@@ -1,0 +1,165 @@
+<div class="page-header">
+  <div class="page-title">Salesforce Official Interview &mdash; Round 1</div>
+  <div class="page-sub">Comprehensive technical screening and platform-deep dive questions based on 2026 interview patterns.</div>
+</div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain the basic setup steps for Agentforce.</span><span class="qa-q-label lbl-domain">AGENTFORCE</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Setting up Agentforce involves 5 primary steps:</p>
+<ol class="ans-list">
+  <li><b>Enable Einstein:</b> Navigate to Setup &mdash; Einstein Setup and turn on Einstein.</li>
+  <li><b>Create Agent:</b> Go to Agent Builder and create a new Agent (e.g., Service Agent or custom).</li>
+  <li><b>Define Topics:</b> Create 'Topics' which represent the areas of expertise for your agent.</li>
+  <li><b>Add Actions:</b> Assign standard or custom actions (Flows, Apex @InvocableMethod, Prompt Templates) to specific topics.</li>
+  <li><b>Activate & Deploy:</b> Activate the agent and deploy it to a channel like Experience Cloud, Messaging, or Slack.</li>
+</ol>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are the different types of agents in Agentforce?</span><span class="qa-q-label lbl-domain">AGENTFORCE</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Agents are generally categorized by their primary role and interaction model:</p>
+<ul class="ans-list">
+  <li><b>Service Agent:</b> Focused on customer support, resolving cases, and answering FAQ.</li>
+  <li><b>Sales Agent:</b> Handles lead qualification, SDR outreach, and appointment scheduling.</li>
+  <li><b>Information Provider:</b> Acts as a knowledge base assistant, summarizing articles and data.</li>
+  <li><b>Personal Assistant (Copilot):</b> Employee-facing agent to help with internal tasks like record creation, summarization, and email drafting.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain 'Actions' in Agentforce and give examples.</span><span class="qa-q-label lbl-domain">AGENTFORCE</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Actions are the 'tools' the agent uses to perform tasks. They can be:</p>
+<ul class="ans-list">
+  <li><b>Flow Actions:</b> Calling a Headless Flow to perform logic or updates.</li>
+  <li><b>Apex Actions:</b> Using <code>@InvocableMethod</code> to call custom Apex (e.g., external API calls).</li>
+  <li><b>Prompt Template Actions:</b> Using Prompt Builder to generate specific text responses.</li>
+  <li><b>Standard Actions:</b> Pre-built actions like 'Summarize Record' or 'Find Records'.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you set up 'Topics' in Agentforce?</span><span class="qa-q-label lbl-domain">AGENTFORCE</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Topics provide the reasoning engine with context. You set them up by:</p>
+<ol class="ans-list">
+  <li>Defining a <b>Name</b> and <b>Description</b> (Crucial: the LLM uses the description to decide if this topic matches user intent).</li>
+  <li>Providing <b>Instructions:</b> Guidelines on how the agent should behave within this topic.</li>
+  <li>Assigning <b>Actions:</b> Mapping which specific tools are relevant to this topic.</li>
+</ol>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain RAG and Hallucination in the context of AI.</span><span class="qa-q-label lbl-domain">AI CONCEPTS</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p"><b>RAG (Retrieval-Augmented Generation):</b> The process of retrieving relevant data from your Salesforce org (like record data or Knowledge articles) and injecting it into the prompt. This 'grounds' the AI in your specific data.</p>
+<p class="ans-p"><b>Hallucination:</b> When an AI model generates confident but false or fabricated information because it lacks specific context. RAG is the primary solution to prevent hallucinations in Salesforce.</p>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain LWC Variables (@api, @track, non-decorated).</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">LWC uses three main types of property reactivity:</p>
+<ul class="ans-list">
+  <li><b>@api:</b> Public properties. Used to pass data from parent to child. Making a property public makes it reactive to parent changes.</li>
+  <li><b>@track:</b> Private reactive properties for deep tracking. Necessary for observing changes <em>inside</em> an object or array (e.g., <code>this.obj.name = 'X'</code>).</li>
+  <li><b>Non-decorated:</b> Private reactive properties. Since Spring '20, all private properties are reactive if you re-assign the whole value (e.g., <code>this.count = 5</code>).</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Coding: Show industry data using imperative apex in a data table with an industry filter.</span><span class="qa-q-label lbl-lwc">CODING</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<pre class="code">// JS
+import { LightningElement, track } from 'lwc';
+import getAccountsByIndustry from '@salesforce/apex/AccountController.getAccountsByIndustry';
+
+export default class IndustryTable extends LightningElement {
+    @track accounts = [];
+    selectedIndustry = 'Technology';
+
+    handleIndustryChange(event) {
+        this.selectedIndustry = event.target.value;
+        this.loadAccounts();
+    }
+
+    loadAccounts() {
+        getAccountsByIndustry({ industry: this.selectedIndustry })
+            .then(result => { this.accounts = result; })
+            .catch(error => { console.error(error); });
+    }
+}
+
+// APEX
+@AuraEnabled
+public static List<Account> getAccountsByIndustry(String industry) {
+    return [SELECT Id, Name, Industry, AnnualRevenue FROM Account WHERE Industry = :industry LIMIT 50];
+}</pre>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you communicate between non-connected (sibling) components?</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Use <b>Lightning Message Service (LMS)</b>. Steps:</p>
+<ol class="ans-list">
+  <li>Create a <b>Lightning Message Channel</b> (XML file).</li>
+  <li>In Publisher: Use <code>publish(this.messageContext, CHANNEL, payload)</code>.</li>
+  <li>In Subscriber: Use <code>subscribe(this.messageContext, CHANNEL, (msg) => { ... })</code>.</li>
+</ol>
+<p class="ans-p">Previously, <code>pubsub</code> was used, but LMS is now the standard as it works across LWC, Aura, and Visualforce.</p>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain LDS (Lightning Data Service) in LWC.</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">LDS is a client-side cache and data management layer. It allows you to interact with Salesforce data without writing Apex. Benefits include:</p>
+<ul class="ans-list">
+  <li><b>Automatic Caching:</b> Data is cached across components.</li>
+  <li><b>Shared Cache:</b> If one component updates a record, all other LDS-linked components update automatically.</li>
+  <li><b>Wire Adapters:</b> <code>getRecord</code>, <code>createRecord</code>, <code>updateRecord</code>.</li>
+  <li><b>Base Components:</b> <code>lightning-record-form</code>, <code>lightning-record-view-form</code>.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Coding: Write a trigger to prevent duplicate contacts using Email.</span><span class="qa-q-label lbl-apex">CODING</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<pre class="code">trigger ContactDuplicatePreventer on Contact (before insert, before update) {
+    Set<String> emailSet = new Set<String>();
+    for (Contact c : Trigger.new) {
+        if (c.Email != null) emailSet.add(c.Email);
+    }
+    
+    if (!emailSet.isEmpty()) {
+        List<Contact> existing = [SELECT Email FROM Contact WHERE Email IN :emailSet];
+        Set<String> existingEmails = new Set<String>();
+        for (Contact ec : existing) existingEmails.add(ec.Email);
+        
+        for (Contact c : Trigger.new) {
+            if (existingEmails.contains(c.Email)) {
+                c.Email.addError('A contact with this email already exists.');
+            }
+        }
+    }
+}</pre>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain the 4 types of Asynchronous Apex.</span><span class="qa-q-label lbl-apex">APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<table class="comparison-table">
+  <tr><th>Type</th><th>Use Case</th></tr>
+  <tr><td><b>Future Methods (@future)</b></td><td>Simple callouts or process offloading. Cannot use SObjects as params.</td></tr>
+  <tr><td><b>Queueable Apex</b></td><td>Complex async logic, chaining jobs, and using SObjects as params.</td></tr>
+  <tr><td><b>Batch Apex</b></td><td>Processing millions of records in chunks (default 200).</td></tr>
+  <tr><td><b>Scheduled Apex</b></td><td>Running logic at specific times/intervals (CRON).</td></tr>
+</table>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Deep Dive: Batch Apex, Database.Stateful, and Database.AllowsCallouts.</span><span class="qa-q-label lbl-apex">APEX</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<ul class="ans-list">
+  <li><b>Batch Apex:</b> Implements <code>Database.Batchable</code> with 3 methods: <code>start()</code>, <code>execute()</code>, <code>finish()</code>.</li>
+  <li><b>Database.Stateful:</b> By default, batch chunks are stateless. Implement this to maintain variable values (like counters) across different <code>execute()</code> chunks.</li>
+  <li><b>Database.AllowsCallouts:</b> Mandatory if you need to perform HTTP requests within the <code>execute()</code> method.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Scenario: Google Drive integration using Queueable Apex.</span><span class="qa-q-label lbl-intg">INTEGRATION</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">To sync Salesforce files to Google Drive:</p>
+<ol class="ans-list">
+  <li>Trigger on <code>ContentVersion</code> (After Insert) captures the file.</li>
+  <li>Enqueue a <b>Queueable</b> class implementing <code>Database.AllowsCallouts</code>.</li>
+  <li>In <code>execute()</code>, fetch the file Blob and perform a POST request to Google Drive API using a <b>Named Credential</b> for OAuth.</li>
+  <li>Update the original record in Salesforce with the Google Drive File ID returned.</li>
+</ol>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Security: How to share records if OWD is Private?</span><span class="qa-q-label lbl-sec">SECURITY</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">If OWD is Private, only the owner and those above in the <b>Role Hierarchy</b> can see records. To expand access:</p>
+<ul class="ans-list">
+  <li><b>Sharing Rules:</b> Share to Roles, Public Groups based on criteria or owner.</li>
+  <li><b>Manual Sharing:</b> User manually grants access to another user (Classic/via Apex).</li>
+  <li><b>Apex Sharing:</b> Programmatically create <code>__Share</code> records for complex logic.</li>
+  <li><b>Team Sharing:</b> Use Account/Case/Opportunity Teams to grant access.</li>
+</ul>
+</div></div>

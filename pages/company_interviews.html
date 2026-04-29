@@ -527,6 +527,15 @@ String status = raw.containsKey('loanStatus') ? (String)raw.get('loanStatus') : 
     <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Sales Cloud & Service Cloud Overview</span><span class="qa-q-label lbl-domain">CRM</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
     <p class="ans-p">Sales: Lead → Account/Contact/Opp lifecycle. Service: Case management, Entitlements, Milestones, Omni-channel.</p>
     </div></div>
+
+    <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain NavigationMixin and its use cases.</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <p class="ans-p"><code>NavigationMixin</code> is used to navigate to pages, records, or external URLs in LWC. Common types include <code>standard__recordPage</code>, <code>standard__objectPage</code>, and <code>standard__webPage</code>. It is essential for opening specific records or list views from a custom component.</p>
+    </div></div>
+
+    <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How to call LWC into a record page and open record pages from LWC?</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+    <p class="ans-p"><b>Call LWC into Record Page:</b> Expose the component by adding <code>lightning__RecordPage</code> to the <code>target</code> list in <code>js-meta.xml</code>. Use <code>App Builder</code> to drag it onto the page.</p>
+    <p class="ans-p"><b>Open Record Page from LWC:</b> Use <code>this[NavigationMixin.Navigate]({ type: 'standard__recordPage', ... })</code> with the record ID and <code>actionName: 'view'</code>.</p>
+    </div></div>
   </div>
 </div>
 

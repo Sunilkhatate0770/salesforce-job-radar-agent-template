@@ -1,0 +1,65 @@
+<div class="page-header">
+  <div class="page-title">Salesforce Official Onsite Interview &mdash; Architecture & Advanced</div>
+  <div class="page-sub">Deep dive into Data Cloud, Agentforce architecture, and complex security/integration scenarios.</div>
+</div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Explain Data Cloud basics (Ingestion, Modeling, Identity Resolution).</span><span class="qa-q-label lbl-domain">DATA CLOUD</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Data Cloud is a hyperscale data platform. Key pillars:</p>
+<ul class="ans-list">
+  <li><b>Ingestion:</b> Bringing data in via Connectors (S3, Salesforce, Mulesoft, SDK). Data lands in a Data Lake Object (DLO).</li>
+  <li><b>Modeling:</b> Mapping DLOs to a standardized CIM (Cloud Information Model) to create Data Model Objects (DMO).</li>
+  <li><b>Identity Resolution:</b> Using Match Rules (fuzzy/exact) and Reconciliation Rules to unify multiple records into a single 'Unified Individual'.</li>
+  <li><b>Activation:</b> Sending segments or insights back to Salesforce or external endpoints.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Scenario: Sharing records from Sales Rep to Senior Manager while skipping the Junior Manager.</span><span class="qa-q-label lbl-sec">SECURITY</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">Standard **Role Hierarchy** won't work here because it's strictly vertical. To achieve this:</p>
+<ol class="ans-list">
+  <li><b>OWD:</b> Set to Private.</li>
+  <li><b>Role Hierarchy:</b> Keep them in the same branch, but disable 'Grant Access Using Hierarchies' on the object (if possible) or use a more refined approach.</li>
+  <li><b>Solution:</b> Use <b>Criteria-Based Sharing Rules</b> or <b>Manual Sharing via Apex</b> to explicitly share the Sales Rep's records with a **Public Group** that includes the Senior Manager but excludes the Junior Manager.</li>
+</ol>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you call an integration from a Trigger (Sync vs Async)?</span><span class="qa-q-label lbl-intg">INTEGRATION</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p"><b>Synchronous callouts are NOT allowed from triggers.</b> You must use Asynchronous methods:</p>
+<ul class="ans-list">
+  <li><b>@future(callout=true):</b> Simple, but cannot pass SObjects.</li>
+  <li><b>Queueable Apex:</b> Better for complex logic and allows passing SObject records.</li>
+  <li><b>Platform Events:</b> Publish an event from the trigger; have an external system or an async trigger subscriber handle the callout.</li>
+</ul>
+<p class="ans-p"><b>Key Constraint:</b> Never perform DML before a callout in the same transaction.</p>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you communicate between unrelated LWC components? LMS vs LMC.</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p"><b>LMS (Lightning Message Service):</b> The engine/service used to communicate across Visualforce, Aura, and LWC.</p>
+<p class="ans-p"><b>LMC (Lightning Message Channel):</b> The metadata file (e.g., <code>SampleMessageChannel.messageChannel-meta.xml</code>) that defines the structure of the message.</p>
+<p class="ans-p">You define the <b>LMC</b> and then use the <b>LMS</b> APIs (publish/subscribe) in your JS components.</p>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Communication between a standard record page and a custom LWC.</span><span class="qa-q-label lbl-lwc">LWC</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<p class="ans-p">If the standard record page and custom LWC need to talk:</p>
+<ul class="ans-list">
+  <li><b>Refresh Data:</b> Use <code>getRecordNotifyChange(recordIds)</code> in LWC to force the standard record page to refresh its cache after the LWC performs an update.</li>
+  <li><b>Capture standard events:</b> Standard record pages don't usually dispatch custom events to LWCs, so we rely on <b>Lightning Message Service (LMS)</b> if both components are on the same page.</li>
+</ul>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">SOQL: Fetch Account (2 fields) and Contact (3 fields) from a Task record.</span><span class="qa-q-label lbl-apex">CODING</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<pre class="code">// Use polymorphic fields (WhatId and WhoId)
+SELECT Id, 
+       What.Name, What.Type, // For Account (WhatId)
+       Who.Name, Who.Email, Who.Title // For Contact (WhoId)
+FROM Task 
+WHERE Id = :taskId</pre>
+<p class="ans-p">Note: Since <code>What</code> and <code>Who</code> are polymorphic, you must use <code>TYPEOF</code> if you need specific fields that are not in the shared set, or just use basic relationship fields if they are common.</p>
+</div></div>
+
+<div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">Scenario: Lookup vs Master-Detail on a custom 'Loan' object.</span><span class="qa-q-label lbl-domain">DATA MODEL</span><span class="qa-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px;"><polyline points="6 9 12 15 18 9"></polyline></svg></span></div><div class="qa-answer">
+<ul class="ans-list">
+  <li><b>Master-Detail:</b> Use if the Loan MUST have an Account, access is controlled by the Account, and if the Account is deleted, the Loan should be deleted (Cascade Delete).</li>
+  <li><b>Lookup:</b> Use if a Loan can exist without an Account, or if different security/sharing is needed for Loans compared to Accounts.</li>
+</ul>
+<p class="ans-p"><b>Pro-Tip:</b> You cannot have a Master-Detail on a Standard Object if the child is also a Standard Object (except specific ones like Account-Contact which is a special lookup).</p>
+</div></div>

@@ -66,7 +66,10 @@ var TOPIC_DATA = {
       { type: 'qa', question: 'Scenario: Write a trigger to store Contact count on Account without using Roll-up Summary.', answer: '<p class="ans-p">Since Account and Contact are standard objects in a lookup relationship (not Master-Detail), we must use Apex:</p><ol class="ans-list"><li><b>Collect Account IDs:</b> In <code>after insert</code>, <code>after update</code>, and <code>after delete</code>, collect all <code>AccountId</code> values into a <code>Set&lt;Id&gt;</code>.</li><li><b>Aggregate Query:</b> Run an <code>AggregateResult</code> query: <code>[SELECT AccountId, COUNT(Id) cnt FROM Contact WHERE AccountId IN :accIds GROUP BY AccountId]</code>.</li><li><b>Update Accounts:</b> Loop through the results, create new Account instances with the count, and perform a single <code>update</code> DML on the list.</li><li><b>Recursion:</b> Ensure you use a static boolean flag to prevent the update from re-triggering logic if other triggers exist.</li></ol>' },
       { type: 'qa', question: 'Compare Custom Settings vs. Custom Metadata for Deloitte projects.', answer: '<p class="ans-p"><b>Custom Metadata (Preferred):</b> Deployable via change sets/packages, queryable without DML limits, supports relationship fields, and perfect for app configurations/mappings. <b>Custom Settings:</b> Better for "Hierarchy" settings (user-specific values) or frequently updated "List" settings if the volume is low, but metadata is the modern standard for enterprise config.</p>' },
       { type: 'qa', question: 'Explain the 3 Layers of the Salesforce Security Model.', answer: '<p class="ans-p">Deloitte interviewers look for this hierarchy:</p><ol class="ans-list"><li><b>Object Level (CRUD):</b> Profiles and Permission Sets control what objects a user can see/edit.</li><li><b>Field Level (FLS):</b> Controls visibility/editability of specific fields within those objects.</li><li><b>Record Level (Sharing):</b> Controlled by OWD (baseline), Role Hierarchy (vertical), Sharing Rules (horizontal), and Apex Sharing (complex).</li></ol>' },
-      { type: 'qa', question: 'Batch Apex: How many classes can be chained and what is Database.Stateful?', answer: '<p class="ans-p">You can chain <b>one</b> batch job from the <code>finish()</code> method. <b>Database.Stateful</b> is used to maintain state (instance variables) across different batches. By default, each batch execution is stateless; implementing this interface allows you to track counters or lists across the entire job.</p>' }
+      { type: 'qa', question: 'Batch Apex: How many classes can be chained and what is Database.Stateful?', answer: '<p class="ans-p">You can chain <b>one</b> batch job from the <code>finish()</code> method. <b>Database.Stateful</b> is used to maintain state (instance variables) across different batches. By default, each batch execution is stateless; implementing this interface allows you to track counters or lists across the entire job.</p>' },
+      { type: 'qa', question: 'How can you write a test class for an Integration Apex class?', answer: '<p class="ans-p">Since Salesforce prevents actual HTTP callouts during tests, you must use <b>HttpCalloutMock</b>:</p><ol class="ans-list"><li>Create a class that implements <code>HttpCalloutMock</code>.</li><li>Implement the <code>respond()</code> method to return a dummy <code>HttpResponse</code>.</li><li>In your test method, use <code>Test.setMock(HttpCalloutMock.class, new YourMockClass())</code> before calling the integration code.</li><li>Assert that the fields on the record were updated correctly based on your dummy response.</li></ol>' },
+      { type: 'qa', question: 'Explain CPQ basics and its importance in Deloitte projects.', answer: '<p class="ans-p"><b>CPQ (Configure, Price, Quote)</b> is used for complex product configurations and pricing rules that standard Opportunity/Product objects cannot handle. Key features include: <b>Product Bundles</b> (nesting products), <b>Product Rules</b> (validation/selection), <b>Price Rules</b> (dynamic pricing), and <b>Quote Templates</b> (professional PDF generation). It ensures sales reps generate accurate, pre-approved quotes every time.</p>' }
+
     ]
   },
   'accenture': {
@@ -862,6 +865,8 @@ var topicConfig = {
   'company_interviews': { name: 'Company Interviews', recommended: 60, group: 'Company' },
   'mobigic_pwc': { name: 'Mobigic / PWC', recommended: 45, group: 'Company' },
   'thenken_globus': { name: 'Thenken Globus', recommended: 45, group: 'Company' },
+  'sf_official': { name: 'Salesforce (Official)', recommended: 90, group: 'Company' },
+  'sf_onsite': { name: 'Salesforce (Onsite)', recommended: 120, group: 'Company' },
   // FDE Interview Prep
   'fde_ag_concept': { name: 'FDE Agentforce Core', recommended: 90, group: 'FDE Prep' },
   'fde_ag_scenario': { name: 'FDE Agentforce Scenarios', recommended: 60, group: 'FDE Prep' },
@@ -2537,7 +2542,7 @@ async function ensurePageLoaded(pageId) {
         'sc_reports', 'sc_agentforce', 'sc_navmixin', 'sc_validation',
         'fde_ag_concept', 'fde_ag_scenario', 'fde_atlas', 'fde_trust',
         'fde_dc_concept', 'fde_dc_adv', 'fde_integration', 'fde_apex', 'fde_behavioral',
-        'fde_cheat', 'ai_interview', 'topic_viewer', 'company_iq', 'company_interviews', 'mobigic_pwc', 'thenken_globus'
+        'fde_cheat', 'ai_interview', 'topic_viewer', 'company_iq', 'company_interviews', 'mobigic_pwc', 'thenken_globus', 'sf_official', 'sf_onsite'
     ];
 
     if (!modularPages.includes(pageId)) {
