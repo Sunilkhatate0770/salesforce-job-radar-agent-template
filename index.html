@@ -414,21 +414,42 @@
     </div>
   </div>
   
+  <!-- Loading Skeleton (shown while profile loads) -->
+  <div id="profileMatchLoading" style="display:none;">
+    <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:28px; animation: pulse 1.5s ease-in-out infinite;">
+      <div style="height:20px; width:40%; background:rgba(255,255,255,0.06); border-radius:8px; margin-bottom:16px;"></div>
+      <div style="height:14px; width:80%; background:rgba(255,255,255,0.04); border-radius:6px; margin-bottom:10px;"></div>
+      <div style="height:14px; width:60%; background:rgba(255,255,255,0.04); border-radius:6px; margin-bottom:20px;"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="height:28px; width:80px; background:rgba(59,130,246,0.08); border-radius:20px;"></div>
+        <div style="height:28px; width:100px; background:rgba(59,130,246,0.08); border-radius:20px;"></div>
+        <div style="height:28px; width:60px; background:rgba(59,130,246,0.08); border-radius:20px;"></div>
+        <div style="height:28px; width:90px; background:rgba(59,130,246,0.08); border-radius:20px;"></div>
+      </div>
+    </div>
+    <div style="text-align:center; padding:20px; color:var(--muted); font-size:0.8rem; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <div style="width:16px; height:16px; border:2px solid var(--blue); border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
+      Loading your career intelligence data...
+    </div>
+  </div>
+
+  <!-- Main Profile Content (populated by renderProfileMatchPage) -->
   <div id="profileMatchContent"></div>
 
+  <!-- Job Intelligence Section (populated by loadJobIntelligence) -->
+  <div id="jobIntelligenceSection" style="display:none; margin-top:16px;">
+    <div style="background:linear-gradient(135deg,rgba(16,185,129,0.05),rgba(59,130,246,0.05)); border:1px solid rgba(16,185,129,0.15); border-radius:16px; padding:24px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:#10b981;"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        <span style="font-weight:700; font-size:1rem; color:var(--text);">Job Market Intelligence</span>
+        <span style="font-size:0.6rem; padding:3px 8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.25); border-radius:20px; color:#34d399; margin-left:auto;">LIVE</span>
+      </div>
+      <div id="jobIntelligenceContent">
+        <div style="font-size:0.82rem; color:var(--muted);">Analyzing your job market fit...</div>
+      </div>
+    </div>
+  </div>
 
-
-<!-- AI Study Plan Output -->
-  <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:16px; padding:28px; margin-top:8px;">
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <span style="display:flex; align-items:center; justify-content:center; color:var(--blue);">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
-      </span>
-      <span style="font-weight:700; font-size:1rem; color:var(--text);">AI-Generated Study Plan</span>
-      <span style="font-size:0.6rem; padding:3px 8px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.25); border-radius:20px; color:#c4b5fd; margin-left:auto;">AI</span>
-    </div> <!-- end inner flex -->
-    <div id="aiStudyPlanResult"></div> <!-- results container -->
-  </div> <!-- end AI Study Plan Output wrapper -->
 </div> <!-- end profile_match page -->
 
 <div id="schedule" class="page active">

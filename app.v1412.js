@@ -453,16 +453,31 @@ window.syncProfile = async function(platform) {
   const isCloud = window.location.hostname !== 'localhost';
   
   if (isCloud) {
-    if (platform === 'LinkedIn') {
-      // OPEN IN NEW TAB with Secure Token Handshake
-      window.open(`/linkedin-login.html?token=${GSI_TOKEN}`, '_blank');
-      return;
-    }
-    if (platform === 'Naukri') {
-      // OPEN IN NEW TAB with Secure Token Handshake
-      window.open(`/naukri-login.html?token=${GSI_TOKEN}`, '_blank');
-      return;
-    }
+    // OPEN IN NEW TAB with Secure Token Handshake
+    const url = platform === 'LinkedIn' 
+      ? `/linkedin-login.html?token=${GSI_TOKEN}` 
+      : `/naukri-login.html?token=${GSI_TOKEN}`;
+    window.open(url, '_blank');
+    
+    // SHOW SYNC FEEDBACK (v1412 fix: no longer fire-and-forget)
+    showToast(`${platform} sync opened in a new tab. Data will refresh when you return.`, 'blue');
+    
+    // Auto-refresh profile when user returns to this tab
+    const refreshHandler = async function() {
+      window.removeEventListener('focus', refreshHandler);
+      console.log(`[SYNC] User returned from ${platform} sync tab. Refreshing profile...`);
+      showToast(`Refreshing ${platform} profile data...`, 'blue');
+      cachedUserProfile = null; // Force fresh fetch
+      await loadUserProfile();
+      await loadJobIntelligence();
+      const profilePage = document.getElementById('profile_match');
+      if (profilePage && profilePage.classList.contains('active')) {
+        if (cachedUserProfile) renderProfileMatchPage(cachedUserProfile);
+      }
+    };
+    // Delay adding the listener so it doesn't fire immediately
+    setTimeout(() => window.addEventListener('focus', refreshHandler), 2000);
+    return;
   }
 
   // --- LOCAL FALLBACK (Legacy) ---
@@ -517,6 +532,7 @@ window.syncProfile = async function(platform) {
         setTimeout(function() { statusEl.style.display = 'none'; }, 8000);
       }
       await loadUserProfile();
+      await loadJobIntelligence();
       showPage('profile_match');
     } else {
       alert('Sync Failed: ' + (syncData.error || 'Unknown error'));
@@ -609,7 +625,11 @@ async function loadUserProfile() {
 function renderProfileMatchPage(profile) {
   const contentDiv = document.getElementById('profileMatchContent');
   const syncCta = document.getElementById('syncCtaCards');
+  const loadingEl = document.getElementById('profileMatchLoading');
   if (!contentDiv) return;
+
+  // Hide loading skeleton
+  if (loadingEl) loadingEl.style.display = 'none';
 
   // Sync Sidebar Status
   updateSidebarProfileStatus(profile);
@@ -617,15 +637,15 @@ function renderProfileMatchPage(profile) {
   // REAL-TIME: Update Sync Modal if it's open
   updateSyncModalUI(profile);
 
-  // Hide large sync cards if profile exists to give "Success" feel
-  if (syncCta) syncCta.style.display = 'none';
+  // Hide large sync cards if profile exists but show "Update Profile" button
+  if (syncCta && profile.skills && profile.skills.length > 0) syncCta.style.display = 'none';
 
   const skills = profile.skills || [];
   const certs = profile.certifications || [];
   const missing = profile.missingSkills || [];
   const topics = profile.studyPlanTopics || [];
   const platforms = profile.platforms || {};
-  const strength = updateProfileStrengthMeter(skills.length, missing.length);
+  const strength = updateProfileStrengthMeter(skills.length, missing.length, profile);
 
   var syncBadges = '';
   if (platforms.linkedin && platforms.linkedin.synced) {
@@ -686,6 +706,18 @@ function renderProfileMatchPage(profile) {
       </div>
     </div>
   `;
+
+  // Achievements & Certifications Section
+  if (certs && certs.length > 0) {
+    html += '<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:10px; display:flex; align-items:center; gap:8px;">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:#facc15;"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>' +
+      'Achievements & Certifications</div><div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    certs.forEach(function(c) {
+      html += '<span style="padding:6px 14px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.25);border-radius:8px;font-size:0.75rem;color:#fde047;font-weight:600;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">' + 
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><polyline points="20 6 9 17 4 12"></polyline></svg>' + c + '</span>';
+    });
+    html += '</div></div>';
+  }
 
   // Skills Grid
   html += '<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:0.9rem;color:var(--text);margin-bottom:10px; display:flex; align-items:center; gap:8px;">' +
@@ -763,10 +795,104 @@ function renderProfileMatchPage(profile) {
   contentDiv.innerHTML = html;
 }
 
-function updateProfileStrengthMeter(skillCount, gapCount) {
+function updateProfileStrengthMeter(skillCount, gapCount, profile) {
   if (skillCount === 0 && gapCount === 0) return 0;
-  const total = skillCount + gapCount;
-  return Math.round((skillCount / total) * 100);
+  
+  // Multi-dimensional strength scoring (v1412 enhancement)
+  const skillCoverage = skillCount + gapCount > 0 ? skillCount / (skillCount + gapCount) : 0;
+  const certs = (profile?.certifications || []).length;
+  const certScore = Math.min(certs / 5, 1); // 5 certs = 100%
+  const expYears = profile?.experienceYears || 0;
+  const expScore = Math.min(expYears / 8, 1); // 8 years = 100%
+  const platforms = profile?.platforms || {};
+  const platformCount = Object.values(platforms).filter(p => p.synced).length;
+  const platformScore = Math.min(platformCount / 2, 1); // 2 platforms = 100%
+  
+  // Weighted average:
+  // Skills coverage: 35%, Certifications: 25%, Experience: 25%, Platform sync: 15%
+  const weighted = (skillCoverage * 0.35) + (certScore * 0.25) + (expScore * 0.25) + (platformScore * 0.15);
+  return Math.round(weighted * 100);
+}
+
+// =============================================
+// JOB INTELLIGENCE (v1412 - Profile Match Integration)
+// Calls /api/profile/match to aggregate skill analysis from real job data
+// =============================================
+async function loadJobIntelligence() {
+  const section = document.getElementById('jobIntelligenceSection');
+  const content = document.getElementById('jobIntelligenceContent');
+  if (!section || !content) return;
+
+  try {
+    const res = await apiFetch('/api/profile/match?cb=' + Date.now());
+    if (!res.ok) {
+      console.log('[JOB-INTEL] API responded with:', res.status);
+      return;
+    }
+    const data = await res.json();
+    console.log('[JOB-INTEL] Job Market Intelligence:', data);
+
+    const matchedSkills = data.matched_skills || [];
+    const missingSkills = data.missing_skills || [];
+
+    if (matchedSkills.length === 0 && missingSkills.length === 0) {
+      // No job data available yet
+      content.innerHTML = `
+        <div style="text-align:center; padding:20px; color:var(--muted); font-size:0.82rem;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:32px;height:32px;margin-bottom:10px;opacity:0.4;">
+            <circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <div>No job scan data available yet. Run a Global Job Scan to see market intelligence.</div>
+        </div>`;
+      section.style.display = 'block';
+      return;
+    }
+
+    let html = '<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">';
+
+    // Most demanded skills you HAVE
+    html += '<div>';
+    html += '<div style="font-weight:700; font-size:0.82rem; color:#10b981; margin-bottom:10px; display:flex; align-items:center; gap:6px;">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;"><polyline points="20 6 9 17 4 12"></polyline></svg>' +
+      'Skills You Match (' + matchedSkills.length + ')</div>';
+    html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+    matchedSkills.forEach(function(s) {
+      const name = s._id || s;
+      const count = s.count || 0;
+      html += '<span style="padding:4px 10px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:20px; font-size:0.7rem; color:#34d399; display:flex; align-items:center; gap:4px;">' +
+        name + (count > 1 ? ' <span style="opacity:0.6; font-size:0.6rem;">' + count + ' jobs</span>' : '') + '</span>';
+    });
+    html += '</div></div>';
+
+    // Skills jobs need that you're MISSING
+    html += '<div>';
+    html += '<div style="font-weight:700; font-size:0.82rem; color:#f59e0b; margin-bottom:10px; display:flex; align-items:center; gap:6px;">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>' +
+      'Market Gaps (' + missingSkills.length + ')</div>';
+    html += '<div style="display:flex; flex-wrap:wrap; gap:6px;">';
+    missingSkills.forEach(function(s) {
+      const name = s._id || s;
+      const count = s.count || 0;
+      html += '<span style="padding:4px 10px; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.2); border-radius:20px; font-size:0.7rem; color:#fbbf24; display:flex; align-items:center; gap:4px;">' +
+        name + (count > 1 ? ' <span style="opacity:0.6; font-size:0.6rem;">' + count + ' jobs</span>' : '') + '</span>';
+    });
+    html += '</div></div>';
+
+    html += '</div>';
+
+    // Summary insight
+    const topGap = missingSkills[0]?._id || 'specialized skills';
+    const topMatch = matchedSkills[0]?._id || 'core competencies';
+    html += `<div style="margin-top:16px; padding:12px 16px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.12); border-radius:10px; font-size:0.78rem; color:rgba(255,255,255,0.7); line-height:1.6;">
+      <strong style="color:var(--text);">AI Insight:</strong> Your strongest market match is <strong style="color:#10b981;">${topMatch}</strong>.
+      The highest-impact skill to develop is <strong style="color:#fbbf24;">${topGap}</strong> — it appears in ${missingSkills[0]?.count || 'multiple'} job listings you're being matched against.
+    </div>`;
+
+    content.innerHTML = html;
+    section.style.display = 'block';
+  } catch (e) {
+    console.warn('[JOB-INTEL] Failed to load job intelligence:', e.message);
+  }
 }
 
 async function generateDynamicQA(topicId) {
@@ -2796,12 +2922,21 @@ async function showPage(id) {
         }, 5 * 60 * 1000);
     }
     if (id === 'profile_match') { 
-        console.log('ðŸ‘¤ [NAV] Analyzing Profile Match...');
-        if (cachedUserProfile) renderProfileMatchPage(cachedUserProfile); 
-        else loadUserProfile(); 
+        console.log('👤 [NAV] Analyzing Profile Match...');
+        const loadingEl = document.getElementById('profileMatchLoading');
+        if (cachedUserProfile) {
+          renderProfileMatchPage(cachedUserProfile);
+          loadJobIntelligence();
+        } else {
+          // Show loading skeleton while fetching profile data
+          if (loadingEl) loadingEl.style.display = 'block';
+          loadUserProfile().then(() => {
+            loadJobIntelligence();
+          });
+        }
     }
     if (id === 'bookmarks_page') {
-        console.log('â­  [NAV] Activating Bookmarks View...');
+        console.log('⭐ [NAV] Activating Bookmarks View...');
         if (typeof showBookmarks === 'function') showBookmarks();
     }
   }
@@ -2979,7 +3114,7 @@ async function showHistoryModal(date) {
         <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:12px; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:1rem;">ðŸ“š</div>
+              <div style="width:32px; height:32px; background:rgba(79,142,247,0.1); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--blue); font-size:1rem;">📚</div>
               <div>
                 <div style="font-size:0.9rem; font-weight:700; color:var(--text);">${name}</div>
                 <div style="font-size:0.7rem; color:var(--muted); font-family:'IBM Plex Mono';">SPENT: ${formatTime(spent)}</div>
@@ -3010,11 +3145,11 @@ async function showHistoryModal(date) {
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:2rem;">
       <div style="background:rgba(79,142,247,0.1); padding:1rem; border-radius:12px; text-align:center;">
         <div style="font-size:0.65rem; color:var(--blue); text-transform:uppercase; margin-bottom:5px;">Total Duration</div>
-        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:\'IBM Plex Mono\';">${formatTime(h.study.totalSeconds)}</div>
+        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">${formatTime(h.study.totalSeconds)}</div>
       </div>
       <div style="background:rgba(61,214,140,0.1); padding:1rem; border-radius:12px; text-align:center;">
         <div style="font-size:0.65rem; color:var(--green); text-transform:uppercase; margin-bottom:5px;">Radar Hits</div>
-        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:\'IBM Plex Mono\';">+${h.jobs ? h.jobs.newCount : 0}</div>
+        <div style="font-size:1.5rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono';">+${h.jobs ? h.jobs.newCount : 0}</div>
       </div>
     </div>
 
@@ -3035,7 +3170,7 @@ function closeHistoryModal() {
 // BROADCAST HANDSHAKE: Auto-refresh dashboard when sync tab closes
 window.addEventListener('storage', (e) => {
   if (e.key === 'profile_sync_success') {
-    console.log('ðŸ”„ Profile sync detected from external tab. Refreshing...');
+    console.log('🔄 Profile sync detected from external tab. Refreshing...');
     syncDashboard();
   }
 });
@@ -3051,17 +3186,18 @@ function updateSyncModalUI(profile) {
   const nkCard = document.getElementById('modalSyncNaukri');
 
   if (p.linkedin && p.linkedin.synced) {
-      document.getElementById('liSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('liSyncStatus').innerHTML = 'OK Linked';
+      document.getElementById('liSyncLabel').textContent = 'Synced — click to refresh';
+      document.getElementById('liSyncStatus').innerHTML = '<span style="color:#10b981;">✓ Linked</span>';
       if (liCard) {
         liCard.style.borderColor = '#10b981';
         liCard.style.background = 'rgba(16,185,129,0.05)';
-        liCard.style.pointerEvents = 'none';
-        liCard.style.opacity = '0.8';
+        // v1412 fix: Allow re-syncing (removed pointerEvents:none)
+        liCard.style.pointerEvents = 'auto';
+        liCard.style.opacity = '0.95';
       }
   } else {
       document.getElementById('liSyncLabel').textContent = 'Not Linked';
-      document.getElementById('liSyncStatus').textContent = 'Sync Now â†’';
+      document.getElementById('liSyncStatus').textContent = 'Sync Now →';
       if (liCard) {
         liCard.style.borderColor = 'rgba(0,119,181,0.2)';
         liCard.style.background = 'rgba(0,119,181,0.05)';
@@ -3071,17 +3207,18 @@ function updateSyncModalUI(profile) {
   }
 
   if (p.naukri && p.naukri.synced) {
-      document.getElementById('nkSyncLabel').textContent = 'Last Synced: Today';
-      document.getElementById('nkSyncStatus').innerHTML = 'OK Linked';
+      document.getElementById('nkSyncLabel').textContent = 'Synced — click to refresh';
+      document.getElementById('nkSyncStatus').innerHTML = '<span style="color:#10b981;">✓ Linked</span>';
       if (nkCard) {
         nkCard.style.borderColor = '#10b981';
         nkCard.style.background = 'rgba(16,185,129,0.05)';
-        nkCard.style.pointerEvents = 'none';
-        nkCard.style.opacity = '0.8';
+        // v1412 fix: Allow re-syncing (removed pointerEvents:none)
+        nkCard.style.pointerEvents = 'auto';
+        nkCard.style.opacity = '0.95';
       }
   } else {
       document.getElementById('nkSyncLabel').textContent = 'Not Linked';
-      document.getElementById('nkSyncStatus').textContent = 'Sync Now â†’';
+      document.getElementById('nkSyncStatus').textContent = 'Sync Now →';
       if (nkCard) {
         nkCard.style.borderColor = 'rgba(255,117,85,0.2)';
         nkCard.style.background = 'rgba(255,117,85,0.05)';
