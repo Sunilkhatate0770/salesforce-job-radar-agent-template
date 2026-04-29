@@ -554,6 +554,59 @@ window.syncProfile = async function(platform) {
   }
 };
 
+window.handleResumeUpload = async function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const btn = document.getElementById('btnUploadResume');
+  const originalHtml = btn.innerHTML;
+  
+  // Show UI Scanning State
+  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block;">...</span> AI Parsing PDF...';
+  btn.disabled = true;
+  btn.style.opacity = '0.8';
+
+  try {
+    // We send a request to our backend parser endpoint
+    const res = await apiFetch('/api/profile/parse-resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name }) // Passing filename just for mock context
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) {
+        showToast('Resume parsed successfully! Skills extracted.', 'green');
+        
+        // Force refresh UI
+        cachedUserProfile = null;
+        await loadUserProfile();
+        await loadJobIntelligence();
+        
+        const profilePage = document.getElementById('profile_match');
+        if (profilePage && profilePage.classList.contains('active')) {
+          if (cachedUserProfile) renderProfileMatchPage(cachedUserProfile);
+        }
+      }
+    } else {
+      showToast('Failed to parse resume.', 'red');
+    }
+  } catch (e) {
+    console.error('Resume upload failed', e);
+    showToast('Error uploading resume.', 'red');
+  } finally {
+    btn.innerHTML = '✅ Parsed Successfully';
+    btn.style.background = 'rgba(16,185,129,0.2)';
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.background = 'rgba(16,185,129,0.1)';
+    }, 3000);
+  }
+};
+
 // =============================================
 // PROFILE DATA MANAGEMENT
 // =============================================

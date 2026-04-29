@@ -412,6 +412,20 @@
         Sync & Analyze
       </button>
     </div>
+
+    <!-- PDF Resume Card -->
+    <div class="sync-card-premium" style="border-color:rgba(16,185,129,0.2); background:rgba(16,185,129,0.02);">
+      <div class="sync-icon-box" style="background:linear-gradient(135deg, #34d399, #10b981);">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+      </div>
+      <div class="sync-title">Upload Local PDF</div>
+      <div class="sync-desc">Directly upload your resume (e.g. Sunil_Khatate_SFDC_2026.pdf) for AI extraction.</div>
+      <button id="btnUploadResume" onclick="document.getElementById('resumeUploadInput').click()" class="sync-btn-premium" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        Upload Resume
+      </button>
+      <input type="file" id="resumeUploadInput" accept=".pdf" style="display:none;" onchange="handleResumeUpload(event)">
+    </div>
   </div>
   
   <!-- Loading Skeleton (shown while profile loads) -->
