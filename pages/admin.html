@@ -1,4 +1,4 @@
-﻿  <div class="page-title">Admin &amp; Configuration â€” Interview Questions</div>
+  <div class="page-title">Admin &amp; Configuration â€” Interview Questions</div>
   <div class="page-sub">14 questions â€” senior devs must know the admin layer deeply to architect correctly</div>
 
   <div class="qa-block">
@@ -71,21 +71,7 @@ System.debug(<span class="str">'Submitted: '</span> + result.isSuccess() + <span
 <span class="cmt">// Better: use DeveloperName not Name (Name can change, DeveloperName is stable)</span>
 <span class="cmt">// Never hardcode the 15-digit Id directly</span></pre>
     </div>
-  
-  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is a Record Type â€” what does it control and not control?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
-  <ul class="ans-list">
-    <li><b>Controls:</b> Page layout per profile, available picklist values, business processes (Lead/Opportunity/Case)</li>
-    <li><b>Does NOT control:</b> Field-level security (that is Profiles/Permission Sets), which fields exist, record sharing</li>
-    <li><b>Use case:</b> Loan__c has record types: Conventional, FHA, VA, USDA â€” each shows different layout and different Status__c picklist values</li>
-    <li><b>Assignment:</b> Profiles assigned to record types. Users with multiple types see a selection when creating records.</li>
-  </ul>
-  <pre class="code">Id fhaId = Schema.SObjectType.Loan__c.getRecordTypeInfosByDeveloperName().get("FHA").getRecordTypeId();
-List&lt;Loan__c&gt; fhaLoans = [SELECT Id FROM Loan__c WHERE RecordTypeId = :fhaId];</pre>
-  </div></div>
-  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the difference between Workflow Rules, Process Builder, and Flows?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
-  <table class="comparison-table"><tr><th>Tool</th><th>Status</th><th>Use when</th></tr><tr><td>Workflow Rules</td><td>Deprecated â€” retiring</td><td>Legacy only â€” migrate to Flow immediately</td></tr><tr><td>Process Builder</td><td>Deprecated â€” retiring</td><td>Legacy only â€” migrate to Flow immediately</td></tr><tr><td>Record-Triggered Flow</td><td>Active â€” preferred</td><td>All new automation on record changes â€” before/after save</td></tr><tr><td>Screen Flow</td><td>Active</td><td>Guided multi-step user processes, wizards</td></tr><tr><td>Scheduled Flow</td><td>Active</td><td>Recurring time-based bulk operations</td></tr><tr><td>Autolaunched Flow</td><td>Active</td><td>Complex logic callable from Apex, REST, subflow</td></tr></table>
-  <div class="tip-box"><div class="tip-label">Migration priority</div><p>Process Builder and Workflow Rules are Salesforce-retired. Any new automation must be a Record-Triggered Flow. Start migrating existing PB/WF immediately â€” do not wait for forced retirement to scramble.</p></div>
-  </div></div>
+  </div>
   <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are Custom Metadata Types vs Custom Settings vs Custom Labels?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
   <table class="comparison-table"><tr><th>Feature</th><th>Custom Metadata</th><th>Custom Settings</th><th>Custom Labels</th></tr><tr><td>Deployed with code?</td><td>Yes â€” metadata deploy</td><td>No â€” data stays</td><td>Yes â€” metadata</td></tr><tr><td>SOQL limit?</td><td>No â€” free query</td><td>No â€” in-memory</td><td>No â€” Label access</td></tr><tr><td>Best for</td><td>Config with code: rate tables, API endpoints, feature flags</td><td>Org/user preferences not deployed</td><td>Translated text, UI error messages</td></tr></table>
   <pre class="code">// Custom Metadata â€” free SOQL

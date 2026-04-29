@@ -1005,6 +1005,16 @@ async function startTracking(pageId) {
   updateFloatingTimer();
   startFloatingTimerInterval();
   
+  // Update button UI to "Playing" state (User requested Play icon for 'started' status)
+  var btn = document.getElementById('ftPlayPause');
+  var iconPause = document.getElementById('ftIconPause');
+  var iconPlay = document.getElementById('ftIconPlay');
+  var dot = document.getElementById('ftDot');
+  if (btn) { btn.className = 'ft-btn playing'; btn.title = 'Click to Pause'; }
+  if (iconPause) iconPause.style.display = 'none';
+  if (iconPlay) iconPlay.style.display = 'block';
+  if (dot) dot.className = 'ft-dot';
+  
   // AUTO-OPEN LAST QUESTION
   restoreLastQuestion(pageId);
   
@@ -1110,18 +1120,18 @@ function togglePause() {
     // Resume
     isPaused = false;
     trackingStartTime = Date.now();
-    if (btn) { btn.className = 'ft-btn playing'; btn.title = 'Pause study timer'; }
-    if (iconPause) iconPause.style.display = 'block';
-    if (iconPlay) iconPlay.style.display = 'none';
+    if (btn) { btn.className = 'ft-btn playing'; btn.title = 'Click to Pause'; }
+    if (iconPause) iconPause.style.display = 'none';
+    if (iconPlay) iconPlay.style.display = 'block';
     if (dot) dot.className = 'ft-dot';
     startFloatingTimerInterval();
   } else {
     // Pause
     pausedElapsed += Math.floor((Date.now() - trackingStartTime) / 1000);
     isPaused = true;
-    if (btn) { btn.className = 'ft-btn paused'; btn.title = 'Resume study timer'; }
-    if (iconPause) iconPause.style.display = 'none';
-    if (iconPlay) iconPlay.style.display = 'block';
+    if (btn) { btn.className = 'ft-btn paused'; btn.title = 'Click to Resume'; }
+    if (iconPause) iconPause.style.display = 'block';
+    if (iconPlay) iconPlay.style.display = 'none';
     if (dot) dot.className = 'ft-dot paused';
     if (floatingTimerInterval) { clearInterval(floatingTimerInterval); floatingTimerInterval = null; }
   }

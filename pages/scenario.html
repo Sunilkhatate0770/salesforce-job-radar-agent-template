@@ -1,4 +1,4 @@
-﻿  <div class="page-title">Scenario-Based Questions â€” Architect Thinking</div>
+  <div class="page-title">Scenario-Based Questions â€” Architect Thinking</div>
   <div class="page-sub">16 open-ended design questions â€” interviewers use these to test senior-level judgment. There is no single right answer â€” explain your reasoning clearly.</div>
 
   <div class="qa-block">
@@ -58,36 +58,7 @@
         <li><b>Phase 6 â€” Re-enable automation:</b> Turn triggers and validation rules back on. Monitor for the first week post-migration for unexpected issues.</li>
       </ul>
     </div>
-  
-  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">A batch job processing 2 million loan records is timing out â€” how do you fix it?</span><span class="qa-q-label lbl-apex">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
-  <p class="ans-p"><b>Diagnose first â€” different root causes need different fixes:</b></p>
-  <ul class="ans-list">
-    <li><b>Check debug logs:</b> Is it CPU limit (60s async)? SOQL limit? Heap? Each has a different fix.</li>
-    <li><b>Check scope size:</b> If 200, reduce to 50 and see if chunks complete. Narrowing scope isolates the problem.</li>
-    <li><b>Query Plan on start() SOQL:</b> If doing a TableScan on 2M records, the query itself times out before execute() runs.</li>
-    <li><b>Callouts in execute():</b> If making one callout per record in a 200-record chunk, that is 200 callouts hitting the 100/tx limit.</li>
-  </ul>
-  <p class="ans-p"><b>Fixes by root cause:</b></p>
-  <ul class="ans-list">
-    <li><b>CPU timeout:</b> Profile with Limits.getCpuTime() at key points. Replace nested loops with Map lookups. Move heavy logic to helper methods.</li>
-    <li><b>SOQL in execute():</b> Move queries to start() or cache in Database.Stateful variable.</li>
-    <li><b>Callouts per record:</b> Collect all IDs in execute(), make one batched API call in finish() or chain to Queueable.</li>
-    <li><b>Table scan:</b> Add indexed field to WHERE clause. Contact Salesforce for custom index on large objects.</li>
-    <li><b>Scope too large:</b> Reduce to 50-100. More transactions but each completes within limits.</li>
-  </ul>
-  </div></div>
-  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you design a notification system for loan status changes?</span><span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
-  <p class="ans-p"><b>Requirements: email, SMS, push. Multiple loan types. Configurable rules per status transition.</b></p>
-  <p class="ans-p"><b>Architecture â€” decoupled, configuration-driven:</b></p>
-  <ul class="ans-list">
-    <li><b>Trigger:</b> After update on Loan__c â€” if Status__c changed, publish Loan_Status_Changed__e Platform Event. Nothing else in trigger.</li>
-    <li><b>Configuration:</b> Notification_Config__mdt rows defining: LoanType, FromStatus, ToStatus, Channels, RecipientType. No code change to add rules.</li>
-    <li><b>Router class:</b> Platform Event trigger queries CMDT for matching rules. For each rule, calls INotificationChannel.send() â€” Strategy pattern.</li>
-    <li><b>Channel adapters:</b> EmailAdapter (Salesforce Messaging), SMSAdapter (Twilio via Named Credential), PushAdapter (Notification Builder).</li>
-    <li><b>Error handling:</b> Every attempt logged to Notification_Log__c. Failed sends retried by Scheduled Apex up to 3 times.</li>
-  </ul>
-  <div class="tip-box"><div class="tip-label">Patterns used</div><p>Platform Events (decoupling), Custom Metadata (configuration-driven), Strategy Pattern (INotificationChannel), Error logging, Retry logic. Naming all four patterns shows senior architect thinking.</p></div>
-  </div></div>
+  </div>
   <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How would you design bidirectional sync between Salesforce and a Loan Origination System?</span><span class="qa-q-label lbl-intg">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
   <p class="ans-p"><b>Salesforce to LOS (outbound):</b></p>
   <ul class="ans-list">
