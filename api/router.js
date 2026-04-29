@@ -633,16 +633,60 @@ export default async function(req, res) {
     if (path === 'summary/daily' || path === 'summary/all') {
       const tursoSessions = await safeTursoRead('summary/history', () => TursoDB.getFullHistory(userId), []);
       const mongoSessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean();
-      
       const allSessions = [...tursoSessions, ...mongoSessions];
-      console.log(`[SUMMARY] Hybrid Analyzing ${allSessions.length} total sessions`);
+      
+      const mongoJobs = await JobRecord.find({ userId }).sort({ createdAt: -1 }).limit(1000).lean();
+      
+      console.log(`[SUMMARY] Hybrid Analyzing ${allSessions.length} sessions and ${mongoJobs.length} jobs`);
       
       const historyObj = {};
+      
+      // Aggregate Study Sessions
       allSessions.forEach(s => {
         const d = s.date || new Date(s.startTime).toISOString().split('T')[0];
-        if (!historyObj[d]) historyObj[d] = { date: d, study: { totalSeconds: 0, topicList: [], sessionsCount: 0 }, jobs: { newCount: 0, topMatches: [] } };
-        historyObj[d].study.totalSeconds += (s.duration || 0);
-        historyObj[d].study.sessionsCount++;
+        if (!historyObj[d]) {
+          historyObj[d] = { 
+            date: d, 
+            study: { totalSeconds: 0, topicList: [], breakdown: {}, sessionsCount: 0 }, 
+            jobs: { newCount: 0, topMatches: [] } 
+          };
+        }
+        const day = historyObj[d];
+        const duration = s.duration || 0;
+        day.study.totalSeconds += duration;
+        day.study.sessionsCount++;
+        
+        // Topic Breakdown
+        const tid = s.topic;
+        if (tid) {
+          if (!day.study.breakdown[tid]) {
+            day.study.breakdown[tid] = { id: tid, name: s.topicName || tid, totalSeconds: 0 };
+          }
+          day.study.breakdown[tid].totalSeconds += duration;
+        }
+      });
+      
+      // Aggregate Jobs
+      mongoJobs.forEach(j => {
+        const d = j.date_added || new Date(j.createdAt).toISOString().split('T')[0];
+        if (!historyObj[d]) {
+          historyObj[d] = { 
+            date: d, 
+            study: { totalSeconds: 0, topicList: [], breakdown: {}, sessionsCount: 0 }, 
+            jobs: { newCount: 0, topMatches: [] } 
+          };
+        }
+        const day = historyObj[d];
+        day.jobs.newCount++;
+        if (j.match_score >= 80 && day.jobs.topMatches.length < 5) {
+          day.jobs.topMatches.push({ title: j.title, company: j.company, score: j.match_score });
+        }
+      });
+
+      // Convert breakdowns to lists for frontend compatibility
+      Object.keys(historyObj).forEach(date => {
+        const h = historyObj[date];
+        h.study.topicList = Object.values(h.study.breakdown);
       });
       
       const todayStr = new Date().toISOString().split('T')[0];

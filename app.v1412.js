@@ -3216,7 +3216,7 @@ async function showHistoryModal(date) {
 
   const sData = h.study || {};
   const b = sData.breakdown || sData.topicBreakdown || {};
-  const topicList = Object.keys(b).map(tid => ({
+  const topicList = sData.topicList || Object.keys(b).map(tid => ({
     id: tid,
     name: b[tid].name || tid,
     totalSeconds: b[tid].totalSeconds || 0
