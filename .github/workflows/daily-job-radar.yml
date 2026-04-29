@@ -1,41 +1,17 @@
-name: Daily Salesforce Job Radar
+name: Daily Salesforce Job Radar (legacy disabled)
 
 on:
-  schedule:
-    - cron: '30 3 * * *' # 9:00 AM IST (3:30 AM UTC)
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  fetch-jobs:
+  legacy-disabled:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Run Cloud Agent
-        env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          AGENT_NAME: "GitHub Cloud Agent"
-          SALESFORCE_ROLE_MODE: "relaxed"
-          ALERT_MIN_MATCH_SCORE: 20
-        run: node src/cloud-run.js
-
-      - name: Keep-alive (Workaround for GitHub disabling cron on inactive repos)
+      - name: Explain replacement workflow
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git commit --allow-empty -m "Heartbeat: Daily Sync Check"
-          git push
+          echo "This legacy MongoDB cloud sync workflow is intentionally disabled."
+          echo "Use the Salesforce Job Radar Agent workflow instead:"
+          echo ".github/workflows/salesforce-job-radar-agent.yml"

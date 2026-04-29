@@ -178,9 +178,35 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ completedTasks: [] }));
           return;
         }
-        const tasks = await TaskStatus.find({ userId }).lean();
+        const tasks = await TaskStatus.find({ userId, completed: true }).lean();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ completedTasks: tasks }));
+        res.end(JSON.stringify({ completedTasks: tasks.map(t => t.index) }));
+      }
+      else if (url === '/api/study/toggle-task' && method === 'POST') {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const payload = JSON.parse(body || '{}');
+        const taskIndex = Number(payload.index ?? payload.taskId);
+        if (!Number.isFinite(taskIndex)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'index or taskId is required' }));
+          return;
+        }
+        const existing = isMongoConnected ? await TaskStatus.findOne({ userId, index: taskIndex }).lean() : null;
+        const nextCompleted = typeof payload.completed === 'boolean' ? payload.completed : !existing?.completed;
+        if (isMongoConnected) {
+          await TaskStatus.findOneAndUpdate(
+            { userId, index: taskIndex },
+            { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
+            { upsert: true, new: true }
+          );
+          const completedTasks = (await TaskStatus.find({ userId, completed: true }).lean()).map(t => t.index);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, completedTasks }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, completedTasks: [] }));
+        }
       }
       else if (url === '/api/jobs' && method === 'GET') {
         if (isMongoConnected) {
@@ -298,6 +324,65 @@ export default async function handler(req, res) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: 'Scan started in background' }));
       }
+      else if (url === '/api/study/leaderboard' && method === 'GET') {
+        if (!isMongoConnected) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, leaderboard: [] }));
+          return;
+        }
+        const rows = await StudySession.aggregate([
+          { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
+          { $sort: { totalSeconds: -1, sessions: -1 } },
+          { $limit: 10 }
+        ]);
+        const users = await User.find({ googleId: { $in: rows.map(r => r._id) } }).lean();
+        const userMap = new Map(users.map(u => [u.googleId, u]));
+        const leaderboard = rows.map(row => {
+          const user = userMap.get(row._id) || {};
+          return {
+            userId: row._id,
+            name: user.name || 'Anonymous Scholar',
+            picture: user.picture || '',
+            totalHours: Math.round((row.totalSeconds || 0) / 36) / 100,
+            sessions: row.sessions || 0,
+            lastStudy: row.lastStudy
+          };
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, leaderboard }));
+      }
+      else if (url === '/api/profile/save-retention' && method === 'POST') {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const { topicId, stats } = JSON.parse(body || '{}');
+        if (!topicId || !stats) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'topicId and stats are required' }));
+          return;
+        }
+        if (isMongoConnected) {
+          const profile = await UserProfile.findOne({ userId }).lean();
+          const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
+          const index = topics.findIndex(t => t.topicId === topicId);
+          const retentionTopic = {
+            ...(index >= 0 ? topics[index] : {}),
+            topicId,
+            topic: String(topicId).replace(/[_-]+/g, ' '),
+            confidence: Number(stats.confidence || 0),
+            nextReview: stats.nextReview ? new Date(stats.nextReview) : undefined,
+            interval: Number(stats.interval || 0),
+            easeFactor: Number(stats.easeFactor || 2.5)
+          };
+          if (index >= 0) topics[index] = retentionTopic;
+          else topics.push(retentionTopic);
+          await UserProfile.findOneAndUpdate({ userId }, { userId, studyPlanTopics: topics, updatedAt: new Date() }, { upsert: true });
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, studyPlanTopics: topics }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, studyPlanTopics: [] }));
+        }
+      }
       else if (url.includes('profile/save') && method === 'POST') {
         let body = '';
         for await (const chunk of req) body += chunk;
@@ -391,6 +476,37 @@ export default async function handler(req, res) {
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, message: 'Automation launched' }));
+      }
+      else if (url.startsWith('/api/ai/') && method === 'POST') {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const payload = JSON.parse(body || '{}');
+        const kind = url.split('/').pop();
+        const prompt = payload.prompt || payload.answer || payload.message || JSON.stringify(payload);
+        let responseText = '';
+        try {
+          const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            body: JSON.stringify({
+              model: process.env.OLLAMA_MODEL || 'gemma4:e4b',
+              prompt,
+              stream: false
+            })
+          });
+          if (!ollamaRes.ok) throw new Error('Ollama not responding');
+          const aiData = await ollamaRes.json();
+          responseText = aiData.response;
+        } catch (e) {
+          if (kind === 'email') {
+            responseText = `Subject: Follow up\n\nHi team,\n\nThank you for considering me for this Salesforce opportunity. I appreciate your time and look forward to staying connected.\n\nBest regards,\n${payload.userName || 'Candidate'}`;
+          } else if (kind === 'cover-letter') {
+            responseText = 'I am excited to apply for this Salesforce role. My experience with Apex, LWC, integrations, and platform delivery aligns well with the opportunity.\n\nI focus on building maintainable solutions that solve real business problems and remain reliable in production.\n\nI would welcome the chance to discuss how I can contribute to your Salesforce roadmap.';
+          } else {
+            responseText = 'Good answer. Strengthen it by adding a concrete Salesforce example, mentioning limits or security, and explaining how you would test the solution. Next question: how would you handle this at enterprise scale?';
+          }
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, response: responseText }));
       }
       else {
         res.writeHead(404);

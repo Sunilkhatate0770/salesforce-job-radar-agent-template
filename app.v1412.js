@@ -339,6 +339,24 @@ async function apiFetch(url, options = {}) {
   return fetch(url, { ...options, headers });
 }
 
+function getCurrentUserName(fallback = 'there') {
+  return currentUser?.name || cachedUserProfile?.name || fallback;
+}
+
+async function callAi(kind, payload = {}) {
+  const res = await apiFetch(`/api/ai/${kind}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...payload,
+      userName: getCurrentUserName('Candidate')
+    })
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) throw new Error(data.error || 'AI request failed');
+  return data.response || data.text || '';
+}
+
 window.syncProfile = async function(platform) {
   const isCloud = window.location.hostname !== 'localhost';
   
@@ -665,7 +683,7 @@ async function generateDynamicQA(topicId) {
   const topicName = topicConfig[topicId] ? topicConfig[topicId].name : topicId;
 
   btn.disabled = true;
-  btn.textContent = 'Gemma 4 is generating Q&A...';
+  btn.textContent = 'AI is generating Q&A...';
   
   try {
     const prompt = `You are a Senior Salesforce Interviewer. Generate 5 highly technical and scenario-based interview questions for the topic: "${topicName}". 
@@ -673,27 +691,16 @@ For each question, provide a detailed "Master Answer" that would impress a hirin
 Format your response as a valid JSON array of objects: [{"question": "...", "answer": "..."}]. 
 Do not include any conversational text before or after the JSON.`;
 
-    const res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma4:e4b',
-        prompt: prompt,
-        stream: false
-      })
-    });
-    
-    if (!res.ok) throw new Error('Ollama not responding');
-    const data = await res.json();
+    const responseText = await callAi('qa', { topic: topicId, topicName, prompt });
     
     // Parse JSON from response
     let qa = [];
     try {
-      const jsonStr = data.response.substring(data.response.indexOf('['), data.response.lastIndexOf(']') + 1);
+      const jsonStr = responseText.substring(responseText.indexOf('['), responseText.lastIndexOf(']') + 1);
       qa = JSON.parse(jsonStr);
     } catch(e) {
       // Fallback if not JSON
-      qa = [{ question: "Topic: " + topicName, answer: data.response }];
+      qa = [{ question: "Topic: " + topicName, answer: responseText }];
     }
 
     content.style.display = 'none';
@@ -711,7 +718,7 @@ Do not include any conversational text before or after the JSON.`;
     `).join('');
     
   } catch (e) {
-    alert('Failed to generate AI Q&A. Ensure Ollama is running.');
+    alert('Failed to generate AI Q&A. Please try again after the server connection recovers.');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Generate AI Interview Q&A';
@@ -2106,18 +2113,13 @@ window.openSkillCoach = async function(skill) {
   
   try {
     const prompt = `Create a concise, highly actionable 3-day study plan for a Salesforce Developer to master ${skill}. Focus on real-world scenarios and specific concepts needed to pass a technical interview. Formatting: use short paragraphs and bullet points.`;
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      body: JSON.stringify({ model: 'gemma4:e4b', prompt, stream: false })
-    });
-    if (!response.ok) throw new Error('AI unreachable');
-    const data = await response.json();
+    const responseText = await callAi('skill', { skill, prompt });
     chat.innerHTML += `<div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text); padding: 15px; border-radius: 12px 12px 0 12px; margin-top: 15px; max-width: 90%; font-size: 0.85rem; align-self: flex-end; backdrop-filter: blur(10px); line-height: 1.6;">
-      ${data.response.replace(/\n/g, '<br>')}
+      ${responseText.replace(/\n/g, '<br>')}
     </div>`;
   } catch (e) {
     chat.innerHTML += `<div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); padding: 12px; border-radius: 12px; margin-top: 10px;">
-      Local AI Engine (gemma4:e4b) is offline or unreachable. Please start Ollama.
+      AI coaching is unavailable right now. Please try again after the server connection recovers.
     </div>`;
   }
 }
@@ -2228,31 +2230,20 @@ async function generateCoverLetter(hash) {
   if (btnIcon) btnIcon.textContent = '...';
   if (!outputEl) return;
   outputEl.style.display = 'block';
-  outputEl.innerHTML = '<span style="color:var(--muted);">Gemma 4 is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
+  outputEl.innerHTML = '<span style="color:var(--muted);">AI is analyzing the job requirements and your matched skills to write a tailored cover letter...</span>';
 
   try {
     const prompt = `You are an expert career coach. Write a short, punchy, and highly professional 3-paragraph cover letter for a Salesforce Developer applying to ${job.company} for the "${job.title}" role. 
 The candidate has the following skills that perfectly match the job: ${(job.matched_skills || []).join(', ')}. 
 Do not include placeholders like [Your Name] or [Date], just write the core body of the letter. Focus on impact and value.`;
 
-    const res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma4:e4b',
-        prompt: prompt,
-        stream: false
-      })
-    });
+    const responseText = await callAi('cover-letter', { job, prompt });
     
-    if (!res.ok) throw new Error('Ollama not responding.');
-    const data = await res.json();
-    
-    outputEl.innerHTML = data.response;
+    outputEl.innerHTML = responseText.replace(/\n/g, '<br>');
     if (btnIcon) btnIcon.textContent = 'OK';
     
   } catch(e) {
-    outputEl.innerHTML = '<span style="color:var(--red);">Failed to connect to local Gemma 4 engine. Ensure Ollama is running and OLLAMA_ORIGINS="*" is set.</span>';
+    outputEl.innerHTML = '<span style="color:var(--red);">AI cover letter generation is unavailable right now. Please try again shortly.</span>';
     if (btnIcon) btnIcon.textContent = 'Error';
   }
 }
@@ -2980,7 +2971,8 @@ function closeSyncModal() {
 
 function updateSidebarProfileStatus(profile) {
   const platforms = profile.platforms || {};
-  const count = Object.keys(platforms).length;
+  const linkedPlatforms = ['linkedin', 'naukri'].filter(key => platforms[key]?.synced);
+  const count = linkedPlatforms.length;
   const countEl = document.getElementById('syncPlatformCount');
   const statusEl = document.getElementById('sidebarSyncStatus');
   
@@ -3065,25 +3057,13 @@ When the user answers, provide brief feedback (Score 1-10) and then ask the next
 Be professional and challenging. 
 User Input: ${answer}`;
 
-    const res = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma4:e4b', // Using the specified Gemma 4 model
-        prompt: systemPrompt,
-        stream: false
-      })
-    });
-    
-    if (!res.ok) throw new Error('Local AI not responding. Ensure Ollama is running.');
-    
-    const data = await res.json();
+    const responseText = await callAi('interview', { topic, difficulty, answer, prompt: systemPrompt });
     statusEl.style.display = 'none';
-    addChatMessage('ai', data.response);
+    addChatMessage('ai', responseText);
     
   } catch (e) {
     statusEl.style.display = 'none';
-    addChatMessage('ai', 'Failed to connect to local AI engine. Please ensure Ollama is running on your machine and OLLAMA_ORIGINS="*" is set if accessing via Vercel.');
+    addChatMessage('ai', 'AI interview feedback is unavailable right now. Please try again after the server connection recovers.');
     console.error('AI Interview Error:', e);
   }
 }
@@ -3938,8 +3918,9 @@ function openCoach(jobId) {
   }
   document.getElementById('coachModal').style.display = 'flex';
   const chat = document.getElementById('coachChat');
+  const firstName = getCurrentUserName('there').split(' ')[0] || 'there';
   chat.innerHTML = `<div style="background: var(--blue); color: white; padding: 12px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 0.85rem;">
-    Hello Sunil! Ready for your interview with <strong>${selectedJobForCoach.company}</strong> for the <strong>${selectedJobForCoach.role}</strong> position? Let's start with: "Tell me about your experience with Data Cloud and how you've handled identity resolution."
+    Hello ${escapeHtml(firstName)}! Ready for your interview with <strong>${escapeHtml(selectedJobForCoach.company)}</strong> for the <strong>${escapeHtml(selectedJobForCoach.role || selectedJobForCoach.title || 'Salesforce role')}</strong> position? Let's start with: "Tell me about your experience with Data Cloud and how you've handled identity resolution."
   </div>`;
 }
 
@@ -3953,13 +3934,18 @@ async function sendToCoach() {
   input.value = '';
   chat.scrollTop = chat.scrollHeight;
 
-  // Mock AI response for now
-  setTimeout(() => {
+  try {
+    const responseText = await callAi('coach', { message: text, job: selectedJobForCoach });
     chat.innerHTML += `<div style="background: var(--blue); color: white; padding: 12px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 0.85rem;">
-      Excellent point about CIM mapping. How would you handle a scenario where the source data has conflicting identity attributes but must be unified into a single individual?
+      ${responseText.replace(/\n/g, '<br>')}
     </div>`;
     chat.scrollTop = chat.scrollHeight;
-  }, 1000);
+  } catch (e) {
+    chat.innerHTML += `<div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); padding: 12px; border-radius: 12px; max-width: 85%; font-size: 0.85rem;">
+      AI coach is unavailable right now. Please try again shortly.
+    </div>`;
+    chat.scrollTop = chat.scrollHeight;
+  }
 }
 
 // Phase 3F: Outreach Tracker
@@ -4054,17 +4040,17 @@ async function triggerEmailGeneration() {
   loading.style.display = 'flex';
   
   try {
-    const prompt = `Write a professional ${currentEmailType} email for a Salesforce Developer role at ${selectedJobForEmail.company}. Role: ${selectedJobForEmail.role}. Candidate: Sunil Khatate (4 yrs exp, PD2).`;
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      body: JSON.stringify({ model: 'gemma4:e4b', prompt, stream: false })
+    const role = selectedJobForEmail.role || selectedJobForEmail.title || 'Salesforce Developer';
+    const prompt = `Write a professional ${currentEmailType} email for a Salesforce role at ${selectedJobForEmail.company}. Role: ${role}. Candidate: ${getCurrentUserName('Candidate')}.`;
+    const responseText = await callAi('email', {
+      emailType: currentEmailType,
+      job: { ...selectedJobForEmail, role },
+      prompt
     });
-    if (!response.ok) throw new Error('AI unreachable');
-    const data = await response.json();
-    body.textContent = data.response;
+    body.textContent = responseText;
     logActivity(`Generated ${currentEmailType} email for <strong>${selectedJobForEmail.company}</strong>`, 'ai');
   } catch (e) {
-    body.textContent = "AI unreachable. Ensure Ollama is running.";
+    body.textContent = "AI email generation is unavailable right now. Please try again shortly.";
   } finally {
     loading.style.display = 'none';
   }
@@ -4347,7 +4333,7 @@ window.runAgentforceSimulation = async function() {
   }
   
   outBox.style.display = 'block';
-  outText.innerHTML = '<span style="color:var(--muted);">Executing simulation on gemma4:e4b...</span>';
+  outText.innerHTML = '<span style="color:var(--muted);">Executing AI simulation...</span>';
   
   try {
     let finalPrompt = usrEl.value;
@@ -4355,15 +4341,9 @@ window.runAgentforceSimulation = async function() {
       finalPrompt = "SYSTEM: " + sysEl.value + "\n\nUSER: " + usrEl.value;
     }
     
-    const response = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      body: JSON.stringify({ model: 'gemma4:e4b', prompt: finalPrompt, stream: false })
-    });
-    
-    if (!response.ok) throw new Error('Ollama connection failed');
-    const data = await response.json();
-    outText.innerHTML = escapeHtml(data.response).replace(/\n/g, '<br>');
+    const responseText = await callAi('interview', { topic: 'Agentforce simulation', prompt: finalPrompt, answer: usrEl.value });
+    outText.innerHTML = escapeHtml(responseText).replace(/\n/g, '<br>');
   } catch (err) {
-    outText.innerHTML = '<span style="color:var(--red);">Error: AI Engine (Ollama/gemma4:e4b) is unreachable. Ensure the local service is running.</span>';
+    outText.innerHTML = '<span style="color:var(--red);">Error: AI simulation is unavailable right now. Please try again shortly.</span>';
   }
 };

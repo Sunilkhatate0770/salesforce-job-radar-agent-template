@@ -1,7 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import fetch from 'node-fetch';
 import mongoose from 'mongoose';
-import { UserProfile, JobRecord, StudySession } from '../src/models/models.js';
+import { User, UserProfile, JobRecord, StudySession, TaskStatus } from '../src/models/models.js';
 import { TursoDB } from '../src/db/turso_driver.js';
 
 /**
@@ -52,6 +52,160 @@ async function getUserId(req) {
   }
 }
 
+async function safeTursoRead(label, operation, fallback) {
+  try {
+    return await operation();
+  } catch (err) {
+    console.warn(`[Turso] ${label} unavailable; continuing with MongoDB only:`, err.message);
+    return fallback;
+  }
+}
+
+function mergeUnique(arr1 = [], arr2 = [], key) {
+  const map = new Map();
+  [...(arr2 || []), ...(arr1 || [])].forEach(item => {
+    if (!item) return;
+    const id = key ? (typeof item === 'object' ? item[key] : item) : item;
+    if (id !== undefined && id !== null) map.set(String(id), item);
+  });
+  return Array.from(map.values());
+}
+
+function readBody(req) {
+  if (!req.body) return {};
+  if (typeof req.body === 'string') {
+    try { return JSON.parse(req.body); } catch (e) { return {}; }
+  }
+  if (Buffer.isBuffer(req.body)) {
+    try { return JSON.parse(req.body.toString('utf8')); } catch (e) { return {}; }
+  }
+  return typeof req.body === 'object' ? req.body : {};
+}
+
+function normalizeJobForPrompt(job = {}) {
+  return {
+    title: job.title || job.role || 'Salesforce role',
+    company: job.company || 'the company',
+    location: job.location || job.loc || '',
+    matchedSkills: Array.isArray(job.matched_skills) ? job.matched_skills : [],
+    missingSkills: Array.isArray(job.missing_skills) ? job.missing_skills : [],
+    url: job.apply_link || job.url || ''
+  };
+}
+
+function topicConfigName(topicId) {
+  return String(topicId || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+}
+
+function fallbackAiText(kind, payload = {}) {
+  const userName = payload.userName || payload.candidateName || 'there';
+  if (kind === 'email') {
+    const job = payload.job || {};
+    const company = job.company || payload.company || 'the team';
+    const role = job.title || job.role || payload.role || 'Salesforce Developer';
+    if (payload.emailType === 'withdraw') {
+      return `Subject: Withdrawing my application for ${role}\n\nHi ${company} team,\n\nThank you for considering me for the ${role} opportunity. After careful thought, I would like to withdraw my application at this time.\n\nI appreciate the time and consideration, and I hope we can stay connected for future Salesforce opportunities that may be a stronger fit.\n\nBest regards,\n${userName}`;
+    }
+    return `Subject: Thank you for the ${role} conversation\n\nHi ${company} team,\n\nThank you for taking the time to speak with me about the ${role} opportunity. I enjoyed learning more about the team, the Salesforce roadmap, and the problems you are solving.\n\nOur conversation strengthened my interest in contributing through Apex, LWC, integrations, and scalable Salesforce delivery. I appreciate your time and look forward to the next steps.\n\nBest regards,\n${userName}`;
+  }
+  if (kind === 'cover-letter') {
+    const job = normalizeJobForPrompt(payload.job);
+    const skills = job.matchedSkills.length ? job.matchedSkills.join(', ') : 'Apex, LWC, integrations, and Salesforce delivery';
+    return `I am excited to apply for the ${job.title} role at ${job.company}. My Salesforce experience aligns strongly with the needs of this position, especially around ${skills}.\n\nI focus on building reliable, maintainable solutions that balance business outcomes with technical quality. I can contribute across Apex, Lightning Web Components, integrations, data quality, and production support while communicating clearly with business and engineering teams.\n\nI would welcome the opportunity to discuss how my Salesforce background can help ${job.company} deliver high-impact platform work.`;
+  }
+  if (kind === 'qa') {
+    return JSON.stringify([
+      {
+        question: `What are the most important implementation risks for ${payload.topicName || 'this Salesforce topic'}?`,
+        answer: 'Focus on governor limits, security enforcement, bulk-safe design, testing strategy, and operational monitoring. A strong answer explains the tradeoffs and how you would validate the solution in a real org.'
+      },
+      {
+        question: `How would you explain ${payload.topicName || 'this concept'} to a business stakeholder?`,
+        answer: 'Start with the business outcome, then describe the Salesforce mechanism in plain language. Avoid platform jargon unless the stakeholder needs it for a decision.'
+      }
+    ]);
+  }
+  const topic = payload.topic || payload.skill || 'Salesforce';
+  return `Good answer. For a stronger interview response, connect your point to a real implementation decision, mention limits or security implications, and close with how you would test it. Next question: how would you design a scalable ${topic} solution when requirements change late in delivery?`;
+}
+
+async function generateAiText(kind, payload = {}) {
+  const openAiKey = process.env.OPENAI_API_KEY;
+  if (!openAiKey) return fallbackAiText(kind, payload);
+
+  const prompts = {
+    interview: `You are a senior Salesforce technical interviewer. Topic: ${payload.topic || 'Salesforce'}. Difficulty: ${payload.difficulty || 'Senior'}. Give brief feedback on the candidate answer and ask one follow-up question.\n\nCandidate answer:\n${payload.answer || payload.prompt || ''}`,
+    coach: `You are a Salesforce interview coach. Job/company context: ${JSON.stringify(payload.job || {})}. Reply to the candidate and ask one useful follow-up question.\n\nCandidate message:\n${payload.message || payload.prompt || ''}`,
+    email: `Write a concise professional ${payload.emailType || 'thank you'} email for a Salesforce job process. Candidate: ${payload.userName || 'Candidate'}. Job/company: ${JSON.stringify(payload.job || {})}. Return subject and body.`,
+    'cover-letter': `Write a short, professional 3-paragraph cover letter body for this Salesforce role. Candidate: ${payload.userName || 'Candidate'}. Job: ${JSON.stringify(normalizeJobForPrompt(payload.job || {}))}.`,
+    qa: `Generate 5 Salesforce interview Q&A items for topic "${payload.topicName || payload.topic || 'Salesforce'}". Return valid JSON array only with question and answer fields.`,
+    skill: `Create a concise 3-day Salesforce interview study plan for "${payload.skill || payload.topic || 'Salesforce'}". Use practical bullets.`
+  };
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+        messages: [
+          { role: 'system', content: 'You are a precise Salesforce career and interview assistant. Keep responses useful, specific, and concise.' },
+          { role: 'user', content: prompts[kind] || prompts.interview }
+        ],
+        temperature: 0.35
+      })
+    });
+    if (!response.ok) throw new Error(`OpenAI ${response.status}`);
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || fallbackAiText(kind, payload);
+  } catch (err) {
+    console.warn('[AI] Falling back to deterministic response:', err.message);
+    return fallbackAiText(kind, payload);
+  }
+}
+
+async function triggerCloudJobScan(userId) {
+  const repo = process.env.GITHUB_REPOSITORY || process.env.JOB_RADAR_GITHUB_REPO;
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.JOB_RADAR_GITHUB_TOKEN;
+  const workflow = process.env.GITHUB_WORKFLOW_FILE || 'salesforce-job-radar-agent.yml';
+  const ref = process.env.GITHUB_REF_NAME || process.env.GITHUB_BRANCH || 'main';
+
+  if (!repo || !token) {
+    return {
+      queued: false,
+      mode: 'cached',
+      message: 'Cloud scan credentials are not configured; showing latest cached MongoDB/Turso jobs.'
+    };
+  }
+
+  const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${workflow}/dispatches`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'salesforce-job-radar-agent'
+    },
+    body: JSON.stringify({ ref })
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`GitHub dispatch failed (${response.status}): ${text.slice(0, 180)}`);
+  }
+
+  return {
+    queued: true,
+    mode: 'github-actions',
+    message: 'Cloud job radar workflow queued successfully.'
+  };
+}
+
 async function checkAndArchiveOverflow(userId) {
   try {
     // 1. ARCHIVE JOBS
@@ -61,7 +215,9 @@ async function checkAndArchiveOverflow(userId) {
       console.log(`[Vacuum] Jobs limit reached (${jobCount}/1500). Archiving 500...`);
       const toMove = await JobRecord.find({ userId, status: 'ignored' }).sort({ createdAt: 1 }).limit(500).lean();
       if (toMove.length > 0) {
-        for (const job of toMove) await TursoDB.saveJob(userId, job);
+        for (const job of toMove) {
+          await safeTursoRead('archive job', () => TursoDB.saveJob(userId, job), null);
+        }
         await JobRecord.deleteMany({ _id: { $in: toMove.map(j => j._id) } });
       }
     }
@@ -73,7 +229,9 @@ async function checkAndArchiveOverflow(userId) {
       console.log(`[Vacuum] Sessions limit reached (${sessionCount}/500). Archiving 200...`);
       const sessionsToMove = await StudySession.find({ userId }).sort({ startTime: 1 }).limit(200).lean();
       if (sessionsToMove.length > 0) {
-        for (const s of sessionsToMove) await TursoDB.saveStudySession(userId, s);
+        for (const s of sessionsToMove) {
+          await safeTursoRead('archive study session', () => TursoDB.saveStudySession(userId, s), null);
+        }
         await StudySession.deleteMany({ _id: { $in: sessionsToMove.map(s => s._id) } });
       }
     }
@@ -104,6 +262,23 @@ export default async function(req, res) {
         const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
+
+        try {
+          if (mongoose.connection.readyState !== 1) throw new Error('MongoDB not connected');
+          await User.findOneAndUpdate(
+            { googleId: userData.id },
+            {
+              googleId: userData.id,
+              email: userData.email,
+              name: userData.name,
+              picture: userData.picture,
+              lastLogin: new Date()
+            },
+            { upsert: true, new: true }
+          );
+        } catch (mongoErr) {
+          console.error('[AUTH] Mongo user sync failed but continuing:', mongoErr.message);
+        }
         
         // Save to NEW Turso Tier (Safe attempt)
         try {
@@ -126,7 +301,7 @@ export default async function(req, res) {
 
     // 2. PROFILE ENDPOINTS (Hybrid Search & Smart Merge)
     if (path === 'profile/data') {
-      let tursoProfile = await TursoDB.getProfile(userId);
+      let tursoProfile = await safeTursoRead('profile/data', () => TursoDB.getProfile(userId), null);
       let mongoProfile = await UserProfile.findOne({ userId }).lean();
       
       console.log(`[DEBUG] Hybrid Fetch for ${userId}:`);
@@ -138,18 +313,6 @@ export default async function(req, res) {
       let source = tursoProfile ? 'Turso (Primary)' : 'MongoDB (Legacy)';
 
       if (tursoProfile && mongoProfile) {
-        // Smart Merge Arrays: Deduplicate by content
-        const mergeUnique = (arr1, arr2, key) => {
-          const map = new Map();
-          // Process Mongo first, then Turso (Turso overwrites if duplicate)
-          [...(arr2 || []), ...(arr1 || [])].forEach(item => {
-            if (!item) return;
-            const id = key ? (typeof item === 'object' ? item[key] : item) : item;
-            if (id) map.set(id, item);
-          });
-          return Array.from(map.values());
-        };
-        
         profile = { 
           ...mongoProfile, 
           ...tursoProfile, 
@@ -164,6 +327,35 @@ export default async function(req, res) {
 
       console.log(`[PROFILE] Fetch for ${userId} -> Source: ${source}, Found: ${!!profile}`);
       return res.status(200).json({ exists: !!profile, profile, storageSource: source });
+    }
+
+    if (path === 'profile/save-retention' && req.method === 'POST') {
+      const { topicId, stats } = readBody(req);
+      if (!topicId || !stats) {
+        return res.status(400).json({ success: false, error: 'topicId and stats are required' });
+      }
+
+      const profile = await UserProfile.findOne({ userId }).lean();
+      const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
+      const index = topics.findIndex(t => t.topicId === topicId);
+      const retentionTopic = {
+        ...(index >= 0 ? topics[index] : {}),
+        topicId,
+        topic: topicConfigName(topicId),
+        confidence: Number(stats.confidence || 0),
+        nextReview: stats.nextReview ? new Date(stats.nextReview) : undefined,
+        interval: Number(stats.interval || 0),
+        easeFactor: Number(stats.easeFactor || 2.5)
+      };
+      if (index >= 0) topics[index] = retentionTopic;
+      else topics.push(retentionTopic);
+
+      await UserProfile.findOneAndUpdate(
+        { userId },
+        { userId, studyPlanTopics: topics, updatedAt: new Date() },
+        { upsert: true, new: true }
+      );
+      return res.status(200).json({ success: true, studyPlanTopics: topics });
     }
 
     if (path === 'profile/save' && req.method === 'POST') {
@@ -199,12 +391,12 @@ export default async function(req, res) {
     }
 
     if (path === 'profile/match') {
-      const tursoProfile = await TursoDB.getProfile(userId);
+      const tursoProfile = await safeTursoRead('profile/match profile', () => TursoDB.getProfile(userId), null);
       const mongoProfile = await UserProfile.findOne({ userId }).lean();
       const profile = tursoProfile || mongoProfile;
 
       // Get Jobs from both tiers
-      const tursoJobs = await TursoDB.getJobAnalytics(userId);
+      const tursoJobs = await safeTursoRead('profile/match jobs', () => TursoDB.getJobAnalytics(userId), []);
       const mongoJobs = await JobRecord.find({ userId }).lean();
       const allJobs = [...tursoJobs, ...mongoJobs];
 
@@ -231,7 +423,7 @@ export default async function(req, res) {
 
     // 3. JOBS ENDPOINTS
     if (path === 'jobs') {
-      const tursoJobs = await TursoDB.getJobs(userId);
+      const tursoJobs = await safeTursoRead('jobs', () => TursoDB.getJobs(userId), []);
       const mongoJobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ createdAt: -1 }).limit(100).lean();
       const unifiedMap = new Map();
       mongoJobs.forEach(j => unifiedMap.set(j.job_hash, { ...j, source: 'Legacy (Mongo)' }));
@@ -246,8 +438,26 @@ export default async function(req, res) {
       return res.status(200).json({ records: finalJobs, dbStatus: true, count: finalJobs.length, storageCapacity: `${100 - capacityUsed}% Free` });
     }
 
+    if (path === 'jobs/scan' && req.method === 'POST') {
+      let result;
+      try {
+        result = await triggerCloudJobScan(userId);
+      } catch (scanErr) {
+        console.error('[SCAN] Cloud trigger failed; falling back to cached mode:', scanErr.message);
+        result = {
+          queued: false,
+          mode: 'cached',
+          message: 'Cloud scan trigger failed; showing latest cached jobs while the agent configuration is checked.'
+        };
+      }
+      return res.status(200).json({
+        success: true,
+        ...result
+      });
+    }
+
     if (path === 'jobs/analytics') {
-      const tursoJobs = await TursoDB.getJobAnalytics(userId);
+      const tursoJobs = await safeTursoRead('jobs/analytics', () => TursoDB.getJobAnalytics(userId), []);
       const mongoJobs = await JobRecord.find({ userId }).lean();
       const combined = [...tursoJobs, ...mongoJobs];
       console.log(`[ANALYTICS] Hybrid Merging ${combined.length} records for ${userId}`);
@@ -281,7 +491,7 @@ export default async function(req, res) {
 
     // 4. STUDY ENDPOINTS
     if (path === 'study/history') {
-      const tursoSessions = await TursoDB.getStudyHistory(userId);
+      const tursoSessions = await safeTursoRead('study/history', () => TursoDB.getStudyHistory(userId), []);
       const mongoSessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean();
       const combined = [...tursoSessions, ...mongoSessions].sort((a,b) => new Date(b.startTime) - new Date(a.startTime));
       console.log(`[STUDY] History Fetch -> Turso: ${tursoSessions.length}, Mongo: ${mongoSessions.length}`);
@@ -296,35 +506,62 @@ export default async function(req, res) {
     }
 
     if (path === 'study/tasks') {
-      const tursoProfile = await TursoDB.getProfile(userId);
-      const mongoProfile = await UserProfile.findOne({ userId }).lean();
+      const tursoProfile = await safeTursoRead('study/tasks profile', () => TursoDB.getProfile(userId), null);
+      const mongoTasks = await TaskStatus.find({ userId, completed: true }).lean();
       const combinedTasks = Array.from(new Set([
         ...(tursoProfile?.completedTasks || []),
-        ...(mongoProfile?.completedTasks || [])
-      ]));
+        ...mongoTasks.map(t => t.index)
+      ].map(Number).filter(Number.isFinite)));
       console.log(`[TASKS] Hybrid Loading: ${combinedTasks.length} total completed tasks`);
       return res.status(200).json({ completedTasks: combinedTasks });
     }
 
     if (path === 'study/toggle-task' && req.method === 'POST') {
-      const { taskId, completed } = req.body;
-      console.log(`[TASK] Toggling task ${taskId} in Primary Mongo for ${userId}`);
-      
-      const profile = await UserProfile.findOne({ userId });
-      let tasks = profile?.completedTasks || [];
-      if (completed) {
-        if (!tasks.includes(taskId)) tasks.push(taskId);
-      } else {
-        tasks = tasks.filter(id => id !== taskId);
+      const body = readBody(req);
+      const taskIndex = Number(body.index ?? body.taskId);
+      if (!Number.isFinite(taskIndex)) {
+        return res.status(400).json({ success: false, error: 'index or taskId is required' });
       }
-      
-      await UserProfile.findOneAndUpdate({ userId }, { completedTasks: tasks }, { upsert: true });
-      return res.status(200).json({ success: true, completedTasks: tasks });
+
+      const existing = await TaskStatus.findOne({ userId, index: taskIndex }).lean();
+      const nextCompleted = typeof body.completed === 'boolean' ? body.completed : !existing?.completed;
+      console.log(`[TASK] Toggling task ${taskIndex} in Primary Mongo for ${userId} -> ${nextCompleted}`);
+
+      await TaskStatus.findOneAndUpdate(
+        { userId, index: taskIndex },
+        { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
+        { upsert: true, new: true }
+      );
+
+      const completedTasks = (await TaskStatus.find({ userId, completed: true }).lean()).map(t => t.index);
+      return res.status(200).json({ success: true, completedTasks });
+    }
+
+    if (path === 'study/leaderboard') {
+      const rows = await StudySession.aggregate([
+        { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
+        { $sort: { totalSeconds: -1, sessions: -1 } },
+        { $limit: 10 }
+      ]);
+      const users = await User.find({ googleId: { $in: rows.map(r => r._id) } }).lean();
+      const userMap = new Map(users.map(u => [u.googleId, u]));
+      const leaderboard = rows.map(row => {
+        const user = userMap.get(row._id) || {};
+        return {
+          userId: row._id,
+          name: user.name || 'Anonymous Scholar',
+          picture: user.picture || '',
+          totalHours: Math.round((row.totalSeconds || 0) / 36) / 100,
+          sessions: row.sessions || 0,
+          lastStudy: row.lastStudy
+        };
+      });
+      return res.status(200).json({ success: true, leaderboard });
     }
 
     // 5. SUMMARY ENDPOINTS (Hybrid History)
     if (path === 'summary/daily' || path === 'summary/all') {
-      const tursoSessions = await TursoDB.getFullHistory(userId);
+      const tursoSessions = await safeTursoRead('summary/history', () => TursoDB.getFullHistory(userId), []);
       const mongoSessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean();
       
       const allSessions = [...tursoSessions, ...mongoSessions];
@@ -341,6 +578,13 @@ export default async function(req, res) {
       const todayStr = new Date().toISOString().split('T')[0];
       if (path === 'summary/daily') return res.status(200).json(historyObj[todayStr] || { date: todayStr, study: { totalSeconds: 0 }, jobs: { newCount: 0 } });
       return res.status(200).json(historyObj);
+    }
+
+    if (path.startsWith('ai/') && req.method === 'POST') {
+      const kind = path.replace('ai/', '');
+      const body = readBody(req);
+      const response = await generateAiText(kind, body);
+      return res.status(200).json({ success: true, response });
     }
 
     return res.status(404).json({ error: 'Route not found' });
