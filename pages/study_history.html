@@ -27,7 +27,7 @@
       <button class="history-tab" onclick="switchHistoryTab('table')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M3 3h18v18H3z"></path><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path><path d="M15 3v18"></path></svg> Table</button>
       <button class="history-tab" onclick="switchHistoryTab('analytics')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg> Analytics</button>
     </div>
-    <select id="historyPeriodFilter" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
+    <select id="historyPeriodFilter" onchange="resetHistoryPageAndRender()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
       <option value="today">Today Only</option>
       <option value="yesterday">Yesterday</option>
       <option value="current_month" selected>Current Month (Live)</option>

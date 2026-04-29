@@ -178,7 +178,7 @@
     <div class="nav-item" onclick="showPage('mock')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg> Mock Interview <span class="count">3 Full</span></div>
     <div class="nav-item" onclick="showPage('ai_interview')" style="background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); color:#c4b5fd;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-      AI Mock Interview <span class="count" style="background:#8b5cf6;">Gemma 4</span>
+      AI Mock Interview <span class="count" style="background:#8b5cf6;">AI</span>
     </div>
   </div>
 
@@ -353,8 +353,8 @@
     <!-- Floating Dropdown Menu -->
     <div id="floatDropdownMenu" class="floating-dropdown">
       <div class="fd-header">
-        <div id="floatFullTitle" class="fd-name">User Name</div>
-        <div id="floatEmailTitle" class="fd-email">user@example.com</div>
+        <div id="floatFullTitle" class="fd-name">Signed-in User</div>
+        <div id="floatEmailTitle" class="fd-email">Secure profile</div>
       </div>
       <div class="fd-divider"></div>
       <div class="fd-item" onclick="showPage('profile_match')">
@@ -382,7 +382,7 @@
       </span>
       AI Profile Matching & Study Plan
     </div>
-    <div class="page-sub">Powered by Gemma 4 Local AI Engine - sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
+    <div class="page-sub">Powered by the cloud AI engine - sync your LinkedIn or Naukri profile to generate a personalized study roadmap.</div>
   </div>
   
   <!-- PREMIUM SYNC ARCHITECTURE (v1373) -->
@@ -425,7 +425,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
       </span>
       <span style="font-weight:700; font-size:1rem; color:var(--text);">AI-Generated Study Plan</span>
-      <span style="font-size:0.6rem; padding:3px 8px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.25); border-radius:20px; color:#c4b5fd; margin-left:auto;">Gemma 4</span>
+      <span style="font-size:0.6rem; padding:3px 8px; background:rgba(139,92,246,0.15); border:1px solid rgba(139,92,246,0.25); border-radius:20px; color:#c4b5fd; margin-left:auto;">AI</span>
     </div> <!-- end inner flex -->
     <div id="aiStudyPlanResult"></div> <!-- results container -->
   </div> <!-- end AI Study Plan Output wrapper -->
@@ -533,7 +533,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;color:var(--blue);"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
       Study Time Tracker
     </div>
-    <div class="page-sub">Automatically tracks time spent on each topic. Data persists in your browser.</div>
+    <div class="page-sub">Automatically tracks time spent on each topic. Data is scoped to your signed-in Google profile.</div>
   </div>
 
   <div id="dailyInsightCard" class="suggestion-card" style="background:linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05)); border:1px solid rgba(255,255,255,0.08); border-left:4px solid var(--blue); display:none; margin-bottom:1.5rem; border-radius:12px; padding:1.2rem; backdrop-filter:blur(10px);">
@@ -697,7 +697,7 @@
         <button class="history-tab" onclick="switchHistoryTab('table')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M3 3h18v18H3z"></path><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path><path d="M15 3v18"></path></svg> Table</button>
         <button class="history-tab" onclick="switchHistoryTab('analytics')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg> Analytics</button>
       </div>
-      <select id="historyPeriodFilter" onchange="renderHistory()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
+      <select id="historyPeriodFilter" onchange="resetHistoryPageAndRender()" style="background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.4rem 0.8rem; border-radius:6px; font-family:inherit; font-size:0.85rem;">
         <option value="today">Today Only</option>
         <option value="yesterday">Yesterday</option>
         <option value="current_month" selected>Current Month (Live)</option>
@@ -743,7 +743,7 @@
 <!-- AI MOCK INTERVIEW PAGE -->
 <div id="ai_interview" class="page">
   <div class="page-header">
-    <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;vertical-align:middle;margin-right:10px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg> Gemma 4 AI Interview Room</div>
+    <div class="page-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;vertical-align:middle;margin-right:10px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg> AI Interview Room</div>
   <div class="page-sub">Interactive practice sessions with real-time feedback from your AI agent.</div>
   </div>
   
@@ -935,7 +935,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       </div>
       <div style="font-weight:600; font-size:1.1rem; color:var(--text); margin-bottom:8px;">Ready to generate Interview Questions?</div>
-      <p style="font-size:0.8rem; color:var(--muted); max-width:400px; margin:0 auto 24px;">Gemma 4 will analyze this topic and generate 5 high-impact interview questions with detailed answers tailored to your profile.</p>
+      <p style="font-size:0.8rem; color:var(--muted); max-width:400px; margin:0 auto 24px;">AI will analyze this topic and generate 5 high-impact interview questions with detailed answers tailored to your profile.</p>
       <button id="btnGenerateTopicQA" style="padding:12px 28px; background:linear-gradient(135deg,var(--blue),var(--cyan)); border:none; border-radius:10px; color:white; font-weight:700; cursor:pointer; transition:all 0.2s;" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'">Generate AI Interview Q&A</button>
     </div>
   </div>

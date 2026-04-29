@@ -22,13 +22,23 @@ let currentRetentionTopicId = null;
 let sessionFeedbackProvided = new Set(); 
 
 // --- JOB RADAR PIPELINE STATE (v1399) ---
-let pipelineJobs = JSON.parse(localStorage.getItem('sfpipe2026v3')) || [];
-let activityLog = JSON.parse(localStorage.getItem('sfActivityLog')) || [];
+let pipelineJobs = [];
+let activityLog = [];
 let currentBoardFilter = 'all';
 let currentBoardSearch = '';
 let currentRadarSubTab = 'pipeline';
 let currentPrepCompany = 'Cognizant';
 let cachedHistories = {};
+let clientStateLoadedFor = null;
+const JOB_BOARD_PAGE_SIZE = 6;
+const BOOKMARK_PAGE_SIZE = 8;
+const LOG_PAGE_SIZE = 12;
+const HISTORY_PAGE_SIZE = 8;
+const HISTORY_ANALYTICS_PAGE_SIZE = 6;
+let radarBoardPages = { todo: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+let bookmarksPage = 0;
+let activityLogPage = 0;
+let historyPage = 0;
 
 const PREP_REGISTRY = {
   "Cognizant": {
@@ -218,6 +228,7 @@ window.processGAuth = async function(response) {
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
+      loadUserScopedClientState();
       // Force hide the overlay immediately
       document.getElementById('loginOverlay').style.display = 'none';
       console.log('Login Success! Showing Dashboard for:', currentUser.name);
@@ -337,6 +348,87 @@ async function apiFetch(url, options = {}) {
     'Authorization': `Bearer ${token}`
   };
   return fetch(url, { ...options, headers });
+}
+
+function getCurrentUserId() {
+  const raw = currentUser?.id || currentUser?.googleId || currentUser?.email || 'guest';
+  return String(raw).toLowerCase().replace(/[^a-z0-9._-]+/g, '_');
+}
+
+function scopedStorageKey(key) {
+  return `sfjr:${getCurrentUserId()}:${key}`;
+}
+
+function readJsonStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function readScopedJson(key, fallback, legacyKey) {
+  const scopedValue = readJsonStorage(scopedStorageKey(key), undefined);
+  if (typeof scopedValue !== 'undefined') return scopedValue;
+  if (legacyKey) return readJsonStorage(legacyKey, fallback);
+  return fallback;
+}
+
+function writeScopedJson(key, value) {
+  localStorage.setItem(scopedStorageKey(key), JSON.stringify(value));
+}
+
+function getScopedItem(key, fallback = null, legacyKey) {
+  const scopedValue = localStorage.getItem(scopedStorageKey(key));
+  if (scopedValue !== null) return scopedValue;
+  if (legacyKey) {
+    const legacyValue = localStorage.getItem(legacyKey);
+    if (legacyValue !== null) return legacyValue;
+  }
+  return fallback;
+}
+
+function setScopedItem(key, value) {
+  localStorage.setItem(scopedStorageKey(key), String(value));
+}
+
+function removeScopedStorage(key, legacyKey) {
+  localStorage.removeItem(scopedStorageKey(key));
+  if (legacyKey) localStorage.removeItem(legacyKey);
+}
+
+function removeScopedPrefix(prefix, legacyPrefix) {
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith(scopedStorageKey(prefix)) || (legacyPrefix && k.startsWith(legacyPrefix))) {
+      localStorage.removeItem(k);
+    }
+  });
+}
+
+function loadUserScopedClientState() {
+  const userId = getCurrentUserId();
+  if (clientStateLoadedFor === userId) return;
+  pipelineJobs = readScopedJson('pipelineJobs', [], 'sfpipe2026v3');
+  activityLog = readScopedJson('activityLog', [], 'sfActivityLog');
+  userBookmarks = readScopedJson('bookmarks', userBookmarks || [], 'sf_bookmarks');
+  radarBoardPages = { todo: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+  bookmarksPage = 0;
+  activityLogPage = 0;
+  historyPage = 0;
+  clientStateLoadedFor = userId;
+}
+
+function renderPager(total, page, pageSize, prevAction, nextAction) {
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if (total <= pageSize) return '';
+  const current = Math.min(page + 1, totalPages);
+  return `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid rgba(255,255,255,0.06);">
+      <button onclick="${prevAction}" ${page <= 0 ? 'disabled' : ''} style="border:1px solid var(--border); background:${page <= 0 ? 'rgba(255,255,255,0.02)' : 'var(--surface2)'}; color:${page <= 0 ? 'var(--muted)' : 'var(--text)'}; font-size:0.68rem; font-weight:700; padding:7px 10px; border-radius:8px; cursor:${page <= 0 ? 'default' : 'pointer'};">Prev</button>
+      <span style="font-size:0.68rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;">Page ${current} / ${totalPages}</span>
+      <button onclick="${nextAction}" ${current >= totalPages ? 'disabled' : ''} style="border:1px solid var(--border); background:${current >= totalPages ? 'rgba(255,255,255,0.02)' : 'var(--surface2)'}; color:${current >= totalPages ? 'var(--muted)' : 'var(--text)'}; font-size:0.68rem; font-weight:700; padding:7px 10px; border-radius:8px; cursor:${current >= totalPages ? 'default' : 'pointer'};">Next</button>
+    </div>`;
 }
 
 function getCurrentUserName(fallback = 'there') {
@@ -480,6 +572,7 @@ async function loadUserProfile() {
       }
       if (data.profile.bookmarks) {
         userBookmarks = data.profile.bookmarks;
+        writeScopedJson('bookmarks', userBookmarks);
         console.log('â­ [BOOKMARKS] Total Loaded:', userBookmarks.length);
         if (userBookmarks.length > 0) {
           console.table(userBookmarks.map(b => ({ Question: b.q, Topic: b.topic })));
@@ -489,7 +582,7 @@ async function loadUserProfile() {
         if (countEl) countEl.textContent = userBookmarks.length;
 
         // If user is on bookmarks page, force a redraw now that data is here
-        const activeTab = localStorage.getItem('last_active_tab');
+        const activeTab = getScopedItem('last_active_tab', null, 'last_active_tab');
         if (activeTab === 'bookmarks_page' || (document.getElementById('bookmarks_page') && document.getElementById('bookmarks_page').classList.contains('active'))) {
           showBookmarks();
         }
@@ -662,7 +755,7 @@ function renderProfileMatchPage(profile) {
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--blue);"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>' +
       '<span style="font-weight:700;font-size:1rem;color:var(--text);">Full AI Study Roadmap</span>';
-    html += '<span style="font-size:0.6rem;padding:3px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);border-radius:20px;color:#c4b5fd;margin-left:auto;">Gemma 4</span></div>';
+    html += '<span style="font-size:0.6rem;padding:3px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);border-radius:20px;color:#c4b5fd;margin-left:auto;">AI</span></div>';
     html += '<div style="font-size:0.82rem;line-height:1.8;color:var(--muted);">' + (window.marked ? marked.parse(profile.studyPlan) : profile.studyPlan) + '</div></div>';
   }
 
@@ -791,6 +884,7 @@ async function checkAuth() {
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
+      loadUserScopedClientState();
       renderUserProfile(currentUser);
       document.getElementById('loginOverlay').style.display = 'none';
       return true;
@@ -995,7 +1089,7 @@ async function startTracking(pageId) {
   if (timerEl) timerEl.style.display = 'flex';
 
   // DUAL-SYNC RESUME: Use localStorage for instant feel + Server for persistence
-  const localBase = parseInt(localStorage.getItem('timer_' + pageId) || '0');
+  const localBase = parseInt(getScopedItem('timer_' + pageId, '0', 'timer_' + pageId) || '0');
   baseSeconds = localBase;
   
   // Update from server in background
@@ -1037,7 +1131,7 @@ async function startTracking(pageId) {
 }
 
 function restoreLastQuestion(pageId) {
-  const lastQ = localStorage.getItem('last_q_' + pageId);
+  const lastQ = getScopedItem('last_q_' + pageId, null, 'last_q_' + pageId);
   if (!lastQ) return;
   
   const page = document.getElementById(pageId);
@@ -1066,7 +1160,7 @@ async function stopTracking() {
   
   // Persist locally for instant resume
   const total = baseSeconds + elapsed;
-  localStorage.setItem('timer_' + currentTrackedPage, total);
+  setScopedItem('timer_' + currentTrackedPage, total);
 
   // Use a consistent local date string for "Today"
   const now = new Date();
@@ -1365,6 +1459,7 @@ let currentHistoryTab = 'timeline';
 
 function switchHistoryTab(mode) {
   currentHistoryTab = mode;
+  historyPage = 0;
   document.querySelectorAll('.history-tab').forEach(btn => {
     btn.classList.remove('active');
     if (btn.getAttribute('onclick').includes(mode)) btn.classList.add('active');
@@ -1521,12 +1616,28 @@ function renderHistoryUI(container, histories, todayStr, yestStr) {
     }
   });
 
+  const pageSize = viewMode === 'analytics' ? HISTORY_ANALYTICS_PAGE_SIZE : HISTORY_PAGE_SIZE;
+  const maxPage = Math.max(0, Math.ceil(dates.length / pageSize) - 1);
+  historyPage = Math.min(historyPage, maxPage);
+  const pageStart = historyPage * pageSize;
+  const pagedDates = dates.slice(pageStart, pageStart + pageSize);
+
   if (viewMode === 'timeline') {
-    renderTimelineView(container, dates, histories, todayStr, yestStr);
+    renderTimelineView(container, pagedDates, histories, todayStr, yestStr);
   } else if (viewMode === 'table') {
-    renderTableView(container, dates, histories);
+    renderTableView(container, pagedDates, histories);
   } else if (viewMode === 'analytics') {
-    renderAnalyticsView(container, dates, histories);
+    renderAnalyticsView(container, pagedDates, histories);
+  }
+
+  if (dates.length > pageSize) {
+    container.insertAdjacentHTML('beforeend', renderPager(
+      dates.length,
+      historyPage,
+      pageSize,
+      'setHistoryPage(-1)',
+      'setHistoryPage(1)'
+    ));
   }
 
   // Update Stats
@@ -1536,6 +1647,23 @@ function renderHistoryUI(container, histories, todayStr, yestStr) {
   if (totalEl) totalEl.textContent = formatTimeFull(totalSecs);
   if (countEl) countEl.textContent = dayCount;
   if (avgEl) avgEl.textContent = formatTimeFull(dayCount > 0 ? totalSecs/dayCount : 0);
+}
+
+function setHistoryPage(delta) {
+  historyPage = Math.max(0, historyPage + delta);
+  const container = document.getElementById('historyTimeline');
+  if (container) renderHistoryUI(container, cachedHistories, getLocalDateString(0), getLocalDateString(-1));
+}
+
+function resetHistoryPageAndRender() {
+  historyPage = 0;
+  renderHistory();
+}
+
+function getLocalDateString(offsetDays = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function renderTimelineView(container, dates, histories, todayStr, yestStr) {
@@ -1806,13 +1934,10 @@ async function resetTracker() {
     try {
       await apiFetch('/api/study/reset', { method: 'POST' });
       
-      // Clear localStorage
-      const keys = Object.keys(localStorage);
-      keys.forEach(k => {
-        if (k.startsWith('timer_') || k.startsWith('last_q_') || k === TRACKER_KEY) {
-          localStorage.removeItem(k);
-        }
-      });
+      // Clear current user's local tracker cache, plus legacy unscoped keys.
+      removeScopedPrefix('timer_', 'timer_');
+      removeScopedPrefix('last_q_', 'last_q_');
+      removeScopedStorage('tracker', TRACKER_KEY);
       
       currentTrackedPage = null; 
       trackingStartTime = null; 
@@ -2049,13 +2174,14 @@ async function fetchJobsList() {
 
 function clearAndSyncJobs() {
     console.log('ðŸ§¹ Resetting Job Radar cache only...');
-    localStorage.removeItem('sfpipe2026v3');
-    localStorage.removeItem('sfActivityLog');
+    removeScopedStorage('pipelineJobs', 'sfpipe2026v3');
+    removeScopedStorage('activityLog', 'sfActivityLog');
     pipelineJobs = [];
     activityLog = [];
     currentBoardSearch = '';
     currentBoardFilter = 'all';
-    radarBoardLimits = { todo: 10, applied: 10, interview: 10, offer: 10, rejected: 10 };
+    radarBoardPages = { todo: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
+    activityLogPage = 0;
     showToast('Job Radar cache cleared. Rebuilding from the latest scan...');
     setTimeout(() => {
         window.location.reload();
@@ -2473,7 +2599,7 @@ function switchTrackerTab(tabId) {
   }
 
   // Save preference
-  localStorage.setItem('last_tracker_tab', tabId);
+  setScopedItem('last_tracker_tab', tabId);
   
   if (tabId === 'tab_leaderboard') {
     fetchLeaderboard();
@@ -2594,7 +2720,7 @@ async function showPage(id) {
   // Ensure the page content is loaded before showing
   await ensurePageLoaded(id);
 
-  localStorage.setItem('last_active_tab', id);
+  setScopedItem('last_active_tab', id);
   await stopTracking();
   
   console.log(`ðŸ§¹ [NAV] Hiding all .page elements...`);
@@ -2649,7 +2775,7 @@ async function showPage(id) {
     }
     if (id === 'study_tracker') {
         console.log('ðŸ“ˆ [NAV] Initiating Study Tracker...');
-        const lastTab = localStorage.getItem('last_tracker_tab') || 'tab_suggestions';
+        const lastTab = getScopedItem('last_tracker_tab', 'tab_suggestions', 'last_tracker_tab');
         switchTrackerTab(lastTab);
         await updateTrackerUI(); 
     }
@@ -2712,7 +2838,7 @@ async function showPage(id) {
 function toggleQA(el) { 
   const isOpen = el.parentElement.classList.toggle('open'); 
   if (isOpen && currentTrackedPage) {
-    localStorage.setItem('last_q_' + currentTrackedPage, el.querySelector('.qa-q-text').textContent);
+    setScopedItem('last_q_' + currentTrackedPage, el.querySelector('.qa-q-text').textContent);
   }
 }
 function toggleStar(el) { el.parentElement.classList.toggle('open'); }
@@ -3008,7 +3134,7 @@ document.addEventListener('visibilitychange', function() {
   const isAuthed = await checkAuth();
   if (!isAuthed) return;
 
-  const lastTab = localStorage.getItem('last_active_tab') || 'schedule';
+  const lastTab = getScopedItem('last_active_tab', 'schedule', 'last_active_tab');
   showPage(lastTab);
   
   try {
@@ -3280,7 +3406,7 @@ function toggleBookmark(questionText, topicId) {
   } else {
     userBookmarks.push({ q: questionText, topic: topicId, date: new Date().toISOString() });
   }
-  localStorage.setItem('sf_bookmarks', JSON.stringify(userBookmarks));
+  writeScopedJson('bookmarks', userBookmarks);
   renderBookmarkButtons();
   
   // Update bookmark count in sidebar
@@ -3296,7 +3422,7 @@ function toggleBookmark(questionText, topicId) {
       if (res.ok) {
         const data = await res.json();
         userBookmarks = data.bookmarks;
-        localStorage.setItem('sf_bookmarks', JSON.stringify(userBookmarks));
+        writeScopedJson('bookmarks', userBookmarks);
         renderBookmarkButtons();
         if (countEl) countEl.textContent = userBookmarks.length;
       }
@@ -3339,7 +3465,8 @@ function renderBookmarkButtons() {
 
 function showBookmarks() {
   console.log('ðŸ“– [UI] Rendering Bookmarks Page. Current Count:', userBookmarks.length);
-  showPage('bookmarks_page');
+  const page = document.getElementById('bookmarks_page');
+  if (!page || !page.classList.contains('active')) showPage('bookmarks_page');
   const container = document.getElementById('bookmarksContent');
   if (!container) {
     console.error('â Œ [UI] #bookmarksContent element missing!');
@@ -3368,8 +3495,16 @@ function showBookmarks() {
     return;
   }
   
-  let html = `<div style="font-size:0.75rem; color:var(--muted); margin-bottom:16px; font-weight:600; text-transform:uppercase; letter-spacing:1px;">${userBookmarks.length} SAVED QUESTIONS</div>`;
-  userBookmarks.forEach((b, i) => {
+  const maxPage = Math.max(0, Math.ceil(userBookmarks.length / BOOKMARK_PAGE_SIZE) - 1);
+  bookmarksPage = Math.min(bookmarksPage, maxPage);
+  const start = bookmarksPage * BOOKMARK_PAGE_SIZE;
+  const pageItems = userBookmarks.slice(start, start + BOOKMARK_PAGE_SIZE);
+
+  let html = `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
+    <div style="font-size:0.75rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:1px;">${userBookmarks.length} SAVED QUESTIONS</div>
+    <div style="font-size:0.68rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;">Showing ${start + 1}-${Math.min(start + BOOKMARK_PAGE_SIZE, userBookmarks.length)}</div>
+  </div>`;
+  pageItems.forEach((b, i) => {
     const topicName = topicConfig[b.topic] ? topicConfig[b.topic].name : b.topic;
     html += `
       <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border); border-radius:16px; padding:18px 20px; margin-bottom:12px; display:flex; align-items:flex-start; gap:16px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden;" onclick="showPage('${b.topic}')" onmouseenter="this.style.borderColor='var(--blue)'; this.style.background='rgba(255,255,255,0.04)'" onmouseleave="this.style.borderColor='var(--border)'; this.style.background='rgba(255,255,255,0.02)'">
@@ -3377,18 +3512,24 @@ function showBookmarks() {
           <svg viewBox="0 0 24 24" fill="currentColor" style="width:18px;height:18px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
         </div>
         <div style="flex:1; min-width:0;">
-          <div style="font-weight:600; font-size:0.95rem; color:var(--text); line-height:1.5; margin-bottom:6px;">${b.q}</div>
+          <div style="font-weight:600; font-size:0.95rem; color:var(--text); line-height:1.5; margin-bottom:6px;">${escapeHtml(b.q)}</div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:0.65rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:10px; font-weight:700; text-transform:uppercase;">${topicName}</span>
+            <span style="font-size:0.65rem; background:rgba(79,142,247,0.1); color:var(--blue); padding:3px 10px; border-radius:10px; font-weight:700; text-transform:uppercase;">${escapeHtml(topicName)}</span>
             <span style="font-size:0.65rem; color:var(--muted); font-family:'IBM Plex Mono',monospace;">Saved: ${new Date(b.date).toLocaleDateString()}</span>
           </div>
         </div>
-        <button onclick="event.stopPropagation(); toggleBookmark('${b.q.replace(/'/g, "\\'")}', '${b.topic}'); showBookmarks();" style="cursor:pointer; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:6px; color:#ef4444; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseenter="this.style.background='var(--red)'; this.style.color='white'">
+        <button onclick="event.stopPropagation(); toggleBookmark(decodeURIComponent('${encodeInlineArg(b.q)}'), decodeURIComponent('${encodeInlineArg(b.topic)}')); showBookmarks();" style="cursor:pointer; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:6px; color:#ef4444; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseenter="this.style.background='var(--red)'; this.style.color='white'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:12px;height:12px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </div>`;
   });
+  html += renderPager(userBookmarks.length, bookmarksPage, BOOKMARK_PAGE_SIZE, 'setBookmarksPage(-1)', 'setBookmarksPage(1)');
   container.innerHTML = html;
+}
+
+function setBookmarksPage(delta) {
+  bookmarksPage = Math.max(0, bookmarksPage + delta);
+  showBookmarks();
 }
 
 // =============================================
@@ -3494,7 +3635,7 @@ function renderRevisionAlerts() {
 // JOB RADAR PHASE 2-5 FUNCTIONS (v1399)
 // =============================================
 function savePipeline() {
-  localStorage.setItem('sfpipe2026v3', JSON.stringify(pipelineJobs));
+  writeScopedJson('pipelineJobs', pipelineJobs);
   updateAnalytics();
   checkOfferComparison();
   if (currentRadarSubTab === 'insights') renderInsights();
@@ -3509,22 +3650,35 @@ function logActivity(text, type = 'info') {
   };
   activityLog.unshift(entry);
   if (activityLog.length > 100) activityLog.pop();
-  localStorage.setItem('sfActivityLog', JSON.stringify(activityLog));
+  writeScopedJson('activityLog', activityLog);
   renderLog();
 }
 
 function renderLog() {
   const body = document.getElementById('logBody');
   if (!body) return;
-  body.innerHTML = activityLog.map(log => `
+  const maxPage = Math.max(0, Math.ceil(activityLog.length / LOG_PAGE_SIZE) - 1);
+  activityLogPage = Math.min(activityLogPage, maxPage);
+  const start = activityLogPage * LOG_PAGE_SIZE;
+  const pageItems = activityLog.slice(start, start + LOG_PAGE_SIZE);
+  if (!pageItems.length) {
+    body.innerHTML = '<div style="color:var(--muted); font-size:0.78rem; padding:10px 0;">No activity yet.</div>';
+    return;
+  }
+  body.innerHTML = pageItems.map(log => `
     <div class="log-entry">
       <div class="log-entry-meta">
         <span>${new Date(log.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-        <span style="color:${log.type==='success'?'var(--green)':log.type==='ai'?'var(--blue)':'var(--muted)'}">${log.type.toUpperCase()}</span>
+        <span style="color:${log.type==='success'?'var(--green)':log.type==='ai'?'var(--blue)':'var(--muted)'}">${String(log.type || 'info').toUpperCase()}</span>
       </div>
-      <div class="log-entry-text">${log.text}</div>
+      <div class="log-entry-text">${escapeHtml(log.text)}</div>
     </div>
-  `).join('');
+  `).join('') + renderPager(activityLog.length, activityLogPage, LOG_PAGE_SIZE, 'setLogPage(-1)', 'setLogPage(1)');
+}
+
+function setLogPage(delta) {
+  activityLogPage = Math.max(0, activityLogPage + delta);
+  renderLog();
 }
 
 function toggleLog() {
@@ -3532,8 +3686,6 @@ function toggleLog() {
   renderLog();
   if (panel) panel.classList.toggle('open');
 }
-
-let radarBoardLimits = { todo: 10, applied: 10, interview: 10, offer: 10, rejected: 10 };
 
 function renderBoard() {
   const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
@@ -3554,21 +3706,22 @@ function renderBoard() {
     if (count) count.textContent = filtered.length;
     if (cntHeader) cntHeader.textContent = filtered.length;
 
-    const limit = radarBoardLimits[col];
-    const displayJobs = filtered.slice(0, limit);
+    const maxPage = Math.max(0, Math.ceil(filtered.length / JOB_BOARD_PAGE_SIZE) - 1);
+    radarBoardPages[col] = Math.min(radarBoardPages[col] || 0, maxPage);
+    const start = radarBoardPages[col] * JOB_BOARD_PAGE_SIZE;
+    const displayJobs = filtered.slice(start, start + JOB_BOARD_PAGE_SIZE);
     
     let html = displayJobs.length === 0 ? 
       `<div class="radar-empty-state">No matching roles in this stage.</div>` :
       displayJobs.map(job => renderJobCard(job)).join('');
       
-    if (filtered.length > limit) {
-      html += `
-        <button style="width:100%; margin-top:12px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); font-size:0.65rem; font-weight:700; padding:8px; border-radius:8px; cursor:pointer;" 
-                onclick="loadMoreJobs('${col}')">
-          LOAD ${filtered.length - limit} MORE
-        </button>
-      `;
-    }
+    html += renderPager(
+      filtered.length,
+      radarBoardPages[col] || 0,
+      JOB_BOARD_PAGE_SIZE,
+      `setBoardPage('${col}', -1)`,
+      `setBoardPage('${col}', 1)`
+    );
     
     list.innerHTML = html;
   });
@@ -3577,7 +3730,11 @@ function renderBoard() {
 }
 
 function loadMoreJobs(col) {
-  radarBoardLimits[col] = 1000; 
+  setBoardPage(col, 1);
+}
+
+function setBoardPage(col, delta) {
+  radarBoardPages[col] = Math.max(0, (radarBoardPages[col] || 0) + delta);
   renderBoard();
 }
 
@@ -3588,6 +3745,7 @@ function scrollToCol(id) {
 
 function setBoardFilter(val, btn) {
   currentBoardFilter = val;
+  radarBoardPages = { todo: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
   document.querySelectorAll(".fb").forEach(b => b.classList.remove("on"));
   if (btn) btn.classList.add("on");
   renderBoard();
@@ -3595,6 +3753,7 @@ function setBoardFilter(val, btn) {
 
 function doBoardSearch() {
   currentBoardSearch = document.getElementById("boardSearch")?.value || '';
+  radarBoardPages = { todo: 0, applied: 0, interview: 0, offer: 0, rejected: 0 };
   renderBoard();
 }
 
@@ -4288,7 +4447,7 @@ function exportLog() {
 
 function clearLog() {
   activityLog = [];
-  localStorage.setItem('sfActivityLog', JSON.stringify(activityLog));
+  writeScopedJson('activityLog', activityLog);
   renderLog();
   showToast('Activity log cleared.');
 }
