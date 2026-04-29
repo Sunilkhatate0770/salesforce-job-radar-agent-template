@@ -1,0 +1,109 @@
+﻿  <div class="page-title">Scenario-Based Questions â€” Architect Thinking</div>
+  <div class="page-sub">16 open-ended design questions â€” interviewers use these to test senior-level judgment. There is no single right answer â€” explain your reasoning clearly.</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Design a notification system in Salesforce that sends emails, SMS, and push notifications based on loan status changes â€” how would you architect this?</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Step 1 â€” Identify the trigger:</b> Record-Triggered Flow or After Update trigger on Loan__c fires when Status__c changes.</p>
+      <p class="ans-p"><b>Step 2 â€” Decouple with Platform Events:</b> Don't call notification services directly from the trigger. Instead, publish a Loan_Status_Changed__e Platform Event. This decouples the loan record update from the notification logic â€” if the notification service is down, the loan record still saves successfully.</p>
+      <p class="ans-p"><b>Step 3 â€” Notification Router:</b> A Platform Event trigger subscribes to Loan_Status_Changed__e and calls a NotificationRouter class. The router reads Notification_Config__mdt (custom metadata) to determine which channels to use for each loan type + status combination.</p>
+      <p class="ans-p"><b>Step 4 â€” Channel adapters:</b> Each channel (email, SMS via Twilio, push via Salesforce Notification Builder) is implemented as a separate class behind an INotificationChannel interface. The router loops through the configured channels and calls each.</p>
+      <p class="ans-p"><b>Step 5 â€” Error handling:</b> Use a Notification_Log__c custom object to record every notification attempt â€” status, timestamp, error if any. A scheduled job retries failed notifications up to 3 times.</p>
+      <div class="tip-box"><div class="tip-label">Key patterns demonstrated</div><p>Platform Events (decoupling), Custom Metadata (config-driven, no code changes for new rules), Strategy pattern (INotificationChannel), Error logging, Retry logic. This answer shows senior architect thinking â€” not just "call Messaging.sendEmail."</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">A batch job that processes 2 million loan records is timing out. How do you diagnose and fix it?</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Step 1 â€” Diagnose first:</b> Check the AsyncApexJob record to see which chunk failed. Enable debug logs for the batch user. Look at which line hits the time limit â€” use Limits.getCpuTime() at different points to narrow it down.</p>
+      <p class="ans-p"><b>Common causes for slow batch on 2M records:</b></p>
+      <ul class="ans-list">
+        <li>SOQL inside execute() loop â€” query runs per chunk instead of once</li>
+        <li>Scope size too large (default 200) â€” each chunk takes too long. Try smaller scope: Database.executeBatch(job, 50)</li>
+        <li>Triggers firing on DML inside execute() â€” your batch update fires a trigger that does expensive work per record</li>
+        <li>Complex formula fields being evaluated on every query</li>
+        <li>String concatenation or regex in a loop inside execute()</li>
+      </ul>
+      <p class="ans-p"><b>Fixes:</b></p>
+      <ul class="ans-list">
+        <li>Reduce scope size â€” more chunks, less work per chunk</li>
+        <li>Move static SOQL lookups to start() â€” pass data into execute() via instance variables and Database.Stateful</li>
+        <li>Use TriggerHandler.bypass() before the update DML in execute() to skip expensive trigger logic during batch runs</li>
+        <li>Split into multiple smaller batch jobs chained from finish()</li>
+        <li>Use Database.QueryLocator with a more selective WHERE clause â€” process only records that actually need changes</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How would you migrate 500,000 records from a legacy system into Salesforce without affecting production users?</span>
+      <span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Strategy: Phased migration with validation gates</b></p>
+      <ul class="ans-list">
+        <li><b>Phase 1 â€” Mapping:</b> Map source system fields to Salesforce fields. Identify data quality issues in source (nulls, duplicates, invalid formats). Clean data before migrating.</li>
+        <li><b>Phase 2 â€” Sandbox test:</b> Load 1,000 sample records into Full Sandbox. Verify triggers, workflows, validation rules behave correctly. Fix any issues found.</li>
+        <li><b>Phase 3 â€” Disable automation:</b> Before production load, bypass triggers using a custom Boolean field or TriggerHandler.bypass(). Disable validation rules that would block historical data (e.g., TRID date fields from 2010 don't meet today's rules). Use a Migration Mode custom setting to conditionally skip logic.</li>
+        <li><b>Phase 4 â€” Load in batches:</b> Use Salesforce Bulk API 2.0 â€” it handles 500K records efficiently. Load in batches of 10,000 with error logs. Do not load everything in one job â€” if it fails mid-way, you need to know exactly which records succeeded.</li>
+        <li><b>Phase 5 â€” Validate after load:</b> Run COUNT queries to verify record counts. Spot-check 50 random records against source system. Run data quality reports.</li>
+        <li><b>Phase 6 â€” Re-enable automation:</b> Turn triggers and validation rules back on. Monitor for the first week post-migration for unexpected issues.</li>
+      </ul>
+    </div>
+  
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">A batch job processing 2 million loan records is timing out â€” how do you fix it?</span><span class="qa-q-label lbl-apex">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <p class="ans-p"><b>Diagnose first â€” different root causes need different fixes:</b></p>
+  <ul class="ans-list">
+    <li><b>Check debug logs:</b> Is it CPU limit (60s async)? SOQL limit? Heap? Each has a different fix.</li>
+    <li><b>Check scope size:</b> If 200, reduce to 50 and see if chunks complete. Narrowing scope isolates the problem.</li>
+    <li><b>Query Plan on start() SOQL:</b> If doing a TableScan on 2M records, the query itself times out before execute() runs.</li>
+    <li><b>Callouts in execute():</b> If making one callout per record in a 200-record chunk, that is 200 callouts hitting the 100/tx limit.</li>
+  </ul>
+  <p class="ans-p"><b>Fixes by root cause:</b></p>
+  <ul class="ans-list">
+    <li><b>CPU timeout:</b> Profile with Limits.getCpuTime() at key points. Replace nested loops with Map lookups. Move heavy logic to helper methods.</li>
+    <li><b>SOQL in execute():</b> Move queries to start() or cache in Database.Stateful variable.</li>
+    <li><b>Callouts per record:</b> Collect all IDs in execute(), make one batched API call in finish() or chain to Queueable.</li>
+    <li><b>Table scan:</b> Add indexed field to WHERE clause. Contact Salesforce for custom index on large objects.</li>
+    <li><b>Scope too large:</b> Reduce to 50-100. More transactions but each completes within limits.</li>
+  </ul>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you design a notification system for loan status changes?</span><span class="qa-q-label lbl-domain">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <p class="ans-p"><b>Requirements: email, SMS, push. Multiple loan types. Configurable rules per status transition.</b></p>
+  <p class="ans-p"><b>Architecture â€” decoupled, configuration-driven:</b></p>
+  <ul class="ans-list">
+    <li><b>Trigger:</b> After update on Loan__c â€” if Status__c changed, publish Loan_Status_Changed__e Platform Event. Nothing else in trigger.</li>
+    <li><b>Configuration:</b> Notification_Config__mdt rows defining: LoanType, FromStatus, ToStatus, Channels, RecipientType. No code change to add rules.</li>
+    <li><b>Router class:</b> Platform Event trigger queries CMDT for matching rules. For each rule, calls INotificationChannel.send() â€” Strategy pattern.</li>
+    <li><b>Channel adapters:</b> EmailAdapter (Salesforce Messaging), SMSAdapter (Twilio via Named Credential), PushAdapter (Notification Builder).</li>
+    <li><b>Error handling:</b> Every attempt logged to Notification_Log__c. Failed sends retried by Scheduled Apex up to 3 times.</li>
+  </ul>
+  <div class="tip-box"><div class="tip-label">Patterns used</div><p>Platform Events (decoupling), Custom Metadata (configuration-driven), Strategy Pattern (INotificationChannel), Error logging, Retry logic. Naming all four patterns shows senior architect thinking.</p></div>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How would you design bidirectional sync between Salesforce and a Loan Origination System?</span><span class="qa-q-label lbl-intg">SCENARIO</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <p class="ans-p"><b>Salesforce to LOS (outbound):</b></p>
+  <ul class="ans-list">
+    <li>After-Save Record-Triggered Flow or trigger detects change on Loan__c</li>
+    <li>Publishes Loan_Sync_Request__e Platform Event â€” decouples loan save from LOS call</li>
+    <li>Platform Event subscriber trigger enqueues Queueable with Database.AllowsCallouts</li>
+    <li>Queueable makes REST callout to LOS API with idempotency key</li>
+    <li>On failure: writes to Sync_Retry_Queue__c. Scheduled Apex retries every 15 min up to 3 times</li>
+  </ul>
+  <p class="ans-p"><b>LOS to Salesforce (inbound):</b></p>
+  <ul class="ans-list">
+    <li>LOS sends webhook: POST /services/apexrest/v1/loanSync</li>
+    <li>Apex @RestResource validates HMAC signature, upserts using LOS_ID__c External ID field</li>
+    <li>Returns HTTP 200 success, 400 bad payload, 500 error</li>
+  </ul>
+  <p class="ans-p"><b>Conflict resolution:</b> Last_Sync_Source__c field (LOS or SFDC) + Last_Sync_Timestamp__c. Business rule: Salesforce wins for status changes, LOS wins for rate locks and financial figures.</p>
+  </div></div>
+</div>
+

@@ -1,0 +1,252 @@
+﻿  <div class="page-title">Advanced Apex â€” Senior Level Questions</div>
+  <div class="page-sub">18 deeper questions â€” these come up in final rounds and architecture discussions</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is the difference between Database.Stateful and without Database.Stateful in Batch Apex? When does it matter?</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">By default, each execute() chunk of a batch job runs in a fresh, isolated transaction. All instance variables are reset between chunks. <b>Database.Stateful</b> changes this â€” instance variables are preserved across all execute() calls for the lifetime of the batch job.</p>
+      <table class="comparison-table">
+        <tr><th>Feature</th><th>Without Stateful (default)</th><th>With Database.Stateful</th></tr>
+        <tr><td>Instance variables between chunks</td><td>Reset to null/default</td><td>Preserved</td></tr>
+        <tr><td>Memory usage</td><td>Lower</td><td>Higher (state held in memory)</td></tr>
+        <tr><td>Use for</td><td>Independent chunk processing</td><td>Counters, error lists, accumulators</td></tr>
+        <tr><td>Heap limit</td><td>12 MB per chunk</td><td>12 MB but state counts toward it</td></tr>
+      </table>
+      <pre class="code"><span class="kw">public class</span> <span class="cls">LoanReportBatch</span> <span class="kw">implements</span> <span class="cls">Database</span>.<span class="cls">Batchable</span>&lt;<span class="cls">SObject</span>&gt;, <span class="cls">Database</span>.<span class="cls">Stateful</span> {
+
+    <span class="cmt">// These variables survive across ALL execute() calls</span>
+    <span class="kw">public Integer</span> totalProcessed = <span class="num">0</span>;
+    <span class="kw">public Integer</span> totalApproved = <span class="num">0</span>;
+    <span class="kw">public</span> <span class="cls">List</span>&lt;<span class="cls">String</span>&gt; errorMessages = <span class="kw">new</span> <span class="cls">List</span>&lt;<span class="cls">String</span>&gt;();
+
+    <span class="kw">public</span> <span class="cls">Database</span>.<span class="cls">QueryLocator</span> start(<span class="cls">Database</span>.<span class="cls">BatchableContext</span> bc) {
+        <span class="kw">return</span> Database.getQueryLocator(<span class="str">'SELECT Id, Status__c, LoanAmount__c FROM Loan__c'</span>);
+    }
+
+    <span class="kw">public void</span> execute(<span class="cls">Database</span>.<span class="cls">BatchableContext</span> bc, <span class="cls">List</span>&lt;<span class="cls">SObject</span>&gt; scope) {
+        <span class="kw">for</span>(<span class="cls">Loan__c</span> loan : (<span class="cls">List</span>&lt;<span class="cls">Loan__c</span>&gt;) scope) {
+            totalProcessed++; <span class="cmt">// persists across chunks - won't reset!</span>
+            <span class="kw">if</span>(loan.Status__c == <span class="str">'Approved'</span>) totalApproved++;
+        }
+    }
+
+    <span class="kw">public void</span> finish(<span class="cls">Database</span>.<span class="cls">BatchableContext</span> bc) {
+        <span class="cmt">// totalProcessed now has the REAL total across ALL chunks</span>
+        System.debug(<span class="str">'Processed: '</span> + totalProcessed + <span class="str">', Approved: '</span> + totalApproved);
+        <span class="cls">EmailService</span>.sendReport(totalProcessed, totalApproved, errorMessages);
+    }
+}</pre>
+      <div class="tip-box"><div class="tip-label">Without Stateful â€” the bug trap</div><p>Without Stateful, if you have a counter variable and increment it in execute(), it resets to 0 for every chunk. Your finish() method sees 0 or only the count from the last chunk â€” not the true total. This is a very common production bug for developers who don't understand batch state.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Explain Apex CPU time optimisation â€” what consumes CPU and how do you reduce it?</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">CPU time limit is 10,000ms synchronous / 60,000ms async. It measures actual Apex execution time â€” not waiting for SOQL or callouts (those don't count toward CPU). The most common causes of CPU limit errors:</p>
+      <ul class="ans-list">
+        <li><b>String concatenation in loops</b> â€” String is immutable in Apex. Concatenating in a loop creates a new String object every iteration. Use List and String.join() instead.</li>
+        <li><b>Nested loops over large collections</b> â€” O(nÂ²) complexity. Replace inner loop lookups with a Map for O(1).</li>
+        <li><b>JSON serialization of large objects</b> â€” JSON.serialize() on deep object graphs is expensive. Serialize only what you need.</li>
+        <li><b>Regex operations in loops</b> â€” Pattern.compile() is expensive. Compile once, reuse the Matcher.</li>
+        <li><b>Complex formula fields in SOQL result loops</b> â€” Avoid querying formula fields when you don't need them.</li>
+      </ul>
+      <pre class="code"><span class="cmt">// BAD - String concatenation in loop = new object every iteration</span>
+<span class="cls">String</span> result = <span class="str">''</span>;
+<span class="kw">for</span>(<span class="cls">Loan__c</span> l : loans) { result += l.LoanAmount__c + <span class="str">','</span>; } <span class="cmt">// CPU killer</span>
+
+<span class="cmt">// GOOD - List + join = one String operation at end</span>
+<span class="cls">List</span>&lt;<span class="cls">String</span>&gt; parts = <span class="kw">new</span> <span class="cls">List</span>&lt;<span class="cls">String</span>&gt;();
+<span class="kw">for</span>(<span class="cls">Loan__c</span> l : loans) { parts.add(String.valueOf(l.LoanAmount__c)); }
+<span class="cls">String</span> result = <span class="cls">String</span>.join(parts, <span class="str">','</span>); <span class="cmt">// single operation</span>
+
+<span class="cmt">// BAD - nested loop = O(nÂ²)</span>
+<span class="kw">for</span>(<span class="cls">Loan__c</span> l : loans) {
+    <span class="kw">for</span>(<span class="cls">Account</span> a : accounts) { <span class="cmt">// checks every account for every loan</span>
+        <span class="kw">if</span>(a.Id == l.AccountId__c) { l.BrokerName__c = a.Name; }
+    }
+}
+
+<span class="cmt">// GOOD - Map lookup = O(1) per loan</span>
+<span class="cls">Map</span>&lt;<span class="cls">Id</span>, <span class="cls">Account</span>&gt; accMap = <span class="kw">new</span> <span class="cls">Map</span>&lt;<span class="cls">Id</span>, <span class="cls">Account</span>&gt;(accounts);
+<span class="kw">for</span>(<span class="cls">Loan__c</span> l : loans) {
+    <span class="kw">if</span>(accMap.containsKey(l.AccountId__c)) l.BrokerName__c = accMap.get(l.AccountId__c).Name;
+}
+
+<span class="cmt">// BAD - compile regex every iteration</span>
+<span class="kw">for</span>(<span class="cls">String</span> s : inputs) { <span class="kw">if</span>(<span class="cls">Pattern</span>.compile(<span class="str">'\\d{3}-\\d{2}-\\d{4}'</span>).matcher(s).matches()) {...} }
+
+<span class="cmt">// GOOD - compile once, reuse</span>
+<span class="cls">Pattern</span> ssnPattern = <span class="cls">Pattern</span>.compile(<span class="str">'\\d{3}-\\d{2}-\\d{4}'</span>);
+<span class="kw">for</span>(<span class="cls">String</span> s : inputs) { <span class="kw">if</span>(ssnPattern.matcher(s).matches()) {...} }</pre>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is Apex Managed Sharing â€” when and how do you implement it?</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">Apex Managed Sharing allows you to programmatically grant record access beyond what OWD and sharing rules provide, using a custom RowCause. This is more powerful than manual sharing because it persists across record ownership changes and can be fully automated.</p>
+      <pre class="code"><span class="cmt">// Every custom object gets a __Share object automatically</span>
+<span class="cmt">// Loan__c â†’ Loan__Share</span>
+<span class="cmt">// Fields: ParentId (record), UserOrGroupId (who gets access), AccessLevel, RowCause</span>
+
+<span class="kw">public class</span> <span class="cls">LoanSharingService</span> {
+
+    <span class="cmt">// RowCause must be defined as a Sharing Reason on the object in setup</span>
+    <span class="kw">private static final</span> <span class="cls">String</span> ROW_CAUSE = Schema.<span class="cls">Loan__Share</span>.RowCause.<span class="cls">BrokerAccess__c</span>;
+
+    <span class="kw">public static void</span> shareLoanWithBroker(<span class="cls">Id</span> loanId, <span class="cls">Id</span> brokerUserId) {
+        <span class="cls">Loan__Share</span> share = <span class="kw">new</span> <span class="cls">Loan__Share</span>();
+        share.ParentId = loanId;               <span class="cmt">// the loan record</span>
+        share.UserOrGroupId = brokerUserId;    <span class="cmt">// the broker user</span>
+        share.AccessLevel = <span class="str">'Read'</span>;           <span class="cmt">// Read, Edit (not Full on custom)</span>
+        share.RowCause = ROW_CAUSE;            <span class="cmt">// custom reason - required for apex sharing</span>
+
+        <span class="cls">Database</span>.<span class="cls">SaveResult</span> sr = Database.insert(share, <span class="kw">false</span>);
+        <span class="kw">if</span>(!sr.isSuccess()) {
+            System.debug(<span class="str">'Share failed: '</span> + sr.getErrors()[<span class="num">0</span>].getMessage());
+        }
+    }
+
+    <span class="kw">public static void</span> removeShareForBroker(<span class="cls">Id</span> loanId, <span class="cls">Id</span> brokerUserId) {
+        <span class="cls">List</span>&lt;<span class="cls">Loan__Share</span>&gt; toDelete = [
+            <span class="kw">SELECT</span> Id <span class="kw">FROM</span> Loan__Share
+            <span class="kw">WHERE</span> ParentId = :loanId
+            <span class="kw">AND</span> UserOrGroupId = :brokerUserId
+            <span class="kw">AND</span> RowCause = :ROW_CAUSE
+        ];
+        <span class="kw">if</span>(!toDelete.isEmpty()) delete toDelete;
+    }
+}</pre>
+      <div class="tip-box"><div class="tip-label">Real project use case</div><p>In the Mortgage Origination Platform, when a loan was assigned to a broker partner, we used Apex Managed Sharing to give that broker's user Read access to the loan. When the broker was replaced, the old share was deleted and a new one created. Standard sharing rules could not handle this dynamic, per-record assignment logic.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Explain the difference between addError() on a field vs on the record â€” and when you use each</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <pre class="code"><span class="cmt">// addError() on the RECORD - shows error at the top of the page</span>
+<span class="kw">for</span>(<span class="cls">Loan__c</span> loan : Trigger.new) {
+    <span class="kw">if</span>(loan.LoanAmount__c &lt; <span class="num">50000</span>) {
+        loan.addError(<span class="str">'Loan amount must be at least $50,000 for this loan type.'</span>);
+        <span class="cmt">// Shows as a red banner at top of the record form</span>
+    }
+}
+
+<span class="cmt">// addError() on a FIELD - highlights the specific field in red</span>
+<span class="kw">for</span>(<span class="cls">Loan__c</span> loan : Trigger.new) {
+    <span class="kw">if</span>(loan.LoanAmount__c &lt; <span class="num">50000</span>) {
+        loan.LoanAmount__c.addError(<span class="str">'Minimum loan amount is $50,000'</span>);
+        <span class="cmt">// Highlights the LoanAmount field specifically - better UX</span>
+    }
+}
+
+<span class="cmt">// When to use which:</span>
+<span class="cmt">// Field-level error: when the problem is clearly one field (validation)</span>
+<span class="cmt">// Record-level error: when the error involves multiple fields or is a business rule</span>
+<span class="cmt">// that doesn't map cleanly to one field (e.g., "DTI ratio exceeds limit based on</span>
+<span class="cmt">// income + all debts combined")</span>
+
+<span class="cmt">// escape=false parameter - renders HTML in error message</span>
+loan.addError(<span class="str">'&lt;b&gt;TRID Violation:&lt;/b&gt; Closing date cannot be within 3 days of CD delivery'</span>, <span class="kw">false</span>);</pre>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is Queueable chaining â€” how do you chain 3 jobs and handle failures in the chain?</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <pre class="code"><span class="cmt">// Chain: CreditCheck â†’ OFACScreening â†’ DocuSignTrigger</span>
+<span class="cmt">// Each job chains the next only if it succeeds</span>
+
+<span class="kw">public class</span> <span class="cls">CreditCheckJob</span> <span class="kw">implements</span> <span class="cls">Queueable</span>, <span class="cls">Database</span>.<span class="cls">AllowsCallouts</span> {
+    <span class="kw">private</span> <span class="cls">Id</span> loanId;
+
+    <span class="kw">public</span> <span class="cls">CreditCheckJob</span>(<span class="cls">Id</span> loanId) { this.loanId = loanId; }
+
+    <span class="kw">public void</span> execute(<span class="cls">QueueableContext</span> ctx) {
+        <span class="kw">try</span> {
+            <span class="cls">Loan__c</span> loan = [<span class="kw">SELECT</span> Id, SSN__c, LastName__c <span class="kw">FROM</span> Loan__c <span class="kw">WHERE</span> Id = :loanId];
+            <span class="cls">CreditResult</span> result = <span class="cls">ExperianService</span>.pullCredit(loan.SSN__c, loan.LastName__c);
+
+            loan.FicoScore__c = result.ficoScore;
+            loan.CreditStatus__c = result.ficoScore >= <span class="num">620</span> ? <span class="str">'Passed'</span> : <span class="str">'Failed'</span>;
+            update loan;
+
+            <span class="kw">if</span>(loan.CreditStatus__c == <span class="str">'Passed'</span>) {
+                <span class="cmt">// Chain next job only on success</span>
+                System.enqueueJob(<span class="kw">new</span> <span class="cls">OFACScreeningJob</span>(loanId));
+            } <span class="kw">else</span> {
+                <span class="cmt">// Mark loan as needing manual review - don't chain</span>
+                <span class="cls">LoanStatusService</span>.flagForReview(loanId, <span class="str">'Credit score below minimum'</span>);
+            }
+        } <span class="kw">catch</span>(<span class="cls">Exception</span> e) {
+            <span class="cmt">// Log error, set error status on loan - don't let exception kill silently</span>
+            <span class="cls">ErrorLogger</span>.log(<span class="str">'CreditCheckJob'</span>, loanId, e.getMessage(), e.getStackTraceString());
+            <span class="cls">LoanStatusService</span>.setError(loanId, <span class="str">'Credit check failed: '</span> + e.getMessage());
+        }
+    }
+}
+
+<span class="kw">public class</span> <span class="cls">OFACScreeningJob</span> <span class="kw">implements</span> <span class="cls">Queueable</span>, <span class="cls">Database</span>.<span class="cls">AllowsCallouts</span> {
+    <span class="kw">private</span> <span class="cls">Id</span> loanId;
+    <span class="kw">public</span> <span class="cls">OFACScreeningJob</span>(<span class="cls">Id</span> loanId) { this.loanId = loanId; }
+    <span class="kw">public void</span> execute(<span class="cls">QueueableContext</span> ctx) {
+        <span class="cmt">// OFAC check logic here, then chain DocuSign if passes</span>
+        System.enqueueJob(<span class="kw">new</span> <span class="cls">DocuSignTriggerJob</span>(loanId));
+    }
+}
+
+<span class="cmt">// To start the chain:</span>
+System.enqueueJob(<span class="kw">new</span> <span class="cls">CreditCheckJob</span>(loan.Id));</pre>
+      <div class="tip-box"><div class="tip-label">Use your project story</div><p>Say: "In our mortgage platform, after a loan application was submitted I used a Queueable chain â€” credit check first, then OFAC screening, then DocuSign envelope generation. Each step only chained the next if the current step passed. This way a failed credit check stopped the chain early without triggering document signing for a loan that would be denied."</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What are custom metadata types vs custom settings vs custom objects â€” when do you use each?</span>
+      <span class="qa-q-label lbl-apex">ADVANCED APEX</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <table class="comparison-table">
+        <tr><th>Feature</th><th>Custom Metadata Types</th><th>Custom Settings</th><th>Custom Objects</th></tr>
+        <tr><td>Deployable via changesets/SFDX</td><td>Yes â€” full metadata</td><td>No â€” data not deployed</td><td>Object yes, data no</td></tr>
+        <tr><td>Available in formulas/flows</td><td>Yes</td><td>Yes (Hierarchy type)</td><td>No</td></tr>
+        <tr><td>Queried in Apex</td><td>Yes â€” no SOQL limit</td><td>Yes â€” no SOQL limit (cached)</td><td>Yes â€” counts toward SOQL limit</td></tr>
+        <tr><td>Packagable</td><td>Yes with data</td><td>Yes, no data</td><td>Yes, no data</td></tr>
+        <tr><td>Use for</td><td>Configuration, mappings, feature flags</td><td>Org-wide or user-level config</td><td>Business data, transactional records</td></tr>
+      </table>
+      <pre class="code"><span class="cmt">// Custom Metadata Type - query with NO SOQL limit</span>
+<span class="cmt">// Created in: Setup â†’ Custom Metadata Types â†’ Loan_Config__mdt</span>
+<span class="cls">Loan_Config__mdt</span> config = [
+    <span class="kw">SELECT</span> Min_FICO_Score__c, Max_DTI_Ratio__c, Max_Loan_Amount__c
+    <span class="kw">FROM</span> Loan_Config__mdt
+    <span class="kw">WHERE</span> DeveloperName = <span class="str">'FHA_Standard'</span>
+];
+<span class="cmt">// Doesn't count toward 100 SOQL limit - can query in loops safely</span>
+
+<span class="cmt">// Custom Setting - cached, hierarchy supports user/profile/org level</span>
+<span class="cls">Loan_Settings__c</span> settings = <span class="cls">Loan_Settings__c</span>.getOrgDefaults();
+<span class="cls">String</span> apiEndpoint = settings.Experian_Endpoint__c;
+
+<span class="cmt">// Or user/profile specific value (Hierarchy type)</span>
+<span class="cls">Loan_Settings__c</span> userSettings = <span class="cls">Loan_Settings__c</span>.getInstance(); <span class="cmt">// gets for current user</span></pre>
+      <div class="tip-box"><div class="tip-label">Recommendation for interviews</div><p>Say: "I prefer Custom Metadata Types for configuration data because they're deployable as metadata â€” they move between sandboxes and production automatically. In our mortgage platform, we stored loan type configurations (min FICO, max DTI, max LTV) as Custom Metadata records. This meant threshold changes were a metadata deploy, not a data load."</p></div>
+    </div>
+  </div>
+

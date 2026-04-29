@@ -1,0 +1,148 @@
+﻿  <div class="page-title">Admin &amp; Configuration â€” Interview Questions</div>
+  <div class="page-sub">14 questions â€” senior devs must know the admin layer deeply to architect correctly</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is the difference between Workflow Rules, Process Builder, and Flow â€” which do you use today?</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <table class="comparison-table">
+        <tr><th>Tool</th><th>Status</th><th>Capabilities</th><th>When to Use</th></tr>
+        <tr><td>Workflow Rules</td><td>Legacy â€” retire by 2025</td><td>Field update, email alert, task, outbound message</td><td>Do NOT create new. Migrate existing to Flow.</td></tr>
+        <tr><td>Process Builder</td><td>Legacy â€” retire by 2026</td><td>More complex than WF, can create/update related records</td><td>Do NOT create new. Migrate existing to Flow.</td></tr>
+        <tr><td>Flow (Record-Triggered)</td><td>Current â€” actively developed</td><td>Full logic, loops, complex conditions, subflows, calls Apex</td><td>ALL new declarative automation goes here</td></tr>
+        <tr><td>Apex Trigger</td><td>Current</td><td>Complex logic, bulk processing, callouts, cross-object</td><td>When Flow cannot handle the complexity or performance</td></tr>
+      </table>
+      <div class="tip-box"><div class="tip-label">Interview answer</div><p>"Salesforce has officially retired Workflow Rules and Process Builder â€” all new automation should be built in Flow. I use Record-Triggered Flows for declarative automation and Apex triggers when I need bulk-safe operations, complex logic, callouts, or things Flow cannot handle efficiently. A good rule: if you can do it in Flow cleanly, do it in Flow. If it gets complex or has performance concerns with large data volumes, that's when I bring in Apex."</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is an approval process â€” explain all components and a real use case</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">An Approval Process is a declarative tool that automates a sequence of steps for approving a record. When a record meets certain criteria, it enters the approval process and must be approved (or rejected) by designated users before it moves forward.</p>
+      <ul class="ans-list">
+        <li><b>Entry Criteria</b> â€” conditions that trigger the process (e.g., Loan Amount &gt; $500,000)</li>
+        <li><b>Approval Steps</b> â€” each step defines who approves (user, queue, related field user) and what they can do</li>
+        <li><b>Approver</b> â€” specific user, manager field, queue, or based on formula</li>
+        <li><b>Approval Actions</b> â€” what happens on approval (field update, email, task, outbound message)</li>
+        <li><b>Rejection Actions</b> â€” what happens on rejection</li>
+        <li><b>Recall Actions</b> â€” what happens when submitter recalls</li>
+        <li><b>Initial Submission Actions</b> â€” happen when record is submitted (before approval)</li>
+      </ul>
+      <p class="ans-p"><b>Real use case in Mortgage:</b> Loans above $750,000 required a senior underwriter to approve before closing. We built a 2-step approval process: Step 1 â€” Branch Manager approval. Step 2 â€” Senior Underwriter approval. Both must approve before the loan status could move to Clear to Close. The approval locked the record from editing during review.</p>
+      <pre class="code"><span class="cmt">// Submitting a record to an approval process via Apex</span>
+<span class="cls">Approval</span>.<span class="cls">ProcessSubmitRequest</span> submitReq = <span class="kw">new</span> <span class="cls">Approval</span>.<span class="cls">ProcessSubmitRequest</span>();
+submitReq.setObjectId(loan.Id);
+submitReq.setComments(<span class="str">'High-value loan requiring senior approval'</span>);
+submitReq.setSubmitterId(UserInfo.getUserId());
+submitReq.setProcessDefinitionNameOrId(<span class="str">'High_Value_Loan_Approval'</span>); <span class="cmt">// process name</span>
+
+<span class="cls">Approval</span>.<span class="cls">ProcessResult</span> result = <span class="cls">Approval</span>.process(submitReq);
+System.debug(<span class="str">'Submitted: '</span> + result.isSuccess() + <span class="str">' Status: '</span> + result.getInstanceStatus());</pre>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What are Record Types â€” when do you use them vs picklist values?</span>
+      <span class="qa-q-label lbl-domain">ADMIN</span><span class="qa-chevron">â–¼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">Record Types allow you to offer different business processes, page layouts, and picklist values for different users on the same object. A Record Type is assigned to a profile or permission set â€” users with that assignment see those page layouts and picklist options.</p>
+      <ul class="ans-list">
+        <li><b>Use Record Types when</b>: Different user groups need different page layouts, different picklist values, or different approval processes on the same object</li>
+        <li><b>Don't use for</b>: Simple categorisation that doesn't affect UI or process â€” a picklist field is enough</li>
+        <li><b>Mortgage example</b>: Loan object with Record Types: Conventional, FHA, VA, USDA. Each shows different fields on page layout, has different picklist values for loan programs, and can have different approval processes</li>
+      </ul>
+      <pre class="code"><span class="cmt">// Getting Record Type Id in Apex</span>
+<span class="cls">Id</span> fhaRecordTypeId = Schema.SObjectType.Loan__c
+    .getRecordTypeInfosByDeveloperName().get(<span class="str">'FHA_Loan'</span>).getRecordTypeId();
+
+<span class="cls">Loan__c</span> fhaLoan = <span class="kw">new</span> <span class="cls">Loan__c</span>(
+    RecordTypeId = fhaRecordTypeId,
+    LoanAmount__c = <span class="num">300000</span>
+);
+
+<span class="cmt">// Better: use DeveloperName not Name (Name can change, DeveloperName is stable)</span>
+<span class="cmt">// Never hardcode the 15-digit Id directly</span></pre>
+    </div>
+  
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is a Record Type â€” what does it control and not control?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <ul class="ans-list">
+    <li><b>Controls:</b> Page layout per profile, available picklist values, business processes (Lead/Opportunity/Case)</li>
+    <li><b>Does NOT control:</b> Field-level security (that is Profiles/Permission Sets), which fields exist, record sharing</li>
+    <li><b>Use case:</b> Loan__c has record types: Conventional, FHA, VA, USDA â€” each shows different layout and different Status__c picklist values</li>
+    <li><b>Assignment:</b> Profiles assigned to record types. Users with multiple types see a selection when creating records.</li>
+  </ul>
+  <pre class="code">Id fhaId = Schema.SObjectType.Loan__c.getRecordTypeInfosByDeveloperName().get("FHA").getRecordTypeId();
+List&lt;Loan__c&gt; fhaLoans = [SELECT Id FROM Loan__c WHERE RecordTypeId = :fhaId];</pre>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the difference between Workflow Rules, Process Builder, and Flows?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Tool</th><th>Status</th><th>Use when</th></tr><tr><td>Workflow Rules</td><td>Deprecated â€” retiring</td><td>Legacy only â€” migrate to Flow immediately</td></tr><tr><td>Process Builder</td><td>Deprecated â€” retiring</td><td>Legacy only â€” migrate to Flow immediately</td></tr><tr><td>Record-Triggered Flow</td><td>Active â€” preferred</td><td>All new automation on record changes â€” before/after save</td></tr><tr><td>Screen Flow</td><td>Active</td><td>Guided multi-step user processes, wizards</td></tr><tr><td>Scheduled Flow</td><td>Active</td><td>Recurring time-based bulk operations</td></tr><tr><td>Autolaunched Flow</td><td>Active</td><td>Complex logic callable from Apex, REST, subflow</td></tr></table>
+  <div class="tip-box"><div class="tip-label">Migration priority</div><p>Process Builder and Workflow Rules are Salesforce-retired. Any new automation must be a Record-Triggered Flow. Start migrating existing PB/WF immediately â€” do not wait for forced retirement to scramble.</p></div>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are Custom Metadata Types vs Custom Settings vs Custom Labels?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Feature</th><th>Custom Metadata</th><th>Custom Settings</th><th>Custom Labels</th></tr><tr><td>Deployed with code?</td><td>Yes â€” metadata deploy</td><td>No â€” data stays</td><td>Yes â€” metadata</td></tr><tr><td>SOQL limit?</td><td>No â€” free query</td><td>No â€” in-memory</td><td>No â€” Label access</td></tr><tr><td>Best for</td><td>Config with code: rate tables, API endpoints, feature flags</td><td>Org/user preferences not deployed</td><td>Translated text, UI error messages</td></tr></table>
+  <pre class="code">// Custom Metadata â€” free SOQL
+Loan_Config__mdt c = [SELECT Max_Amount__c FROM Loan_Config__mdt WHERE Loan_Type__c='FHA' LIMIT 1];
+// Custom Settings
+Loan_Settings__c s = Loan_Settings__c.getOrgDefaults();
+// Custom Label in Apex
+String msg = System.Label.Loan_Approval_Success;</pre>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the Salesforce deployment process â€” change sets vs SFDX?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Method</th><th>Best for</th><th>Key feature</th></tr><tr><td>Change Sets</td><td>Admin-level changes, simple orgs</td><td>UI-based, no CLI, org-to-org only</td></tr><tr><td>Metadata API</td><td>Legacy CI/CD pipelines</td><td>XML-based, scriptable, all metadata</td></tr><tr><td>Salesforce CLI (SFDX)</td><td>Modern dev with scratch orgs</td><td>Source-driven, Git integration, best for developers</td></tr><tr><td>Unlocked Packages</td><td>Modular org development</td><td>Versioned bundles, dependency management</td></tr></table>
+  <pre class="code"># SFDX daily workflow
+sf org login web --alias devOrg
+sf project deploy start                            # local to scratch org
+sf project retrieve start                          # scratch org to local
+sf apex run test --synchronous                     # run tests
+sf project deploy start --target-org prod --test-level RunLocalTests  # to production</pre>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are Approval Processes and how do they interact with Apex?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <p class="ans-p">Approval Processes route records through multi-step approval chains with configurable entry criteria, approvers, and actions on approval/rejection.</p>
+  <pre class="code">// Submit for approval from Apex
+Approval.ProcessSubmitRequest req = new Approval.ProcessSubmitRequest();
+req.setComments('Submitting for underwriter review');
+req.setObjectId(loan.Id);
+req.setProcessDefinitionNameOrId('Loan_Approval_Process');
+Approval.ProcessResult result = Approval.process(req);
+
+// Approve programmatically (e.g., auto-approve high credit score)
+Approval.ProcessWorkitemRequest approveReq = new Approval.ProcessWorkitemRequest();
+approveReq.setComments('Auto-approved: score ' + loan.Credit_Score__c);
+approveReq.setAction('Approve'); // or 'Reject'
+approveReq.setWorkitemId(workItemId);
+Approval.process(approveReq);</pre>
+  <div class="warn-box"><div class="warn-label">Approval and locking</div><p>When a record is pending approval it may be locked for editing. Check ProcessInstance.Status before allowing edits. Record save during approval still fires before/after triggers normally.</p></div>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are the key governor limits that admins must understand?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <ul class="ans-list">
+    <li><b>SOQL queries:</b> 100 sync / 200 async â€” complex reports can trigger Apex that hits this</li>
+    <li><b>DML statements:</b> 150 per transaction â€” mass record operations can fire triggers multiple times</li>
+    <li><b>Storage limits:</b> Data + file storage per org â€” monitor in Setup â†’ Company Information</li>
+    <li><b>API request limits:</b> 24-hour rolling window â€” excessive integration calls deplete daily allocation</li>
+    <li><b>Scheduled jobs:</b> Max 100 â€” orgs with many scheduled processes approach this limit</li>
+    <li><b>Concurrent API requests:</b> Long-running API calls can time out external integrations</li>
+  </ul>
+  <div class="tip-box"><div class="tip-label">Admin monitoring</div><p>Setup â†’ Apex Jobs for batch/scheduled status. Setup â†’ Event Log Files for API usage patterns. Setup â†’ Company Information for storage. These are your first stops for performance investigations.</p></div>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is Data Loader vs Import Wizard â€” when to use each?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Feature</th><th>Data Loader</th><th>Import Wizard</th></tr><tr><td>Volume</td><td>Up to 5 million records</td><td>Up to 50,000 records</td></tr><tr><td>Objects</td><td>All standard + custom</td><td>Limited standard objects only</td></tr><tr><td>Requires install?</td><td>Yes â€” desktop Java app</td><td>No â€” browser-based</td></tr><tr><td>Triggers fired?</td><td>Yes (by default)</td><td>Yes</td></tr><tr><td>Best for</td><td>Large loads, automation, upserts by External ID</td><td>Small one-time imports of Contacts, Leads</td></tr></table>
+  <div class="tip-box"><div class="tip-label">Bulk API vs SOAP API</div><p>Data Loader uses Bulk API by default â€” parallel, async, recommended for large loads. For trigger-sensitive loads use Bulk API Serial mode. Never load large datasets with standard SOAP API â€” too slow and hits per-request limits.</p></div>
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are Flows â€” explain all types and when you use each?</span><span class="qa-q-label lbl-apex">ADMIN</span><span class="qa-chevron">&#9660;</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Flow type</th><th>Trigger</th><th>Use for</th></tr><tr><td>Record-Triggered</td><td>Before/After record save</td><td>Automation replacing Workflow/Process Builder</td></tr><tr><td>Screen Flow</td><td>User launches (button, tab, component)</td><td>Multi-step guided process, data collection wizard</td></tr><tr><td>Scheduled</td><td>Time-based (daily, weekly)</td><td>Recurring bulk operations on groups of records</td></tr><tr><td>Autolaunched</td><td>Called from Apex, REST, subflow</td><td>Complex reusable logic, called programmatically</td></tr><tr><td>Platform Event-Triggered</td><td>Platform Event published</td><td>Real-time reactive automation on events</td></tr></table>
+  <pre class="code">// Invoke Flow from Apex
+Map&lt;String, Object&gt; params = new Map&lt;String, Object&gt;{'loanId' =&gt; loan.Id, 'status' =&gt; loan.Status__c};
+Flow.Interview.Loan_Approval_Flow interview = new Flow.Interview.Loan_Approval_Flow(params);
+interview.start();
+Boolean approved = (Boolean) interview.getVariableValue('isApproved');</pre>
+  </div></div>
+</div>
+

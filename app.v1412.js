@@ -859,6 +859,7 @@ var topicConfig = {
   'deloitte': { name: 'Deloitte (Recent) 2026', recommended: 60, group: 'Company' },
   'accenture': { name: 'Accenture Prep (LWC+Async)', recommended: 60, group: 'Company' },
   'company_iq': { name: 'Arago & Morgan Stanley', recommended: 60, group: 'Company' },
+  'company_interviews': { name: 'Company Interviews', recommended: 60, group: 'Company' },
   'mobigic_pwc': { name: 'Mobigic / PWC', recommended: 45, group: 'Company' },
   'thenken_globus': { name: 'Thenken Globus', recommended: 45, group: 'Company' },
   // FDE Interview Prep
@@ -1957,11 +1958,19 @@ async function fetchJobsList() {
     let updatedCount = 0;
 
     window.allJobRecords.forEach(rec => {
-      const fallbackHash = rec.job_hash || btoa([
+      let rawStr = [
         rec.company || '',
         rec.role || rec.title || '',
         rec.location || ''
-      ].join('|'));
+      ].join('|');
+      let fallbackHash = rec.job_hash;
+      if (!fallbackHash) {
+          try {
+              fallbackHash = btoa(unescape(encodeURIComponent(rawStr)));
+          } catch(e) {
+              fallbackHash = rawStr; // Safe fallback
+          }
+      }
 
       const existingIndex = pipelineJobs.findIndex(job =>
         job.id === rec.id ||
@@ -2518,7 +2527,7 @@ async function ensurePageLoaded(pageId) {
         'sc_reports', 'sc_agentforce', 'sc_navmixin', 'sc_validation',
         'fde_ag_concept', 'fde_ag_scenario', 'fde_atlas', 'fde_trust',
         'fde_dc_concept', 'fde_dc_adv', 'fde_integration', 'fde_apex', 'fde_behavioral',
-        'fde_cheat', 'ai_interview', 'topic_viewer', 'company_iq', 'mobigic_pwc', 'thenken_globus'
+        'fde_cheat', 'ai_interview', 'topic_viewer', 'company_iq', 'company_interviews', 'mobigic_pwc', 'thenken_globus'
     ];
 
     if (!modularPages.includes(pageId)) {
