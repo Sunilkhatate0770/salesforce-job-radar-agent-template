@@ -6512,6 +6512,10 @@ body:has(#job_radar.active) #headerTitle {
   letter-spacing: 0.4px !important;
 }
 
+#job_radar .db-badge[hidden] {
+  display: none !important;
+}
+
 #job_radar .db-badge {
   border: 1px solid rgba(59, 130, 246, 0.25);
   background: rgba(59, 130, 246, 0.1);
@@ -6745,6 +6749,51 @@ body:has(#job_radar.active) #headerTitle {
   color: var(--jr-text3) !important;
   font-size: 10.5px !important;
   background: transparent !important;
+}
+
+#job_radar .radar-state-notice {
+  margin: 12px 20px 0 !important;
+  padding: 12px 14px !important;
+  border: 1px solid rgba(96, 165, 250, 0.18) !important;
+  border-radius: 10px !important;
+  background: rgba(15, 23, 42, 0.72) !important;
+  color: var(--jr-text2) !important;
+}
+
+#job_radar .radar-state-notice[hidden] {
+  display: none !important;
+}
+
+#job_radar .radar-state-notice strong,
+#job_radar .radar-state-notice span {
+  display: block;
+  letter-spacing: 0 !important;
+}
+
+#job_radar .radar-state-notice strong {
+  color: var(--jr-text) !important;
+  font-size: 12px !important;
+  margin-bottom: 3px !important;
+}
+
+#job_radar .radar-state-notice span {
+  color: var(--jr-text3) !important;
+  font-size: 11px !important;
+}
+
+#job_radar .radar-state-notice.locked {
+  border-color: rgba(96, 165, 250, 0.28) !important;
+  background: rgba(30, 41, 59, 0.72) !important;
+}
+
+#job_radar .radar-state-notice.degraded,
+#job_radar .radar-state-notice.loading {
+  border-color: rgba(245, 158, 11, 0.28) !important;
+}
+
+#job_radar .radar-state-notice.error {
+  border-color: rgba(239, 68, 68, 0.32) !important;
+  background: rgba(69, 10, 10, 0.26) !important;
 }
 
 #job_radar .jcard-v3 {

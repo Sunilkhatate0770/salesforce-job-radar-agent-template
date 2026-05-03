@@ -1,8 +1,19 @@
 // Version: 2026-04-26-T1200 (Industrial Enrichment v1412)
 // =============================================
+const RADAR_DEBUG = (() => {
+  try {
+    return ['localhost', '127.0.0.1'].includes(window.location.hostname) ||
+      localStorage.getItem('sf_debug_logs') === '1';
+  } catch (e) {
+    return false;
+  }
+})();
+if (!RADAR_DEBUG) {
+  console.log = function() {};
+  console.debug = function() {};
+}
 const DASHBOARD_VERSION = "2026-04-26-T1200 (app.v1412.js - Production Dashboard Logic)";
 console.log('%c Dashboard Version: 2026-04-26-T1200 (EXTREME LOGGING v1412)', 'color: #3b82f6; font-weight: bold; font-size: 1.2rem;');
-if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(regs => { for (let reg of regs) reg.unregister(); }); }
 var TRACKER_KEY = 'sf_prep_study_tracker_v3';
 var currentTrackedPage = null;
 var trackingStartTime = null;
@@ -285,9 +296,9 @@ async function apiFetch(url, options = {}) {
       return String(url || '').split('?')[0];
     }
   })();
-  const isPublicApi =
-    path === '/api/auth/google' ||
-    (method === 'GET' && (path === '/api/jobs' || path === '/api/jobs/analytics' || path === '/api/code-practice/challenges'));
+  const isPublicApi = window.RadarCloud?.isPublicApi
+    ? window.RadarCloud.isPublicApi(url, method)
+    : (path === '/api/auth/google' || path === '/api/health' || (method === 'GET' && path === '/api/code-practice/challenges'));
   const hasToken = token && token !== 'null' && token !== 'undefined';
   if (!hasToken && path.startsWith('/api/') && !isPublicApi) {
     return new Response(JSON.stringify({ success: false, error: 'login_required' }), {
@@ -896,7 +907,7 @@ window.syncProfile = async function(platform) {
       await loadJobIntelligence();
       showPage('profile_match');
     } else {
-      alert('Sync Failed: ' + (syncData.error || 'Unknown error'));
+      showToast('Sync failed: ' + (syncData.error || 'Unknown error'));
     }
   } catch (e) {
     console.error('Local sync failed or timed out', e);
@@ -1214,7 +1225,7 @@ Do not include any conversational text before or after the JSON.`;
     `).join('');
     
   } catch (e) {
-    alert('Failed to generate AI Q&A. Please try again after the server connection recovers.');
+    showToast('Failed to generate AI Q&A. Please try again after the server connection recovers.');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Generate AI Interview Q&A';
@@ -2369,9 +2380,9 @@ async function resetTracker() {
       
       await updateTrackerUI(); 
       updateFloatingTimer();
-      alert('Cloud and local data has been successfully reset. Fresh start enabled!');
+      showToast('Cloud and local data reset. Fresh start enabled.');
     } catch (e) {
-      alert('Failed to reset cloud data. Please check your server connection.');
+      showToast('Failed to reset cloud data. Please check your server connection.');
     }
   }
 }
@@ -2396,6 +2407,28 @@ function updateJobRadarSummary() {
 }
 
 window.allJobRecords = [];
+window.jobRadarCloudState = window.jobRadarCloudState || { status: 'idle', message: '', detail: '' };
+window.jobRadarEmptyMessage = '';
+
+function setJobRadarNotice(status, message, detail) {
+  window.jobRadarCloudState = { status, message: message || '', detail: detail || '' };
+  if (window.RadarCloud) {
+    window.RadarCloud.setNotice(status, message, detail);
+  }
+}
+
+function setJobRadarBadge(text, variant, title) {
+  if (window.RadarCloud) {
+    window.RadarCloud.setBadge('dbStatusBadge', text, variant, title);
+    return;
+  }
+  const dbBadge = document.getElementById('dbStatusBadge');
+  if (dbBadge) dbBadge.textContent = text;
+}
+
+function getApiErrorPayload(response) {
+  return response.json().catch(() => ({}));
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -2407,7 +2440,7 @@ function escapeHtml(value) {
 }
 
 function encodeInlineArg(value) {
-  return encodeURIComponent(String(value ?? ''));
+  return encodeURIComponent(String(value ?? '')).replace(/'/g, '%27');
 }
 
 function safeUrl(value) {
@@ -2541,6 +2574,13 @@ function getBoardColumnJobs(col) {
 }
 
 window.getBoardColumnJobs = getBoardColumnJobs;
+window.getRadarColumnEmptyMessage = function() {
+  const cloudState = window.jobRadarCloudState || {};
+  if (cloudState.status === 'locked') return 'Sign in to sync private job data.';
+  if (cloudState.status === 'loading') return 'Syncing cloud job sources...';
+  if (cloudState.status === 'error') return 'Cloud sync failed. Existing local cards remain available.';
+  return window.jobRadarEmptyMessage || 'No matching roles in this stage.';
+};
 
 function clampBoardPages() {
   const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
@@ -2558,10 +2598,39 @@ function resetBoardPages() {
 
 async function fetchJobsList() {
   console.log('[RADAR] Fetching jobs from database...');
+  const isSignedIn = window.RadarCloud ? window.RadarCloud.hasAuth() : Boolean(localStorage.getItem('google_auth_token'));
+  if (!isSignedIn) {
+    window.allJobRecords = [];
+    window.jobRadarEmptyMessage = 'Sign in with Google to sync private job data.';
+    setJobRadarNotice('locked', 'Sign in to sync Job Radar', 'Your job pipeline and status changes stay private behind Google sign-in.');
+    setJobRadarBadge('Sign-in Required', 'locked', 'Job Radar data is protected.');
+    const archiveBadge = document.getElementById('archiveStatusBadge');
+    if (archiveBadge) archiveBadge.hidden = true;
+    clampBoardPages();
+    renderBoard();
+    updateJobRadarSummary();
+    return { locked: true };
+  }
+
+  window.jobRadarEmptyMessage = 'Syncing cloud job sources...';
+  setJobRadarNotice('loading', 'Syncing Job Radar', 'Reading private pipeline data from the configured cloud stores.');
+  setJobRadarBadge('Syncing', 'neutral', 'Job Radar is loading.');
+  if (typeof renderBoard === 'function') renderBoard();
+
   try {
     const response = await apiFetch('/api/jobs');
-    if (!response.ok) throw new Error('Unauthorized or Server Down');
-    const data = await response.json();
+    const data = await getApiErrorPayload(response);
+    const classification = window.RadarCloud?.classifyApiResponse(response, data);
+    if (classification && classification.status !== 'ready' && classification.status !== 'degraded') {
+      window.jobRadarEmptyMessage = classification.detail || classification.message;
+      setJobRadarNotice(classification.status, classification.message, classification.detail);
+      setJobRadarBadge(classification.status === 'locked' ? 'Sign-in Required' : 'Sync Failed', classification.status === 'locked' ? 'locked' : 'error', classification.detail);
+      clampBoardPages();
+      renderBoard();
+      updateJobRadarSummary();
+      return data;
+    }
+    if (!response.ok) throw new Error(data.error || 'Job Radar server unavailable');
     console.log('[RADAR] Raw Server Response:', data);
     const rawRecords = data.records || [];
     window.allJobRecords = rawRecords.filter(rec => {
@@ -2571,6 +2640,9 @@ async function fetchJobsList() {
       return true;
     });
     console.log(`✅ [RADAR] Received ${window.allJobRecords.length} professional jobs. DB Status: ${data.dbStatus}`);
+    window.jobRadarEmptyMessage = rawRecords.length
+      ? ''
+      : 'No fresh cloud roles returned yet. Run a scan or add a custom role.';
 
     let addedCount = 0;
     let updatedCount = 0;
@@ -2613,34 +2685,21 @@ async function fetchJobsList() {
     renderLog();
     switchRadarSubTab(currentRadarSubTab);
 
-    const dbBadge = document.getElementById('dbStatusBadge');
-    if (dbBadge) {
-      dbBadge.textContent = 'Cloud Active';
-      dbBadge.style.background = 'rgba(16,185,129,0.1)';
-      dbBadge.style.color = 'var(--green)';
-    }
-
-    const archiveBadge = document.getElementById('archiveStatusBadge');
-    if (archiveBadge && data.storageCapacity) {
-      archiveBadge.style.display = 'inline-block';
-      archiveBadge.textContent = `Capacity: ${data.storageCapacity}`;
-      archiveBadge.title = 'Automated high-capacity cloud storage is active';
-      archiveBadge.style.background = 'rgba(139,92,246,0.1)';
-      archiveBadge.style.color = '#c4b5fd';
-    }
+    if (window.RadarCloud) window.RadarCloud.applyJobsPayload(data);
+    else setJobRadarBadge(data.degraded?.active ? 'Degraded' : 'Cloud Active', data.degraded?.active ? 'warn' : 'ready');
 
     if (addedCount > 0) {
       logActivity(`Synced ${addedCount} new jobs into the board and refreshed ${updatedCount} existing cards.`, 'success');
     }
+    return data;
   } catch (e) {
     console.error('❌ [RADAR] Error fetching jobs:', e);
-    const dbBadge = document.getElementById('dbStatusBadge');
-    if (dbBadge) {
-      dbBadge.textContent = 'Sync Failed';
-      dbBadge.style.background = 'rgba(239,68,68,0.12)';
-      dbBadge.style.color = 'var(--red)';
-    }
-    showToast('Failed to load jobs from the database.');
+    window.jobRadarEmptyMessage = 'Could not reach the Job Radar API. Existing local cards are still available.';
+    setJobRadarNotice('error', 'Job Radar sync failed', e.message || 'Could not reach the cloud API.');
+    setJobRadarBadge('Sync Failed', 'error', e.message || 'Job Radar sync failed.');
+    if (typeof renderBoard === 'function') renderBoard();
+    showToast('Job Radar sync failed. Existing local cards are still available.');
+    return { success: false, error: e.message };
   }
 }
 
@@ -2667,7 +2726,7 @@ window.moveTo = async function(id, status) {
   
   try {
     const routeId = encodeURIComponent(job.job_hash || id);
-    await apiFetch(`/api/jobs/${routeId}/status`, {
+    const response = await apiFetch(`/api/jobs/${routeId}/status`, {
       method: 'PATCH',
       body: JSON.stringify({
         status: normalizedStatus,
@@ -2677,6 +2736,10 @@ window.moveTo = async function(id, status) {
         appliedAt: job.appliedAt || ''
       })
     });
+    if (!response.ok) {
+      const data = await getApiErrorPayload(response);
+      throw new Error(data.error || 'Cloud status sync failed');
+    }
     logActivity(`Moved ${job.company} to ${normalizedStatus.toUpperCase()}`, 'success');
   } catch (e) {
     console.error('❌ [RADAR] Server sync failed:', e);
@@ -2770,32 +2833,35 @@ async function fetchJobAnalytics() {
     const response = await apiFetch('/api/jobs/analytics');
     if (!response.ok) return;
     const data = await response.json();
+    const matchedSkills = data.matched_skills || data.topMatched || [];
+    const missingSkills = data.missing_skills || data.topMissing || [];
+    const topCompanies = data.top_companies || data.topCompanies || [];
     
     const matchedEl = document.getElementById('matchedSkillsTrends');
     const missingEl = document.getElementById('missingSkillsTrends');
     const companiesEl = document.getElementById('topCompaniesTrends');
     
-    if (matchedEl && data.matched_skills) {
-      matchedEl.innerHTML = data.matched_skills.length ? data.matched_skills.map(s => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; transition:all 0.2s;"><span style="color:var(--text);">${s._id}</span> <span style="font-weight:700; color:var(--green);">${s.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
+    if (matchedEl) {
+      matchedEl.innerHTML = matchedSkills.length ? matchedSkills.map(s => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; transition:all 0.2s;"><span style="color:var(--text);">${escapeHtml(s._id)}</span> <span style="font-weight:700; color:var(--green);">${Number(s.count || 0)}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
-    if (missingEl && data.missing_skills) {
-      missingEl.innerHTML = data.missing_skills.length ? data.missing_skills.map(s => `
-        <div onclick="openSkillCoach('${s._id.replace(/'/g, "\\'")}')" 
+    if (missingEl) {
+      missingEl.innerHTML = missingSkills.length ? missingSkills.map(s => `
+        <div onclick="openSkillCoach('${encodeInlineArg(s._id)}')"
              style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px; cursor:pointer; transition:all 0.2s;"
              onmouseover="this.style.background='rgba(59,130,246,0.1)'; this.style.paddingLeft='5px';"
              onmouseout="this.style.background='transparent'; this.style.paddingLeft='0';">
           <span style="color:var(--amber); display:flex; align-items:center; gap:5px;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            ${s._id}
+            ${escapeHtml(s._id)}
           </span>
-          <span style="font-weight:700; color:var(--text);">${s.count}</span>
+          <span style="font-weight:700; color:var(--text);">${Number(s.count || 0)}</span>
         </div>
       `).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
-    if (companiesEl && data.top_companies) {
-      companiesEl.innerHTML = data.top_companies.length ? data.top_companies.map(c => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span style="color:var(--text);">${c._id}</span> <span style="font-weight:700; color:var(--blue);">${c.count}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
+    if (companiesEl) {
+      companiesEl.innerHTML = topCompanies.length ? topCompanies.map(c => `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;"><span style="color:var(--text);">${escapeHtml(c._id)}</span> <span style="font-weight:700; color:var(--blue);">${Number(c.count || 0)}</span></div>`).join('') : '<span style="color:var(--muted);">No data yet.</span>';
     }
     
   } catch (e) {
@@ -2804,6 +2870,7 @@ async function fetchJobAnalytics() {
 }
 
 window.openSkillCoach = async function(skill) {
+  try { skill = decodeURIComponent(skill); } catch (e) {}
   const modal = document.getElementById('coachModal');
   const chat = document.getElementById('coachChat');
   if (!modal || !chat) return;
@@ -2861,6 +2928,15 @@ async function triggerJobScan() {
   const btn = document.getElementById('btnScanJobs');
   const statusText = document.getElementById('scanStatusText');
   const originalHtml = btn ? (btn.dataset.originalHtml || btn.innerHTML) : '';
+  const isSignedIn = window.RadarCloud ? window.RadarCloud.hasAuth() : Boolean(localStorage.getItem('google_auth_token'));
+
+  if (!isSignedIn) {
+    setJobRadarNotice('locked', 'Sign in to run a cloud scan', 'The scan can only attach results to your private Google profile after sign-in.');
+    setJobRadarBadge('Sign-in Required', 'locked', 'Sign in before starting a scan.');
+    if (statusText) statusText.textContent = 'Sign in to run a private cloud scan.';
+    showToast('Sign in with Google before running Job Radar scan.');
+    return;
+  }
 
   if (btn) {
     btn.dataset.originalHtml = originalHtml;
@@ -2869,20 +2945,24 @@ async function triggerJobScan() {
     btn.innerHTML = 'SCANNING JOB SOURCES...';
   }
   if (statusText) statusText.textContent = 'Running fresh job scan and profile match analysis...';
+  setJobRadarNotice('loading', 'Starting Job Radar scan', 'Queuing the cloud workflow and keeping your current board available.');
 
   showToast('Scan started. Fetching the latest Salesforce roles.');
 
   try {
     const res = await apiFetch('/api/jobs/scan', { method: 'POST' });
-    const data = await res.json();
+    const data = await getApiErrorPayload(res);
+    if (!res.ok) throw new Error(data.error || 'Scan request failed');
     
     if (data.success) {
-      if (statusText) statusText.textContent = 'Scan started. Waiting for the background agent to finish...';
-      showToast('AI agent is analyzing job matches now.');
+      const scanMessage = data.message || (data.queued ? 'Cloud job radar workflow queued successfully.' : 'Showing cached jobs while scan credentials are configured.');
+      if (statusText) statusText.textContent = scanMessage;
+      setJobRadarNotice(data.queued ? 'loading' : 'degraded', data.queued ? 'Cloud scan queued' : 'Cached scan mode', scanMessage);
+      showToast(data.queued ? 'Cloud scan queued. The board will refresh shortly.' : 'Cloud scan is in cached mode. Check Vercel GitHub envs.');
       setTimeout(async () => {
         await fetchJobsList(); 
-        showToast('Dashboard synced with the latest job scan.');
-        if (statusText) statusText.textContent = 'Last sync completed successfully.';
+        showToast(data.queued ? 'Dashboard refreshed after scan request.' : 'Dashboard refreshed from cached cloud data.');
+        if (statusText) statusText.textContent = data.queued ? 'Last scan request completed.' : 'Cached data refresh completed.';
         if (btn) {
           btn.disabled = false;
           btn.style.opacity = '1';
@@ -2894,8 +2974,9 @@ async function triggerJobScan() {
     }
   } catch (e) {
     console.error('Scan Error:', e);
-    showToast('Scan failed. The local job agent may be offline.');
-    if (statusText) statusText.textContent = 'Scan failed. Check local agent health and try again.';
+    showToast('Scan request failed. Existing board data is still available.');
+    setJobRadarNotice('error', 'Scan request failed', e.message || 'Check cloud scan configuration and try again.');
+    if (statusText) statusText.textContent = 'Scan request failed. Check cloud scan configuration and try again.';
     if (btn) {
       btn.disabled = false;
       btn.style.opacity = '1';
@@ -2914,12 +2995,12 @@ async function smartApply(hash) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('Automation launched. Look at your taskbar for a new Chrome window.');
+      showToast('Automation launched. Look at your taskbar for a new Chrome window.');
     } else {
-      alert('Failed to launch automation: ' + data.error);
+      showToast('Failed to launch automation: ' + data.error);
     }
   } catch (e) {
-    alert('Error connecting to local automation agent.');
+    showToast('Error connecting to local automation agent.');
   }
 }
 
@@ -3592,7 +3673,7 @@ function goToResult(pageId, idx) {
 async function showHistoryModal(date, page = 0) {
   const h = cachedHistories[date];
   if (!h) {
-    alert('No data found for this date. Please click Sync Dashboard first.');
+    showToast('No data found for this date. Please click Sync Dashboard first.');
     return;
   }
 
@@ -3952,7 +4033,7 @@ let isRecording = false;
 function toggleVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
+    showToast("Voice recognition is not supported in this browser. Please use Chrome or Edge.");
     return;
   }
 
@@ -4802,16 +4883,6 @@ window.addEventListener('DOMContentLoaded', function() {
   renderStreakBadge();
   setTimeout(renderBookmarkButtons, 500);
   renderRevisionAlerts(); // v1342
-
-  // Unregister Service Worker to fix caching (v1405)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(registrations => {
-      for (let registration of registrations) {
-        registration.unregister();
-        console.log('PWA: Service Worker Unregistered to force refresh.');
-      }
-    });
-  }
 });
 
 // =============================================

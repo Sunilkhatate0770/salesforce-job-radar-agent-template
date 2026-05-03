@@ -15,6 +15,12 @@ import {
   readSupabaseJobAlertRows,
   readSupabaseTrackerJobs
 } from '../src/jobs/dashboardJobs.js';
+import {
+  buildHealthPayload as buildRadarHealthPayload,
+  buildJobsDegradedPayload,
+  getRadarStatusStateKey
+} from '../src/api/radarContract.js';
+import { isSupabaseEnabled, supabase } from '../src/db/supabase.js';
 
 /**
  * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
@@ -58,34 +64,12 @@ function isMongoConnected() {
   return mongoose.connection.readyState === 1;
 }
 
-function hasEnv(name) {
-  return Boolean(String(process.env[name] || '').trim());
-}
-
 function buildHealthPayload() {
-  const env = {
-    MONGODB_URI: hasEnv('MONGODB_URI'),
-    GOOGLE_CLIENT_ID: hasEnv('GOOGLE_CLIENT_ID'),
-    OPENAI_API_KEY: hasEnv('OPENAI_API_KEY'),
-    GITHUB_REPOSITORY: hasEnv('GITHUB_REPOSITORY') || hasEnv('JOB_RADAR_GITHUB_REPO'),
-    GITHUB_TOKEN: hasEnv('GITHUB_TOKEN') || hasEnv('GH_TOKEN') || hasEnv('JOB_RADAR_GITHUB_TOKEN'),
-    TELEGRAM_BOT_TOKEN: hasEnv('TELEGRAM_BOT_TOKEN'),
-    SUPABASE_URL: hasEnv('SUPABASE_URL'),
-    SUPABASE_SERVICE_KEY: hasEnv('SUPABASE_SERVICE_ROLE_KEY') || hasEnv('SUPABASE_SERVICE_KEY'),
-    TURSO_URL: hasEnv('TURSO_URL') || hasEnv('TURSO_DATABASE_URL'),
-    TURSO_AUTH_TOKEN: hasEnv('TURSO_AUTH_TOKEN')
-  };
-  const missingCore = ['MONGODB_URI', 'GOOGLE_CLIENT_ID'].filter(name => !env[name]);
-  return {
-    success: true,
-    service: 'salesforce-job-radar-agent',
-    runtime: process.env.VERCEL ? 'vercel' : 'local',
-    generatedAt: new Date().toISOString(),
+  return buildRadarHealthPayload({
+    env: process.env,
     mongoConnected: isMongoConnected(),
-    env,
-    ready: missingCore.length === 0,
-    missingCore
-  };
+    runtime: process.env.VERCEL ? 'vercel' : 'local'
+  });
 }
 
 async function getUserId(req) {
@@ -173,9 +157,96 @@ function jobStatusCandidates(job = {}) {
 }
 
 async function getJobStatusOverrides(userId) {
-  if (!userId || mongoose.connection.readyState !== 1) return {};
-  const profile = await UserProfile.findOne({ userId }).select('jobRadarStatuses').lean();
-  return profile?.jobRadarStatuses || {};
+  if (!userId) return {};
+  let supabaseStatuses = {};
+  try {
+    const payload = await readJobStatusState(userId);
+    supabaseStatuses = payload?.statuses || payload || {};
+  } catch (err) {
+    console.warn('[STATUS] Supabase status read skipped:', err.message);
+  }
+
+  let mongoStatuses = {};
+  if (mongoose.connection.readyState === 1) {
+    const profile = await UserProfile.findOne({ userId }).select('jobRadarStatuses').lean();
+    mongoStatuses = profile?.jobRadarStatuses || {};
+  }
+
+  return {
+    ...supabaseStatuses,
+    ...mongoStatuses
+  };
+}
+
+function getStateTableName() {
+  return String(process.env.STATE_BACKEND_TABLE || 'agent_state').trim() || 'agent_state';
+}
+
+async function readJobStatusState(userId) {
+  if (!isSupabaseEnabled()) return null;
+  const { data, error } = await supabase
+    .from(getStateTableName())
+    .select('payload')
+    .eq('state_key', getRadarStatusStateKey(userId))
+    .maybeSingle();
+  if (error) throw error;
+  return data?.payload || null;
+}
+
+async function writeJobStatusState(userId, payload) {
+  if (!isSupabaseEnabled()) return false;
+  const { error } = await supabase
+    .from(getStateTableName())
+    .upsert(
+      {
+        state_key: getRadarStatusStateKey(userId),
+        payload,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'state_key' }
+    );
+  if (error) throw error;
+  return true;
+}
+
+async function saveJobStatusOverride(userId, statusKey, statusPayload) {
+  let wroteMongo = false;
+  let wroteState = false;
+
+  if (mongoose.connection.readyState === 1) {
+    await UserProfile.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          userId,
+          [`jobRadarStatuses.${statusKey}`]: statusPayload
+        }
+      },
+      { upsert: true, new: true }
+    );
+    wroteMongo = true;
+  }
+
+  try {
+    const payload = await readJobStatusState(userId);
+    const statuses = payload?.statuses && typeof payload.statuses === 'object'
+      ? payload.statuses
+      : {};
+    statuses[statusKey] = statusPayload;
+    wroteState = await writeJobStatusState(userId, {
+      statuses,
+      updatedAt: statusPayload.updatedAt,
+      source: 'vercel-api'
+    });
+  } catch (err) {
+    console.warn('[STATUS] Supabase status write skipped:', err.message);
+  }
+
+  return {
+    wroteMongo,
+    wroteState,
+    stored: wroteMongo || wroteState
+  };
 }
 
 function findJobStatusOverride(overrides = {}, job = {}) {
@@ -607,6 +678,7 @@ async function triggerCloudJobScan(userId) {
 }
 
 async function checkAndArchiveOverflow(userId) {
+  if (!isMongoConnected()) return;
   try {
     // 1. ARCHIVE JOBS
     const MAX_MONGO_JOBS = 1500;
@@ -710,13 +782,6 @@ export default async function(req, res) {
 
     const jobStatusRoute = path.match(/^jobs\/([^/]+)\/status$/);
     if (jobStatusRoute && req.method === 'PATCH') {
-      if (!isMongoConnected()) {
-        return res.status(503).json({
-          success: false,
-          error: 'Job status sync is temporarily unavailable. Please try again after the database reconnects.'
-        });
-      }
-
       const payload = readBody(req);
       const routeId = decodeURIComponent(jobStatusRoute[1] || '');
       const rawKey = payload.job_hash || payload.jobHash || payload.jobId || routeId;
@@ -729,30 +794,27 @@ export default async function(req, res) {
         : (payload.appliedAt || '');
       const statusKey = encodeStatusKey(rawKey);
 
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        {
-          $set: {
-            userId,
-            [`jobRadarStatuses.${statusKey}`]: {
-              status,
-              updatedAt,
-              appliedAt,
-              rawKey: String(rawKey),
-              jobId: routeId
-            }
-          }
-        },
-        { upsert: true, new: true }
-      );
+      const storage = await saveJobStatusOverride(userId, statusKey, {
+        status,
+        updatedAt,
+        appliedAt,
+        rawKey: String(rawKey),
+        jobId: routeId
+      });
+      if (!storage.stored) {
+        return res.status(503).json({
+          success: false,
+          error: 'Job status sync is temporarily unavailable. Configure MongoDB or Supabase state storage for cloud status updates.'
+        });
+      }
 
-      return res.status(200).json({ success: true, status, updatedAt, appliedAt, key: statusKey });
+      return res.status(200).json({ success: true, status, updatedAt, appliedAt, key: statusKey, storage });
     }
 
     // 2. PROFILE ENDPOINTS (Hybrid Search & Smart Merge)
     if (path === 'profile/data') {
       let tursoProfile = await safeTursoRead('profile/data', () => TursoDB.getProfile(userId), null);
-      let mongoProfile = await UserProfile.findOne({ userId }).lean();
+      let mongoProfile = await safeMongoRead('profile/data', () => UserProfile.findOne({ userId }).lean(), null);
       
       console.log(`[DEBUG] Hybrid Fetch for ${userId}:`);
       console.log(` - Turso Profile: ${tursoProfile ? 'FOUND' : 'NOT FOUND'} (Bookmarks: ${tursoProfile?.bookmarks?.length || 0})`);
@@ -1116,18 +1178,27 @@ export default async function(req, res) {
       checkAndArchiveOverflow(userId);
       const mongoCount = await safeMongoRead('jobs count', () => JobRecord.countDocuments({ userId }), 0);
       const capacityUsed = Math.min(Math.round((mongoCount / 1500) * 100), 100);
+      const sourceCounts = {
+        supabaseAlerts: alertJobs.length,
+        applicationTracker: trackerJobs.length,
+        turso: tursoJobs.length,
+        mongo: mongoJobs.length
+      };
+      const degraded = buildJobsDegradedPayload({
+        env: process.env,
+        mongoConnected: isMongoConnected(),
+        sourceCounts
+      });
       return res.status(200).json({
         records: finalJobs,
         dbStatus: isMongoConnected(),
         count: finalJobs.length,
         freshnessDays: getDashboardFreshnessDays(),
-        sourceCounts: {
-          supabaseAlerts: alertJobs.length,
-          applicationTracker: trackerJobs.length,
-          turso: tursoJobs.length,
-          mongo: mongoJobs.length
-        },
-        storageCapacity: isMongoConnected() ? `${100 - capacityUsed}% Free` : 'MongoDB Offline'
+        sourceCounts,
+        degraded,
+        storageCapacity: isMongoConnected()
+          ? `${100 - capacityUsed}% Free`
+          : (degraded.liveSources.length ? 'Archive Reads Active' : 'MongoDB Offline')
       });
     }
 
@@ -1187,6 +1258,9 @@ export default async function(req, res) {
         topMatched: sortEntries(matchedMap),
         topMissing: sortEntries(missingMap),
         topCompanies: sortEntries(companyMap),
+        matched_skills: sortEntries(matchedMap),
+        missing_skills: sortEntries(missingMap),
+        top_companies: sortEntries(companyMap),
         jobs: combined // UI EXPECTS THIS IN jobs/list
       });
     }

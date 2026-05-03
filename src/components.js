@@ -811,8 +811,12 @@ function renderBoard() {
     const start = page * pageSize;
     const displayJobs = filtered.slice(start, start + pageSize);
 
+    const emptyMessage = typeof window.getRadarColumnEmptyMessage === 'function'
+      ? window.getRadarColumnEmptyMessage(col)
+      : (window.jobRadarEmptyMessage || 'No matching roles in this stage.');
+
     list.innerHTML = displayJobs.length === 0 ? 
-      `<div class="radar-empty-state">No matching roles in this stage.</div>` :
+      `<div class="radar-empty-state">${componentEscapeHtml(emptyMessage)}</div>` :
       displayJobs.map(job => renderJobCard(job)).join('');
       
     const pager = document.getElementById(`pager-${col}`);
@@ -970,6 +974,24 @@ function renderCockpitList(items, emptyText) {
 function renderJobRadarCockpit() {
   const mount = document.getElementById('jobRadarCockpit');
   if (!mount) return;
+  const cloudState = window.jobRadarCloudState || {};
+
+  if (!(window.pipelineJobs || []).length && cloudState.status === 'locked') {
+    mount.innerHTML = `
+      <div class="cockpit-head">
+        <div>
+          <span class="cockpit-kicker">Private Radar</span>
+          <h2>Sign in to load your job command center</h2>
+        </div>
+        <div class="cockpit-primary-action">
+          <span>Status</span>
+          <strong>Google sign-in required</strong>
+        </div>
+      </div>
+      <div class="cockpit-empty">${componentEscapeHtml(cloudState.detail || 'Your pipeline is protected and will sync after sign-in.')}</div>
+    `;
+    return;
+  }
 
   const data = buildDailyCockpitData();
   const firstAction = data.highFit[0] || data.resumeReady[0] || data.followUps[0] || data.fresh[0] || null;
@@ -1225,10 +1247,15 @@ async function renderVercelHealthPanel() {
     const response = await fetch('/api/health', { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`health ${response.status}`);
     const data = await response.json();
-    const entries = Object.entries(data.env || {});
+    const entries = data.dependencies
+      ? Object.entries(data.dependencies).map(([name, detail]) => [
+          name,
+          detail.status === 'ready' || detail.status === 'connected' || detail.status === 'configured'
+        ])
+      : Object.entries(data.env || {});
     mount.innerHTML = `
-      <div class="vercel-health-status ${data.ready ? 'ready' : 'warn'}">
-        <span>${data.ready ? 'Ready' : 'Needs attention'}</span>
+      <div class="vercel-health-status ${data.ready && !data.degraded ? 'ready' : 'warn'}">
+        <span>${data.ready ? (data.degraded ? 'Degraded' : 'Ready') : 'Needs attention'}</span>
         <b>${componentEscapeHtml(data.runtime || 'runtime')}</b>
       </div>
       <div class="vercel-health-grid">
@@ -1240,6 +1267,9 @@ async function renderVercelHealthPanel() {
         `).join('')}
       </div>
       <div class="cp-subtle" style="margin-top:10px;">Mongo connection: ${data.mongoConnected ? 'connected' : 'not connected here'}</div>
+      ${Array.isArray(data.missingRecommendedCloud) && data.missingRecommendedCloud.length
+        ? `<div class="cp-subtle" style="margin-top:6px;">Recommended cloud envs: ${componentEscapeHtml(data.missingRecommendedCloud.join(', '))}</div>`
+        : ''}
     `;
   } catch (err) {
     mount.innerHTML = '<div class="cockpit-empty">Health check is unavailable on this server.</div>';

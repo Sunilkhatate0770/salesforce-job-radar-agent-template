@@ -18,6 +18,13 @@ import {
   readSupabaseJobAlertRows,
   readSupabaseTrackerJobs
 } from './jobs/dashboardJobs.js';
+import {
+  buildHealthPayload as buildRadarHealthPayload,
+  buildJobsDegradedPayload,
+  getRadarStatusStateKey,
+  isPublicApiPath
+} from './api/radarContract.js';
+import { isSupabaseEnabled, supabase } from './db/supabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,34 +37,12 @@ const dataCache = new Map();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-function hasEnv(name) {
-  return Boolean(String(process.env[name] || '').trim());
-}
-
 function buildHealthPayload(isMongoConnected = false) {
-  const env = {
-    MONGODB_URI: hasEnv('MONGODB_URI'),
-    GOOGLE_CLIENT_ID: hasEnv('GOOGLE_CLIENT_ID'),
-    OPENAI_API_KEY: hasEnv('OPENAI_API_KEY'),
-    GITHUB_REPOSITORY: hasEnv('GITHUB_REPOSITORY') || hasEnv('JOB_RADAR_GITHUB_REPO'),
-    GITHUB_TOKEN: hasEnv('GITHUB_TOKEN') || hasEnv('GH_TOKEN') || hasEnv('JOB_RADAR_GITHUB_TOKEN'),
-    TELEGRAM_BOT_TOKEN: hasEnv('TELEGRAM_BOT_TOKEN'),
-    SUPABASE_URL: hasEnv('SUPABASE_URL'),
-    SUPABASE_SERVICE_KEY: hasEnv('SUPABASE_SERVICE_ROLE_KEY') || hasEnv('SUPABASE_SERVICE_KEY'),
-    TURSO_URL: hasEnv('TURSO_URL') || hasEnv('TURSO_DATABASE_URL'),
-    TURSO_AUTH_TOKEN: hasEnv('TURSO_AUTH_TOKEN')
-  };
-  const missingCore = ['MONGODB_URI', 'GOOGLE_CLIENT_ID'].filter(name => !env[name]);
-  return {
-    success: true,
-    service: 'salesforce-job-radar-agent',
-    runtime: process.env.VERCEL ? 'vercel' : 'local',
-    generatedAt: new Date().toISOString(),
-    mongoConnected: Boolean(isMongoConnected),
-    env,
-    ready: missingCore.length === 0,
-    missingCore
-  };
+  return buildRadarHealthPayload({
+    env: process.env,
+    mongoConnected: isMongoConnected,
+    runtime: process.env.VERCEL ? 'vercel' : 'local'
+  });
 }
 
 function readDataJson(fileName, fallback = {}) {
@@ -97,9 +82,96 @@ function jobStatusCandidates(job = {}) {
 }
 
 async function getJobStatusOverrides(userId) {
-  if (!userId || mongoose.connection.readyState !== 1) return {};
-  const profile = await UserProfile.findOne({ userId }).select('jobRadarStatuses').lean();
-  return profile?.jobRadarStatuses || {};
+  if (!userId) return {};
+  let supabaseStatuses = {};
+  try {
+    const payload = await readJobStatusState(userId);
+    supabaseStatuses = payload?.statuses || payload || {};
+  } catch (err) {
+    console.warn('[STATUS] Supabase status read skipped:', err.message);
+  }
+
+  let mongoStatuses = {};
+  if (mongoose.connection.readyState === 1) {
+    const profile = await UserProfile.findOne({ userId }).select('jobRadarStatuses').lean();
+    mongoStatuses = profile?.jobRadarStatuses || {};
+  }
+
+  return {
+    ...supabaseStatuses,
+    ...mongoStatuses
+  };
+}
+
+function getStateTableName() {
+  return String(process.env.STATE_BACKEND_TABLE || 'agent_state').trim() || 'agent_state';
+}
+
+async function readJobStatusState(userId) {
+  if (!isSupabaseEnabled()) return null;
+  const { data, error } = await supabase
+    .from(getStateTableName())
+    .select('payload')
+    .eq('state_key', getRadarStatusStateKey(userId))
+    .maybeSingle();
+  if (error) throw error;
+  return data?.payload || null;
+}
+
+async function writeJobStatusState(userId, payload) {
+  if (!isSupabaseEnabled()) return false;
+  const { error } = await supabase
+    .from(getStateTableName())
+    .upsert(
+      {
+        state_key: getRadarStatusStateKey(userId),
+        payload,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'state_key' }
+    );
+  if (error) throw error;
+  return true;
+}
+
+async function saveJobStatusOverride(userId, statusKey, statusPayload) {
+  let wroteMongo = false;
+  let wroteState = false;
+
+  if (mongoose.connection.readyState === 1) {
+    await UserProfile.findOneAndUpdate(
+      { userId },
+      {
+        $set: {
+          userId,
+          [`jobRadarStatuses.${statusKey}`]: statusPayload
+        }
+      },
+      { upsert: true, new: true }
+    );
+    wroteMongo = true;
+  }
+
+  try {
+    const payload = await readJobStatusState(userId);
+    const statuses = payload?.statuses && typeof payload.statuses === 'object'
+      ? payload.statuses
+      : {};
+    statuses[statusKey] = statusPayload;
+    wroteState = await writeJobStatusState(userId, {
+      statuses,
+      updatedAt: statusPayload.updatedAt,
+      source: 'local-web-server'
+    });
+  } catch (err) {
+    console.warn('[STATUS] Supabase status write skipped:', err.message);
+  }
+
+  return {
+    stored: wroteMongo || wroteState,
+    mongo: wroteMongo,
+    supabase: wroteState
+  };
 }
 
 function findJobStatusOverride(overrides = {}, job = {}) {
@@ -548,7 +620,7 @@ export default async function handler(req, res) {
     }
 
     const isPublicFile = url === '/manifest.json' || url.endsWith('.png') || url.endsWith('.ico');
-    const isPublicApi = url === '/api/jobs' || url === '/api/jobs/analytics' || url === '/api/auth/google' || url === '/api/code-practice/challenges' || url === '/api/health';
+    const isPublicApi = isPublicApiPath(url, method);
     
     if (!userId && !isPublicFile && !isPublicApi) {
       res.writeHead(401);
@@ -633,12 +705,6 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, completedTasks: [], sessions: [] }));
       }
       else if (url.match(/^\/api\/jobs\/[^/]+\/status$/) && method === 'PATCH') {
-        if (!isMongoConnected) {
-          res.writeHead(503, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'MongoDB is not connected' }));
-          return;
-        }
-
         let body = '';
         for await (const chunk of req) body += chunk;
         let payload = {};
@@ -657,33 +723,38 @@ export default async function handler(req, res) {
         const appliedAt = status === 'applied' ? (payload.appliedAt || updatedAt) : (payload.appliedAt || '');
         const statusKey = encodeStatusKey(rawKey);
 
-        await UserProfile.findOneAndUpdate(
-          { userId },
-          {
-            $set: {
-              userId,
-              [`jobRadarStatuses.${statusKey}`]: {
-                status,
-                updatedAt,
-                appliedAt,
-                rawKey: String(rawKey),
-                jobId: routeId
-              }
-            }
-          },
-          { upsert: true, new: true }
-        );
+        const storage = await saveJobStatusOverride(userId, statusKey, {
+          status,
+          updatedAt,
+          appliedAt,
+          rawKey: String(rawKey),
+          jobId: routeId
+        });
+        if (!storage.stored) {
+          res.writeHead(503, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: false,
+            error: 'Job status sync is temporarily unavailable. Configure MongoDB or Supabase state storage for cloud status updates.'
+          }));
+          return;
+        }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, status, updatedAt, appliedAt, key: statusKey }));
+        res.end(JSON.stringify({ success: true, status, updatedAt, appliedAt, key: statusKey, storage }));
       }
       else if (url === '/api/jobs' && method === 'GET') {
         const [trackerJobs, alertJobs] = await Promise.all([
           readSupabaseTrackerJobs(),
           readSupabaseJobAlertRows(180)
         ]);
+        const sourceCounts = {
+          supabaseAlerts: alertJobs.length,
+          applicationTracker: trackerJobs.length,
+          mongo: 0
+        };
         if (isMongoConnected) {
           const mongoJobs = await JobRecord.find({}).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean();
+          sourceCounts.mongo = mongoJobs.length;
           const mergedJobs = mergeDashboardJobs(
             mongoJobs.map(job => normalizeDashboardJob(job, 'Legacy (Mongo)')),
             trackerJobs,
@@ -702,14 +773,14 @@ export default async function handler(req, res) {
             source: 'mongodb',
             count: records.length,
             freshnessDays: getDashboardFreshnessDays(),
-            sourceCounts: {
-              supabaseAlerts: alertJobs.length,
-              applicationTracker: trackerJobs.length,
-              mongo: mongoJobs.length
-            }
+            storageCapacity: 'Hot + Archive Reads Active',
+            sourceCounts,
+            degraded: buildJobsDegradedPayload({ env: process.env, mongoConnected: true, sourceCounts })
           }));
         } else {
-          const records = filterDashboardFreshness(mergeDashboardJobs(trackerJobs, alertJobs)).slice(0, 180);
+          const records = filterDashboardFreshness(
+            applyJobStatusOverrides(mergeDashboardJobs(trackerJobs, alertJobs), await getJobStatusOverrides(userId))
+          ).slice(0, 180);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             records,
@@ -717,11 +788,9 @@ export default async function handler(req, res) {
             source: records.length ? 'supabase' : 'cache',
             count: records.length,
             freshnessDays: getDashboardFreshnessDays(),
-            sourceCounts: {
-              supabaseAlerts: alertJobs.length,
-              applicationTracker: trackerJobs.length,
-              mongo: 0
-            },
+            storageCapacity: records.length ? 'Archive Reads Active' : 'Cloud sources unavailable',
+            sourceCounts,
+            degraded: buildJobsDegradedPayload({ env: process.env, mongoConnected: false, sourceCounts }),
             error: records.length ? undefined : (process.env.MONGODB_URI ? 'mongodb_connection_failed' : 'missing_mongodb_uri')
           }));
         }
@@ -744,23 +813,28 @@ export default async function handler(req, res) {
           return skills.some(item => item.includes(skill.toLowerCase()));
         };
         
-        // This is a simplified version of analytics. Real implementation would use MongoDB aggregation.
-        // But for now, we'll return structured data that the frontend expects.
+        const matchedSkills = [
+          { _id: 'Apex', count: records.filter(r => hasSkill(r, 'Apex')).length },
+          { _id: 'LWC', count: records.filter(r => hasSkill(r, 'LWC')).length },
+          { _id: 'Integration', count: records.filter(r => hasSkill(r, 'REST')).length }
+        ];
+        const missingSkills = [
+          { _id: 'Data Cloud', count: 5 },
+          { _id: 'Agentforce', count: 3 }
+        ];
+        const topCompanies = [
+          { _id: 'Salesforce', count: records.filter(r => r.company === 'Salesforce').length },
+          { _id: 'Deloitte', count: records.filter(r => r.company === 'Deloitte').length }
+        ];
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-          matched_skills: [
-            { _id: 'Apex', count: records.filter(r => hasSkill(r, 'Apex')).length },
-            { _id: 'LWC', count: records.filter(r => hasSkill(r, 'LWC')).length },
-            { _id: 'Integration', count: records.filter(r => hasSkill(r, 'REST')).length }
-          ],
-          missing_skills: [
-            { _id: 'Data Cloud', count: 5 },
-            { _id: 'Agentforce', count: 3 }
-          ],
-          top_companies: [
-            { _id: 'Salesforce', count: records.filter(r => r.company === 'Salesforce').length },
-            { _id: 'Deloitte', count: records.filter(r => r.company === 'Deloitte').length }
-          ]
+          matched_skills: matchedSkills,
+          missing_skills: missingSkills,
+          top_companies: topCompanies,
+          matchedSkills,
+          missingSkills,
+          topCompanies
         }));
       }
       else if (url.includes('summary/all')) {
@@ -827,7 +901,12 @@ export default async function handler(req, res) {
         });
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: 'Scan started in background' }));
+        res.end(JSON.stringify({
+          success: true,
+          queued: true,
+          mode: 'local_background',
+          message: 'Local job scan started in the background.'
+        }));
       }
       else if (url === '/api/study/leaderboard' && method === 'GET') {
         if (!isMongoConnected) {

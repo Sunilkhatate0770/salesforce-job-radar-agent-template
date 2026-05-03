@@ -6,6 +6,24 @@ body {
   overflow-x: hidden;
 }
 
+#loginOverlay,
+#loginOverlay * {
+  box-sizing: border-box;
+}
+
+#loginOverlay > div {
+  max-width: min(440px, calc(100vw - 28px)) !important;
+  width: min(92vw, 440px) !important;
+}
+
+#loginOverlay h1 {
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  font-size: clamp(1.6rem, 9vw, 2.25rem) !important;
+  line-height: 1.05 !important;
+  letter-spacing: 0 !important;
+}
+
 #main,
 .page,
 .content-card,
@@ -259,6 +277,20 @@ table {
 }
 
 @media (max-width: 640px) {
+  #loginOverlay > div {
+    padding: 2.4rem 1.45rem !important;
+    border-radius: 28px !important;
+  }
+
+  #loginOverlay h1 {
+    font-size: 1.55rem !important;
+    white-space: normal !important;
+  }
+
+  #loginOverlay .login-mode-panel {
+    padding: 12px !important;
+  }
+
   #job_radar {
     overflow-x: hidden !important;
   }
