@@ -20,6 +20,12 @@ function hasResendConfig() {
   return hasAll(["RESEND_API_KEY", "RESEND_FROM"]) && Boolean(recipient);
 }
 
+function isTruthy(value) {
+  return ["1", "true", "yes", "on"].includes(
+    String(value || "").trim().toLowerCase()
+  );
+}
+
 async function checkSupabase() {
   const url = String(process.env.SUPABASE_URL || "").trim().replace(/\/+$/, "");
   const key = String(
@@ -201,11 +207,14 @@ async function checkEmailResend() {
 
 async function checkApify() {
   const token = String(process.env.APIFY_TOKEN || "").trim();
+  const required = isTruthy(process.env.APIFY_REQUIRED);
   if (!token) {
     return {
-      ok: true,
+      ok: !required,
       label: "Apify",
-      message: "APIFY_TOKEN not set (allowed: fallback providers still run)"
+      message: required
+        ? "APIFY_TOKEN not set and APIFY_REQUIRED=true"
+        : "APIFY_TOKEN not set (allowed: fallback providers still run)"
     };
   }
 
@@ -217,9 +226,11 @@ async function checkApify() {
 
     if (!response.ok || !json?.data?.username) {
       return {
-        ok: false,
+        ok: !required,
         label: "Apify",
-        message: `Token check failed: HTTP ${response.status}`
+        message: required
+          ? `Token check failed: HTTP ${response.status}`
+          : `Token check failed: HTTP ${response.status} (allowed: fallback providers still run)`
       };
     }
 
@@ -230,9 +241,11 @@ async function checkApify() {
     };
   } catch (error) {
     return {
-      ok: false,
+      ok: !required,
       label: "Apify",
-      message: error.message
+      message: required
+        ? error.message
+        : `${error.message} (allowed: fallback providers still run)`
     };
   }
 }
