@@ -60,14 +60,18 @@ jobs:
           EMAIL_TO_VALUE="${{ secrets.EMAIL_TO }}"
           RESEND_TO_VALUE="${{ secrets.RESEND_TO }}"
           TELEGRAM_CHAT_ID_VALUE="${{ secrets.TELEGRAM_CHAT_ID }}"
+          APIFY_TOKEN_VALUE="${{ secrets.APIFY_TOKEN }}"
           if [ -z "$RESEND_TO_VALUE" ]; then
             RESEND_TO_VALUE="$EMAIL_TO_VALUE"
           fi
           if [ -z "$TELEGRAM_CHAT_ID_VALUE" ]; then
             TELEGRAM_CHAT_ID_VALUE="${{ vars.TELEGRAM_CHAT_ID }}"
           fi
+          if [ "${{ vars.APIFY_ENABLED }}" != "true" ]; then
+            APIFY_TOKEN_VALUE=""
+          fi
 
-          set_env "APIFY_TOKEN" "${{ secrets.APIFY_TOKEN }}"
+          set_env "APIFY_TOKEN" "$APIFY_TOKEN_VALUE"
           set_env "TELEGRAM_BOT_TOKEN" "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           set_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID_VALUE"
           set_env "SUPABASE_URL" "${{ secrets.SUPABASE_URL }}"
