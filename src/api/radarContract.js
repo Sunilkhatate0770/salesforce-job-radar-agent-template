@@ -80,6 +80,10 @@ export function buildHealthPayload({
     dependencies.mongo.connected ||
     dependencies.turso.configured ||
     dependencies.supabase.configured;
+  const optionalMongoBlocking =
+    dependencies.mongo.status === 'offline' &&
+    !dependencies.turso.configured &&
+    !dependencies.supabase.configured;
 
   return {
     success: true,
@@ -90,7 +94,7 @@ export function buildHealthPayload({
     env: flags,
     dependencies,
     ready: missingCore.length === 0 && dataBackendReady,
-    degraded: missingRecommendedCloud.length > 0 || dependencies.mongo.status === 'offline',
+    degraded: missingRecommendedCloud.length > 0 || optionalMongoBlocking,
     missingCore,
     missingRecommendedCloud
   };
@@ -103,7 +107,10 @@ export function buildJobsDegradedPayload({
 } = {}) {
   const dependencies = buildDependencyStatus(env, mongoConnected);
   const reasons = [];
-  if (dependencies.mongo.configured && !dependencies.mongo.connected) reasons.push('mongo_offline');
+  const alternateDataBackendReady = dependencies.turso.configured || dependencies.supabase.configured;
+  if (dependencies.mongo.configured && !dependencies.mongo.connected && !alternateDataBackendReady) {
+    reasons.push('mongo_offline');
+  }
   if (!dependencies.supabase.configured) reasons.push('supabase_missing');
   if (!dependencies.githubDispatch.configured) reasons.push('github_dispatch_missing');
   if (!dependencies.openai.configured) reasons.push('openai_fallback');

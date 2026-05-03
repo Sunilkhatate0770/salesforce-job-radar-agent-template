@@ -26,11 +26,65 @@ test("Vercel health treats Mongo as optional when Turso or Supabase is configure
   });
 
   assert.equal(payload.ready, true);
+  assert.equal(payload.degraded, true);
   assert.equal(payload.dependencies.mongo.required, false);
   assert.equal(payload.dependencies.mongo.status, "offline");
   assert.equal(payload.dependencies.turso.status, "configured");
   assert.equal(payload.dependencies.supabase.status, "configured");
   assert.deepEqual(payload.missingCore, []);
+});
+
+test("fully configured cloud health is not degraded only because legacy Mongo is offline", () => {
+  const payload = buildHealthPayload({
+    mongoConnected: false,
+    runtime: "vercel",
+    generatedAt: "2026-05-03T10:34:37.060Z",
+    env: {
+      GOOGLE_CLIENT_ID: "google-client",
+      MONGODB_URI: "mongodb-uri",
+      OPENAI_API_KEY: "openai-key",
+      JOB_RADAR_GITHUB_REPO: "owner/repo",
+      JOB_RADAR_GITHUB_TOKEN: "github-token",
+      TELEGRAM_BOT_TOKEN: "bot-token",
+      TELEGRAM_CHAT_ID: "992998090",
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      TURSO_URL: "libsql://db",
+      TURSO_AUTH_TOKEN: "token"
+    }
+  });
+
+  assert.equal(payload.ready, true);
+  assert.equal(payload.degraded, false);
+  assert.equal(payload.dependencies.mongo.required, false);
+  assert.equal(payload.dependencies.mongo.status, "offline");
+  assert.deepEqual(payload.missingCore, []);
+  assert.deepEqual(payload.missingRecommendedCloud, []);
+});
+
+test("job payload ignores legacy Mongo offline when cloud reads and dispatch are configured", () => {
+  const degraded = buildJobsDegradedPayload({
+    mongoConnected: false,
+    sourceCounts: { supabaseAlerts: 8, applicationTracker: 2, turso: 4, mongo: 0 },
+    env: {
+      GOOGLE_CLIENT_ID: "google-client",
+      MONGODB_URI: "mongodb-uri",
+      OPENAI_API_KEY: "openai-key",
+      JOB_RADAR_GITHUB_REPO: "owner/repo",
+      JOB_RADAR_GITHUB_TOKEN: "github-token",
+      SUPABASE_URL: "https://example.supabase.co",
+      SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      TURSO_URL: "libsql://db",
+      TURSO_AUTH_TOKEN: "token"
+    }
+  });
+
+  assert.equal(degraded.active, false);
+  assert.equal(degraded.scanMode, "github_actions");
+  assert.equal(degraded.aiMode, "openai");
+  assert.equal(degraded.statusStore, "cloud");
+  assert.deepEqual(degraded.reasons, []);
+  assert.deepEqual(degraded.liveSources, ["supabaseAlerts", "applicationTracker", "turso"]);
 });
 
 test("job payload reports degraded scan and fallback AI modes when optional cloud envs are missing", () => {

@@ -779,6 +779,62 @@ function setScopedItem(key, value) {
   localStorage.setItem(scopedStorageKey(key), String(value));
 }
 
+const RECENT_TOPIC_LIMIT = 14;
+
+function getRecentTopicItems() {
+  const recentIds = readScopedJson('recentTopics', [], 'sf_recent_topics');
+  if (!Array.isArray(recentIds)) return [];
+  return recentIds
+    .filter(id => topicConfig[id] && !topicConfig[id].noTimer)
+    .slice(0, RECENT_TOPIC_LIMIT)
+    .map(id => ({
+      id,
+      name: topicConfig[id].name || topicConfigName(id),
+      group: topicConfig[id].group || 'Topic'
+    }));
+}
+
+function renderRecentTopicsPanel() {
+  const host = document.getElementById('sidebarNavContent');
+  if (!host) return;
+
+  const items = getRecentTopicItems();
+  if (!items.length) {
+    host.innerHTML = '';
+    return;
+  }
+
+  host.innerHTML = `
+    <div class="nav-recent-panel" aria-label="Recently used study topics">
+      <div class="nav-recent-title">Recently Used</div>
+      <div class="nav-recent-list" tabindex="0">
+        ${items.map(item => `
+          <button type="button" class="nav-recent-chip" onclick="showPage(decodeURIComponent('${encodeInlineArg(item.id)}'))" title="${escapeHtml(item.name)}">
+            <span>${escapeHtml(item.name)}</span>
+            <b>${escapeHtml(item.group)}</b>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function trackRecentTopic(id) {
+  if (!topicConfig[id] || topicConfig[id].noTimer) {
+    renderRecentTopicsPanel();
+    return;
+  }
+
+  const recentIds = readScopedJson('recentTopics', [], 'sf_recent_topics');
+  const next = [
+    id,
+    ...(Array.isArray(recentIds) ? recentIds.filter(existingId => existingId !== id) : [])
+  ].slice(0, RECENT_TOPIC_LIMIT);
+
+  writeScopedJson('recentTopics', next);
+  renderRecentTopicsPanel();
+}
+
 function removeScopedStorage(key, legacyKey) {
   localStorage.removeItem(scopedStorageKey(key));
   if (legacyKey) localStorage.removeItem(legacyKey);
@@ -803,6 +859,7 @@ function loadUserScopedClientState() {
   activityLogPage = 0;
   historyPage = 0;
   clientStateLoadedFor = userId;
+  renderRecentTopicsPanel();
 }
 
 function renderPager(total, page, pageSize, prevAction, nextAction, force = false) {
@@ -3515,6 +3572,7 @@ async function showPage(id) {
   // UI Updates
   const headerTitle = document.getElementById('headerTitle');
   if (headerTitle) headerTitle.textContent = topicConfig[id] ? topicConfig[id].name : 'SF Prep Guide';
+  trackRecentTopic(id);
   document.querySelectorAll('.nav-item').forEach(function(n) {
     var oc = n.getAttribute('onclick');
     if (oc && (oc.indexOf("'"+id+"'") !== -1 || oc.indexOf("\""+id+"\"") !== -1)) n.classList.add('active');
@@ -3576,6 +3634,7 @@ function refreshSearchIndex() {
 // Initial index build
 window.addEventListener('DOMContentLoaded', () => {
   refreshSearchIndex();
+  renderRecentTopicsPanel();
   
   // Initialize Page Visibility
   document.querySelectorAll('.page').forEach(function(p) {
@@ -3596,8 +3655,13 @@ function filterSidebar(val) {
     items.forEach(el => el.style.display = 'flex');
     sections.forEach(el => el.style.display = 'block');
     sectionTitles.forEach(el => el.style.display = 'block');
+    const recentPanel = document.querySelector('.nav-recent-panel');
+    if (recentPanel) recentPanel.style.display = 'grid';
     return;
   }
+
+  const recentPanel = document.querySelector('.nav-recent-panel');
+  if (recentPanel) recentPanel.style.display = 'none';
 
   // Hide all titles initially
   sectionTitles.forEach(el => el.style.display = 'none');
