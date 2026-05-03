@@ -729,6 +729,10 @@ async function loadReleaseCenter(force = false) {
     };
   }
   renderReleaseCenterPage(premiumReleaseCache);
+  const releaseBadge = document.querySelector(".nav-item[onclick=\"showPage('salesforce_releases')\"] .count");
+  if (releaseBadge && premiumReleaseCache?.activeRelease?.releaseName) {
+    releaseBadge.textContent = premiumReleaseCache.activeRelease.releaseName;
+  }
   return premiumReleaseCache;
 }
 
@@ -2509,9 +2513,10 @@ function buildPipelineJobFromRecord(record, existingJob) {
     status: mappedStatus,
     statusUpdatedAt,
     url: safeUrl(record.apply_link || record.url || existing.url || '#'),
-    createdAt: record.createdAt || record.created_at || existing.createdAt || existing.created_at || '',
-    created_at: record.created_at || record.createdAt || record.date_added || existing.created_at || existing.createdAt || new Date().toISOString(),
-    date_added: record.date_added || record.created_at || record.createdAt || existing.date_added || '',
+    createdAt: record.first_seen_at || record.firstSeenAt || record.createdAt || record.created_at || existing.createdAt || existing.created_at || '',
+    created_at: record.first_seen_at || record.firstSeenAt || record.created_at || record.createdAt || record.date_added || existing.created_at || existing.createdAt || new Date().toISOString(),
+    date_added: record.date_added || record.first_seen_at || record.created_at || record.createdAt || existing.date_added || '',
+    first_seen_at: record.first_seen_at || record.firstSeenAt || existing.first_seen_at || '',
     updatedAt: record.last_seen_at || record.lastSeenAt || record.updated_at || record.updatedAt || existing.updatedAt || existing.last_seen_at || '',
     updated_at: record.updated_at || record.updatedAt || record.last_seen_at || existing.updated_at || '',
     last_seen_at: record.last_seen_at || record.lastSeenAt || existing.last_seen_at || '',
@@ -2558,8 +2563,8 @@ function sortBoardJobs(a, b) {
   const scoreDelta = Number(b.score || 0) - Number(a.score || 0);
   if (scoreDelta !== 0) return scoreDelta;
 
-  const dateA = new Date(a.last_seen_at || a.posted_at || a.updatedAt || a.updated_at || a.createdAt || a.date_added || a.created_at || 0);
-  const dateB = new Date(b.last_seen_at || b.posted_at || b.updatedAt || b.updated_at || b.createdAt || b.date_added || b.created_at || 0);
+  const dateA = new Date(a.first_seen_at || a.createdAt || a.created_at || a.date_added || a.posted_at || a.last_seen_at || a.updatedAt || a.updated_at || 0);
+  const dateB = new Date(b.first_seen_at || b.createdAt || b.created_at || b.date_added || b.posted_at || b.last_seen_at || b.updatedAt || b.updated_at || 0);
   return dateB - dateA;
 }
 

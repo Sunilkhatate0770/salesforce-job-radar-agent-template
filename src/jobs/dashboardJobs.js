@@ -15,8 +15,8 @@ export function parseMaybeArray(value) {
 }
 
 export function getJobRecordTime(job = {}) {
-  const value = job.last_seen_at || job.lastSeenAt || job.posted_at || job.postedAt || job.posted_date ||
-    job.updated_at || job.updatedAt || job.created_at || job.createdAt || job.date_added || job.dateAdded;
+  const value = job.first_seen_at || job.firstSeenAt || job.created_at || job.createdAt || job.date_added || job.dateAdded ||
+    job.posted_at || job.postedAt || job.posted_date || job.last_seen_at || job.lastSeenAt || job.updated_at || job.updatedAt;
   const parsed = new Date(value || 0);
   return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 }
@@ -32,7 +32,7 @@ export function normalizeDashboardJob(row = {}, source = "") {
   const score = Number(row.match_score ?? row.score ?? row.resume_match_score ?? 75);
   const title = row.title || row.role || row.canonical_role || "Salesforce Role";
   const lastSeen = row.last_seen_at || row.lastSeenAt || row.updated_at || row.updatedAt || row.created_at || row.createdAt || row.date_added || row.dateAdded || "";
-  const created = row.created_at || row.createdAt || row.date_added || row.dateAdded || lastSeen || "";
+  const created = row.first_seen_at || row.firstSeenAt || row.created_at || row.createdAt || row.date_added || row.dateAdded || lastSeen || "";
   return {
     ...row,
     id: String(row.id || row._id || row.job_hash || ""),
@@ -48,6 +48,7 @@ export function normalizeDashboardJob(row = {}, source = "") {
     probability: row.probability || row.prob || probabilityFromScore(score),
     status: row.board_status || row.status || "new",
     date_added: row.date_added || row.dateAdded || created,
+    first_seen_at: row.first_seen_at || row.firstSeenAt || created,
     created_at: created,
     updated_at: row.updated_at || row.updatedAt || lastSeen,
     last_seen_at: lastSeen,
@@ -149,6 +150,7 @@ export async function readSupabaseJobAlertRows(limit = 160) {
     const { data, error } = await supabase
       .from("job_alerts")
       .select("*")
+      .order("first_seen_at", { ascending: false, nullsFirst: false })
       .order("last_seen_at", { ascending: false, nullsFirst: false })
       .limit(limit);
     if (error) throw error;

@@ -21,6 +21,10 @@ import {
   getRadarStatusStateKey
 } from '../src/api/radarContract.js';
 import { isSupabaseEnabled, supabase } from '../src/db/supabase.js';
+import {
+  readReleaseCenterPayload,
+  selectPersonalizedReleaseItems
+} from '../src/releases/releaseCenter.js';
 
 /**
  * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
@@ -943,12 +947,15 @@ export default async function(req, res) {
     if (path === 'releases/latest' || path === 'releases/current') {
       const profile = await UserProfile.findOne({ userId }).lean() || {};
       const intelligence = buildPremiumRoadmap(profile);
-      const allReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+      const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+      const allReleases = await readReleaseCenterPayload(fallbackReleases);
       return res.status(200).json({
         success: true,
+        sourceMode: allReleases.sourceMode || 'bundled-fallback',
+        generatedAt: allReleases.generatedAt || null,
         activeRelease: allReleases.activeRelease || {},
         items: allReleases.items || [],
-        personalizedItems: intelligence.releaseFocus?.items || [],
+        personalizedItems: selectPersonalizedReleaseItems(allReleases.items || [], intelligence),
         experienceYears: intelligence.experienceYears,
         designation: intelligence.designation
       });

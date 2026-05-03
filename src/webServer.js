@@ -25,6 +25,10 @@ import {
   isPublicApiPath
 } from './api/radarContract.js';
 import { isSupabaseEnabled, supabase } from './db/supabase.js';
+import {
+  readReleaseCenterPayload,
+  selectPersonalizedReleaseItems
+} from './releases/releaseCenter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1080,10 +1084,20 @@ export default async function handler(req, res) {
       }
       else if (url === '/api/releases/current' && method === 'GET') {
         const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
-        const allReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+        const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+        const allReleases = await readReleaseCenterPayload(fallbackReleases);
         const intelligence = buildPremiumRoadmap(profile || {});
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, activeRelease: allReleases.activeRelease || {}, items: allReleases.items || [], personalizedItems: intelligence.releaseFocus?.items || [], experienceYears: intelligence.experienceYears, designation: intelligence.designation }));
+        res.end(JSON.stringify({
+          success: true,
+          sourceMode: allReleases.sourceMode || 'bundled-fallback',
+          generatedAt: allReleases.generatedAt || null,
+          activeRelease: allReleases.activeRelease || {},
+          items: allReleases.items || [],
+          personalizedItems: selectPersonalizedReleaseItems(allReleases.items || [], intelligence),
+          experienceYears: intelligence.experienceYears,
+          designation: intelligence.designation
+        }));
       }
       else if (url === '/api/code-practice/evaluate' && method === 'POST') {
         const body = await readJsonRequest(req);
