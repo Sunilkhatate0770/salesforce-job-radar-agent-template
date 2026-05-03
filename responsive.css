@@ -74,13 +74,7 @@ table {
   display: grid;
   grid-template-columns: 1fr;
   gap: 6px;
-  max-height: min(34dvh, 260px);
-  overflow-y: auto;
-  overflow-x: hidden;
   padding: 0 2px 2px 0;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
 }
 
 .nav-recent-chip {
@@ -122,11 +116,6 @@ table {
   font-weight: 800;
 }
 
-@media (max-width: 640px) {
-  .nav-recent-list {
-    max-height: min(28dvh, 210px);
-  }
-}
 
 #job_radar .development-view {
   min-width: 0;

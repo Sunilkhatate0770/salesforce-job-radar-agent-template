@@ -149,100 +149,11 @@
     return match ? match[1] : '';
   }
 
-  function readRecentPages() {
-    try {
-      const pages = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-      return Array.isArray(pages) ? pages.filter(Boolean).slice(0, 5) : [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  function writeRecentPages(pages) {
-    try {
-      localStorage.setItem(RECENT_KEY, JSON.stringify(pages.slice(0, 5)));
-    } catch (_) {
-      // Local storage can be unavailable in strict privacy modes.
-    }
-  }
-
-  function getSidebarNavMeta(sidebar) {
-    const map = new Map();
-    sidebar.querySelectorAll('.nav-item[onclick]').forEach(item => {
-      if (item.closest('.nav-recent-panel')) return;
-      const pageId = extractShowPageId(item.getAttribute('onclick'));
-      if (!pageId || map.has(pageId)) return;
-      const label = item.querySelector(':scope > .nav-label')?.textContent || item.textContent || pageId;
-      const count = item.querySelector(':scope > .count')?.textContent || '';
-      map.set(pageId, {
-        id: pageId,
-        label: cleanText(label.replace(count, '')) || pageId,
-        count: cleanText(count)
-      });
-    });
-    return map;
-  }
-
-  function recordRecentPage(pageId) {
-    if (!pageId) return;
-    const pages = readRecentPages().filter(id => id !== pageId);
-    pages.unshift(pageId);
-    writeRecentPages(pages);
-  }
-
-  function renderRecentNav(sidebar) {
-    const pages = readRecentPages();
-    let panel = sidebar.querySelector('#sidebarRecentNav');
-    if (!pages.length) {
-      if (panel) panel.remove();
-      return;
-    }
-
-    const meta = getSidebarNavMeta(sidebar);
-    const rows = pages.map(id => meta.get(id)).filter(Boolean);
-    if (!rows.length) {
-      if (panel) panel.remove();
-      return;
-    }
-
-    if (!panel) {
-      panel = document.createElement('div');
-      panel.id = 'sidebarRecentNav';
-      panel.className = 'nav-recent-panel';
-      const anchor = sidebar.querySelector('.search-wrap');
-      if (anchor && anchor.parentNode) {
-        anchor.parentNode.insertBefore(panel, anchor.nextSibling);
-      } else {
-        sidebar.insertBefore(panel, sidebar.firstChild);
-      }
-      panel.addEventListener('click', event => {
-        const button = event.target.closest('[data-recent-page]');
-        if (!button) return;
-        const pageId = button.getAttribute('data-recent-page');
-        if (pageId && typeof window.showPage === 'function') window.showPage(pageId);
-      });
-    }
-
-    const html = `
-      <div class="nav-recent-title">Recently Used</div>
-      <div class="nav-recent-list">
-        ${rows.map(row => `
-          <button type="button" class="nav-recent-chip" data-recent-page="${escapeMarkup(row.id)}">
-            <span>${escapeMarkup(cleanText(row.label))}</span>
-            ${row.count ? `<b>${escapeMarkup(cleanText(row.count))}</b>` : ''}
-          </button>
-        `).join('')}
-      </div>
-    `;
-    if (panel.innerHTML !== html) panel.innerHTML = html;
-  }
-
   function enhanceSidebar() {
     const sidebar = document.getElementById('sidebar');
     if (!sidebar) return;
 
     wrapNavLabels();
-    renderRecentNav(sidebar);
 
     const sections = Array.from(sidebar.querySelectorAll(':scope > .nav-parent-section'));
     const stored = readOpenSections();
@@ -330,9 +241,7 @@
     if (typeof window.showPage === 'function' && !window.showPage.__uiShellPatched) {
       const originalShowPage = window.showPage;
       window.showPage = async function patchedShowPage() {
-        const requestedPage = arguments[0];
         const result = await originalShowPage.apply(this, arguments);
-        recordRecentPage(requestedPage);
         runRepairs();
         const sidebar = document.getElementById('sidebar');
         if (sidebar && sidebarReady) enhanceSidebar();
