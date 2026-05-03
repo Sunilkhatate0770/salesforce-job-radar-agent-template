@@ -52,6 +52,41 @@ test("job payload reports degraded scan and fallback AI modes when optional clou
   assert.match(degraded.reasons.join(","), /github_dispatch_missing/);
 });
 
+test("health reports Telegram notifications missing until chat id is configured", () => {
+  const botOnly = buildHealthPayload({
+    mongoConnected: false,
+    runtime: "vercel",
+    generatedAt: "2026-05-03T00:00:00.000Z",
+    env: {
+      GOOGLE_CLIENT_ID: "google-client",
+      TURSO_URL: "libsql://db",
+      TURSO_AUTH_TOKEN: "token",
+      TELEGRAM_BOT_TOKEN: "bot-token"
+    }
+  });
+
+  assert.equal(botOnly.env.TELEGRAM_BOT_TOKEN, true);
+  assert.equal(botOnly.env.TELEGRAM_CHAT_ID, false);
+  assert.equal(botOnly.dependencies.notifications.configured, false);
+  assert.match(botOnly.missingRecommendedCloud.join(","), /TELEGRAM_BOT_TOKEN\/TELEGRAM_CHAT_ID/);
+
+  const withChat = buildHealthPayload({
+    mongoConnected: false,
+    runtime: "vercel",
+    generatedAt: "2026-05-03T00:00:00.000Z",
+    env: {
+      GOOGLE_CLIENT_ID: "google-client",
+      TURSO_URL: "libsql://db",
+      TURSO_AUTH_TOKEN: "token",
+      TELEGRAM_BOT_TOKEN: "bot-token",
+      TELEGRAM_CHAT_ID: "992998090"
+    }
+  });
+
+  assert.equal(withChat.env.TELEGRAM_CHAT_ID, true);
+  assert.equal(withChat.dependencies.notifications.configured, true);
+});
+
 test("radar status state keys are scoped per signed-in user", () => {
   assert.equal(
     getRadarStatusStateKey("  google-user-123  "),

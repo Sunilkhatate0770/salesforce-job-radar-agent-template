@@ -2,7 +2,7 @@ name: Salesforce Job Radar Agent
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # Poll every 5 minutes; gate keeps effective cadence near 10 minutes
+    - cron: "*/30 * * * *"   # Poll every 30 minutes; shared lease still prevents overlap
   workflow_dispatch:
     inputs:
       dispatch_source:
@@ -16,7 +16,7 @@ on:
 
 concurrency:
   group: salesforce-job-radar-agent
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   actions: read
@@ -25,6 +25,7 @@ permissions:
 jobs:
   run-agent:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -58,13 +59,17 @@ jobs:
 
           EMAIL_TO_VALUE="${{ secrets.EMAIL_TO }}"
           RESEND_TO_VALUE="${{ secrets.RESEND_TO }}"
+          TELEGRAM_CHAT_ID_VALUE="${{ secrets.TELEGRAM_CHAT_ID }}"
           if [ -z "$RESEND_TO_VALUE" ]; then
             RESEND_TO_VALUE="$EMAIL_TO_VALUE"
+          fi
+          if [ -z "$TELEGRAM_CHAT_ID_VALUE" ]; then
+            TELEGRAM_CHAT_ID_VALUE="${{ vars.TELEGRAM_CHAT_ID }}"
           fi
 
           set_env "APIFY_TOKEN" "${{ secrets.APIFY_TOKEN }}"
           set_env "TELEGRAM_BOT_TOKEN" "${{ secrets.TELEGRAM_BOT_TOKEN }}"
-          set_env "TELEGRAM_CHAT_ID" "${{ secrets.TELEGRAM_CHAT_ID }}"
+          set_env "TELEGRAM_CHAT_ID" "$TELEGRAM_CHAT_ID_VALUE"
           set_env "SUPABASE_URL" "${{ secrets.SUPABASE_URL }}"
           set_env "SUPABASE_SERVICE_KEY" "${{ secrets.SUPABASE_SERVICE_KEY }}"
           set_env "SMTP_USER" "${{ secrets.SMTP_USER }}"
@@ -85,6 +90,7 @@ jobs:
 
 
       - name: Validate email provider configuration
+        timeout-minutes: 3
         run: |
           RESEND_RECIPIENT="${RESEND_TO:-$EMAIL_TO}"
           if [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASS" ] || [ -z "$EMAIL_FROM" ] || [ -z "$EMAIL_TO" ]; then
@@ -96,10 +102,34 @@ jobs:
             fi
           fi
 
+      - name: Debug required secret presence
+        run: |
+          print_secret_status() {
+            if [ -n "${!1}" ]; then
+              echo "$1 set: yes"
+            else
+              echo "$1 set: no"
+            fi
+          }
+
+          print_secret_status SUPABASE_URL
+          print_secret_status SUPABASE_SERVICE_KEY
+          print_secret_status TELEGRAM_BOT_TOKEN
+          print_secret_status TELEGRAM_CHAT_ID
+          print_secret_status OPENAI_API_KEY
+          print_secret_status APIFY_TOKEN
+          print_secret_status SMTP_USER
+          print_secret_status EMAIL_TO
+          print_secret_status RESEND_API_KEY
+          print_secret_status RESEND_FROM
+          print_secret_status RESEND_TO
+
       - name: Validate notifier and Supabase config
+        timeout-minutes: 5
         run: npm run doctor
 
       - name: Validate shared lease config
+        timeout-minutes: 5
         env:
           SCHEDULER_MODE: always
         run: npm run doctor:cloud
@@ -117,10 +147,12 @@ jobs:
           echo "RESEND_TO set: ${RESEND_TO:+yes}"
 
       - name: Run Salesforce Job Radar Agent
+        timeout-minutes: 25
         run: node src/run.js
 
       - name: Process tailored resume pack follow-up queue
-        if: always()
+        if: success()
+        timeout-minutes: 5
         run: node src/tools/processResumePackQueue.js
 
       - name: Save local agent state cache

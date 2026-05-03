@@ -10,6 +10,7 @@ export function buildEnvFlags(env = process.env) {
     GITHUB_REPOSITORY: hasEnvValue(env, 'GITHUB_REPOSITORY') || hasEnvValue(env, 'JOB_RADAR_GITHUB_REPO'),
     GITHUB_TOKEN: hasEnvValue(env, 'GITHUB_TOKEN') || hasEnvValue(env, 'GH_TOKEN') || hasEnvValue(env, 'JOB_RADAR_GITHUB_TOKEN'),
     TELEGRAM_BOT_TOKEN: hasEnvValue(env, 'TELEGRAM_BOT_TOKEN'),
+    TELEGRAM_CHAT_ID: hasEnvValue(env, 'TELEGRAM_CHAT_ID'),
     SUPABASE_URL: hasEnvValue(env, 'SUPABASE_URL'),
     SUPABASE_SERVICE_KEY: hasEnvValue(env, 'SUPABASE_SERVICE_ROLE_KEY') || hasEnvValue(env, 'SUPABASE_SERVICE_KEY'),
     TURSO_URL: hasEnvValue(env, 'TURSO_URL') || hasEnvValue(env, 'TURSO_DATABASE_URL'),
@@ -53,8 +54,8 @@ export function buildDependencyStatus(env = process.env, mongoConnected = false)
       status: flags.OPENAI_API_KEY ? 'configured' : 'fallback'
     },
     notifications: {
-      configured: flags.TELEGRAM_BOT_TOKEN,
-      status: flags.TELEGRAM_BOT_TOKEN ? 'configured' : 'missing'
+      configured: flags.TELEGRAM_BOT_TOKEN && flags.TELEGRAM_CHAT_ID,
+      status: flags.TELEGRAM_BOT_TOKEN && flags.TELEGRAM_CHAT_ID ? 'configured' : 'missing'
     }
   };
 }
@@ -73,7 +74,7 @@ export function buildHealthPayload({
   if (!dependencies.supabase.configured) missingRecommendedCloud.push('SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY');
   if (!dependencies.githubDispatch.configured) missingRecommendedCloud.push('JOB_RADAR_GITHUB_REPO/JOB_RADAR_GITHUB_TOKEN');
   if (!dependencies.openai.configured) missingRecommendedCloud.push('OPENAI_API_KEY');
-  if (!dependencies.notifications.configured) missingRecommendedCloud.push('TELEGRAM_BOT_TOKEN');
+  if (!dependencies.notifications.configured) missingRecommendedCloud.push('TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID');
 
   const dataBackendReady =
     dependencies.mongo.connected ||

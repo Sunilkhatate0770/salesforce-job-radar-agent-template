@@ -156,7 +156,15 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error("Resume pack queue processor failed:", error);
-  process.exit(1);
-});
+main()
+  .then(() => {
+    if (!isTruthy(process.env.GITHUB_ACTIONS)) {
+      return;
+    }
+
+    setImmediate(() => process.exit(process.exitCode || 0));
+  })
+  .catch(error => {
+    console.error("Resume pack queue processor failed:", error);
+    process.exit(1);
+  });
