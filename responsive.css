@@ -61,6 +61,41 @@ table {
   min-height: 0;
 }
 
+.nav-recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.nav-recent-pager {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-recent-btn {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(96, 165, 250, 0.15);
+  border-radius: 4px;
+  color: #93c5fd;
+  cursor: pointer;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 6px;
+  line-height: 1.2;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-recent-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #fff;
+}
+
 .nav-recent-title {
   color: var(--muted, #94a3b8);
   font-size: 10px;

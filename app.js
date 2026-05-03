@@ -25,6 +25,8 @@ let lastFetchTime = 0;
 const MIN_FETCH_INTERVAL = 60000;
 let currentUser = null;
 let GSI_TOKEN = localStorage.getItem('google_auth_token') || null;
+let recentTopicsPage = 0;
+const RECENT_PAGE_SIZE = 5;
 let premiumRoadmapCache = null;
 let premiumReleaseCache = null;
 let premiumStaticDataCache = null;
@@ -798,15 +800,30 @@ function renderRecentTopicsPanel() {
   const host = document.getElementById('sidebarNavContent');
   if (!host) return;
 
-  const items = getRecentTopicItems();
-  if (!items.length) {
+  const allItems = getRecentTopicItems();
+  if (!allItems.length) {
     host.innerHTML = '';
     return;
   }
 
+  const totalPages = Math.ceil(allItems.length / RECENT_PAGE_SIZE);
+  if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
+  if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
+
+  const start = recentTopicsPage * RECENT_PAGE_SIZE;
+  const items = allItems.slice(start, start + RECENT_PAGE_SIZE);
+
   host.innerHTML = `
     <div class="nav-recent-panel" aria-label="Recently used study topics">
-      <div class="nav-recent-title">Recently Used</div>
+      <div class="nav-recent-header">
+        <div class="nav-recent-title">Recently Used</div>
+        ${allItems.length > RECENT_PAGE_SIZE ? `
+          <div class="nav-recent-pager">
+            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(-1)" title="Previous">&larr;</button>
+            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(1)" title="Next">&rarr;</button>
+          </div>
+        ` : ''}
+      </div>
       <div class="nav-recent-list" tabindex="0">
         ${items.map(item => `
           <button type="button" class="nav-recent-chip" onclick="showPage(decodeURIComponent('${encodeInlineArg(item.id)}'))" title="${escapeHtml(item.name)}">
@@ -818,6 +835,11 @@ function renderRecentTopicsPanel() {
     </div>
   `;
 }
+
+window.changeRecentPage = function(delta) {
+  recentTopicsPage += delta;
+  renderRecentTopicsPanel();
+};
 
 function trackRecentTopic(id) {
   if (!topicConfig[id] || topicConfig[id].noTimer) {
