@@ -76,6 +76,40 @@ function buildHealthPayload() {
   });
 }
 
+async function buildConnectivityDetails() {
+  const details = {
+    mongo: { connected: isMongoConnected() },
+    turso: { connected: false, checked: false },
+    supabase: { connected: false, checked: false }
+  };
+
+  if (process.env.TURSO_URL || process.env.TURSO_DATABASE_URL) {
+    details.turso.checked = true;
+    try {
+      await TursoDB.execute('SELECT 1 AS ok');
+      details.turso.connected = true;
+    } catch (err) {
+      details.turso.error = err.message;
+    }
+  }
+
+  if (isSupabaseEnabled()) {
+    details.supabase.checked = true;
+    try {
+      const { error } = await supabase
+        .from(process.env.STATE_BACKEND_TABLE || 'agent_state')
+        .select('state_key')
+        .limit(1);
+      if (error) throw error;
+      details.supabase.connected = true;
+    } catch (err) {
+      details.supabase.error = err.message;
+    }
+  }
+
+  return details;
+}
+
 async function getUserId(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -114,6 +148,30 @@ async function safeMongoRead(label, operation, fallback) {
   }
 }
 
+async function safeMongoWrite(label, operation) {
+  if (!isMongoConnected()) {
+    console.warn(`[Mongo] ${label} skipped; MongoDB is not connected.`);
+    return false;
+  }
+  try {
+    await operation();
+    return true;
+  } catch (err) {
+    console.warn(`[Mongo] ${label} write unavailable; continuing with fallback storage:`, err.message);
+    return false;
+  }
+}
+
+async function safeTursoWrite(label, operation) {
+  try {
+    await operation();
+    return true;
+  } catch (err) {
+    console.warn(`[Turso] ${label} write unavailable; continuing with other storage:`, err.message);
+    return false;
+  }
+}
+
 function mergeUnique(arr1 = [], arr2 = [], key) {
   const map = new Map();
   [...(arr2 || []), ...(arr1 || [])].forEach(item => {
@@ -122,6 +180,42 @@ function mergeUnique(arr1 = [], arr2 = [], key) {
     if (id !== undefined && id !== null) map.set(String(id), item);
   });
   return Array.from(map.values());
+}
+
+async function loadHybridProfile(userId, label = 'profile') {
+  const [tursoProfile, mongoProfile] = await Promise.all([
+    safeTursoRead(`${label} turso profile`, () => TursoDB.getProfile(userId), null),
+    safeMongoRead(`${label} mongo profile`, () => UserProfile.findOne({ userId }).lean(), null)
+  ]);
+
+  if (tursoProfile && mongoProfile) {
+    return {
+      profile: {
+        ...mongoProfile,
+        ...tursoProfile,
+        skills: mergeUnique(tursoProfile.skills, mongoProfile.skills),
+        certifications: mergeUnique(tursoProfile.certifications, mongoProfile.certifications),
+        missingSkills: mergeUnique(tursoProfile.missingSkills, mongoProfile.missingSkills),
+        bookmarks: mergeUnique(tursoProfile.bookmarks, mongoProfile.bookmarks, 'q'),
+        completedTasks: mergeUnique(tursoProfile.completedTasks, mongoProfile.completedTasks),
+        studyPlanTopics: mergeUnique(tursoProfile.studyPlanTopics, mongoProfile.studyPlanTopics, 'topicId')
+      },
+      tursoProfile,
+      mongoProfile,
+      source: 'Unified Hybrid (Turso + Mongo)'
+    };
+  }
+
+  return {
+    profile: tursoProfile || mongoProfile || null,
+    tursoProfile,
+    mongoProfile,
+    source: tursoProfile ? 'Turso (Primary)' : (mongoProfile ? 'MongoDB (Legacy)' : 'None')
+  };
+}
+
+function mongoJobQuery(userId) {
+  return { $or: [{ userId }, { userId: 'system' }] };
 }
 
 function readBody(req) {
@@ -777,7 +871,10 @@ export default async function(req, res) {
     }
 
     if (path === 'health' && req.method === 'GET') {
-      return res.status(200).json(buildHealthPayload());
+      return res.status(200).json({
+        ...buildHealthPayload(),
+        connectivity: await buildConnectivityDetails()
+      });
     }
 
     // --- REQUIRE AUTH FOR DATA ROUTES ---
@@ -817,29 +914,11 @@ export default async function(req, res) {
 
     // 2. PROFILE ENDPOINTS (Hybrid Search & Smart Merge)
     if (path === 'profile/data') {
-      let tursoProfile = await safeTursoRead('profile/data', () => TursoDB.getProfile(userId), null);
-      let mongoProfile = await safeMongoRead('profile/data', () => UserProfile.findOne({ userId }).lean(), null);
+      const { profile, tursoProfile, mongoProfile, source } = await loadHybridProfile(userId, 'profile/data');
       
       console.log(`[DEBUG] Hybrid Fetch for ${userId}:`);
       console.log(` - Turso Profile: ${tursoProfile ? 'FOUND' : 'NOT FOUND'} (Bookmarks: ${tursoProfile?.bookmarks?.length || 0})`);
       console.log(` - Mongo Profile: ${mongoProfile ? 'FOUND' : 'NOT FOUND'} (Bookmarks: ${mongoProfile?.bookmarks?.length || 0})`);
-
-      // Smart Merge: Use Turso as base, but fallback to Mongo for empty fields
-      let profile = tursoProfile || mongoProfile;
-      let source = tursoProfile ? 'Turso (Primary)' : 'MongoDB (Legacy)';
-
-      if (tursoProfile && mongoProfile) {
-        profile = { 
-          ...mongoProfile, 
-          ...tursoProfile, 
-          skills: mergeUnique(tursoProfile.skills, mongoProfile.skills),
-          certifications: mergeUnique(tursoProfile.certifications, mongoProfile.certifications),
-          bookmarks: mergeUnique(tursoProfile.bookmarks, mongoProfile.bookmarks, 'q'),
-          completedTasks: mergeUnique(tursoProfile.completedTasks, mongoProfile.completedTasks)
-        };
-        source = 'Unified Hybrid (Turso + Mongo)';
-        console.log(`[DEBUG] Unified Final Bookmarks: ${profile.bookmarks?.length}`);
-      }
 
       console.log(`[PROFILE] Fetch for ${userId} -> Source: ${source}, Found: ${!!profile}`);
       return res.status(200).json({ exists: !!profile, profile, storageSource: source });
@@ -851,7 +930,7 @@ export default async function(req, res) {
         return res.status(400).json({ success: false, error: 'topicId and stats are required' });
       }
 
-      const profile = await UserProfile.findOne({ userId }).lean();
+      const { profile } = await loadHybridProfile(userId, 'profile/save-retention');
       const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
       const index = topics.findIndex(t => t.topicId === topicId);
       const retentionTopic = {
@@ -866,12 +945,19 @@ export default async function(req, res) {
       if (index >= 0) topics[index] = retentionTopic;
       else topics.push(retentionTopic);
 
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        { userId, studyPlanTopics: topics, updatedAt: new Date() },
-        { upsert: true, new: true }
-      );
-      return res.status(200).json({ success: true, studyPlanTopics: topics });
+      const nextProfile = { ...(profile || {}), userId, studyPlanTopics: topics, updatedAt: new Date() };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/save-retention', () => UserProfile.findOneAndUpdate(
+          { userId },
+          { userId, studyPlanTopics: topics, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('profile/save-retention', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, studyPlanTopics: topics, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/save' && req.method === 'POST') {
@@ -894,12 +980,18 @@ export default async function(req, res) {
       normalizedProfile.releaseFocus = intelligence.releaseFocus;
       if (!normalizedProfile.targetRole && normalizedProfile.targetDesignation) normalizedProfile.targetRole = normalizedProfile.targetDesignation;
       if (!normalizedProfile.currentRole && normalizedProfile.currentDesignation) normalizedProfile.currentRole = normalizedProfile.currentDesignation;
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        normalizedProfile,
-        { upsert: true, new: true }
-      );
-      return res.status(200).json({ success: true });
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/save', () => UserProfile.findOneAndUpdate(
+          { userId },
+          normalizedProfile,
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('profile/save', () => TursoDB.saveProfile(userId, normalizedProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/import' && req.method === 'POST') {
@@ -910,7 +1002,8 @@ export default async function(req, res) {
         return res.status(400).json({ success: false, error: 'Profile text is required' });
       }
 
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/import');
+      const profile = loadedProfile || {};
       const { _id, __v, createdAt, ...profileBase } = profile;
       const nextProfile = {
         ...profileBase,
@@ -933,19 +1026,27 @@ export default async function(req, res) {
       nextProfile.roadmapSnapshot = intelligence.roadmap;
       nextProfile.releaseFocus = intelligence.releaseFocus;
 
-      await UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true });
-      return res.status(200).json({ success: true, extractedData: extracted, intelligence });
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/import', () => UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true })),
+        safeTursoWrite('profile/import', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, extractedData: extracted, intelligence, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'roadmap') {
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'roadmap');
+      const profile = loadedProfile || {};
       const intelligence = buildPremiumRoadmap(profile);
       return res.status(200).json({ success: true, ...intelligence });
     }
 
     // ALIAS for releases/current used by UI
     if (path === 'releases/latest' || path === 'releases/current') {
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'releases/current');
+      const profile = loadedProfile || {};
       const intelligence = buildPremiumRoadmap(profile);
       const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
       const allReleases = await readReleaseCenterPayload(fallbackReleases);
@@ -998,7 +1099,8 @@ export default async function(req, res) {
     }
 
     if (path === 'code-practice/progress' && req.method === 'GET') {
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'code-practice/progress');
+      const profile = loadedProfile || {};
       const codingPractice = profile.codingPractice || { attempts: [], bestScores: {}, lastWorkspace: null, completedChallengeIds: [] };
       return res.status(200).json({ success: true, codingPractice });
     }
@@ -1007,7 +1109,8 @@ export default async function(req, res) {
       const body = readBody(req);
       const challenge = getCodePracticeChallenge(body.challengeId);
       if (!challenge) return res.status(404).json({ success: false, error: 'Challenge not found' });
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'code-practice/attempt');
+      const profile = loadedProfile || {};
       const current = profile.codingPractice || {};
       const score = Math.max(0, Math.min(100, Math.round(Number(body.score || body.correctnessPercent || 0))));
       const attempt = {
@@ -1037,12 +1140,19 @@ export default async function(req, res) {
           updatedAt: new Date()
         }
       };
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        { userId, codingPractice, updatedAt: new Date() },
-        { upsert: true, new: true }
-      );
-      return res.status(200).json({ success: true, codingPractice });
+      const nextProfile = { ...profile, userId, codingPractice, updatedAt: new Date() };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('code-practice/attempt', () => UserProfile.findOneAndUpdate(
+          { userId },
+          { userId, codingPractice, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('code-practice/attempt', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, codingPractice, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/sync-cloud' && req.method === 'POST') {
@@ -1050,7 +1160,8 @@ export default async function(req, res) {
       const body = readBody(req);
       const platformName = (body.platform || '').toLowerCase().includes('naukri') ? 'naukri' : 'linkedin';
       
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/sync-cloud');
+      const profile = loadedProfile || {};
       const platforms = profile.platforms || {};
       platforms[platformName] = { synced: true, lastSync: new Date() };
 
@@ -1064,20 +1175,28 @@ export default async function(req, res) {
         ];
       }
 
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        { 
-          userId, 
-          platforms, 
-          skills: profile.skills || ['Apex', 'LWC', 'SOQL', 'Integration', 'Flows', 'Async Apex', 'REST APIs'], 
-          certifications: certs,
-          experienceYears: profile.experienceYears || 3.5,
-          updatedAt: new Date() 
-        },
-        { upsert: true, new: true }
-      );
+      const nextProfile = {
+        ...profile,
+        userId,
+        platforms,
+        skills: profile.skills || ['Apex', 'LWC', 'SOQL', 'Integration', 'Flows', 'Async Apex', 'REST APIs'],
+        certifications: certs,
+        experienceYears: profile.experienceYears || 3.5,
+        updatedAt: new Date()
+      };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/sync-cloud', () => UserProfile.findOneAndUpdate(
+          { userId },
+          nextProfile,
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('profile/sync-cloud', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
       
-      return res.status(200).json({ success: true, message: 'Cloud sync successful' });
+      return res.status(200).json({ success: true, message: 'Cloud sync successful', storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/parse-resume' && req.method === 'POST') {
@@ -1085,7 +1204,8 @@ export default async function(req, res) {
       // In a full production system, we would use pdf-parse here.
       // For this industrial template, we simulate the AI extraction.
       
-      const profile = await UserProfile.findOne({ userId }).lean() || {};
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/parse-resume');
+      const profile = loadedProfile || {};
       
       // Merge new extracted skills with existing
       const currentSkills = new Set(profile.skills || []);
@@ -1097,21 +1217,26 @@ export default async function(req, res) {
         currentRole: 'Senior Salesforce Developer'
       };
 
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        { 
-          ...extractedData,
-          updatedAt: new Date() 
-        },
-        { upsert: true, new: true }
-      );
+      const nextProfile = { ...profile, ...extractedData, userId, updatedAt: new Date() };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/parse-resume', () => UserProfile.findOneAndUpdate(
+          { userId },
+          { ...extractedData, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('profile/parse-resume', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
       
-      return res.status(200).json({ success: true, extractedData });
+      return res.status(200).json({ success: true, extractedData, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/toggle-bookmark' && req.method === 'POST') {
-      console.log(`[BOOKMARK] Toggling in Primary Mongo for ${userId}`);
-      const profile = await UserProfile.findOne({ userId });
+      console.log(`[BOOKMARK] Toggling in hybrid stores for ${userId}`);
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/toggle-bookmark');
+      const profile = loadedProfile || {};
       let bookmarks = profile?.bookmarks || [];
       const bookmark = req.body;
       
@@ -1122,19 +1247,28 @@ export default async function(req, res) {
         bookmarks.push({ ...bookmark, date: new Date() });
       }
 
-      await UserProfile.findOneAndUpdate({ userId }, { bookmarks }, { upsert: true });
-      return res.status(200).json({ success: true, bookmarks });
+      const nextProfile = { ...profile, userId, bookmarks, updatedAt: new Date() };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('profile/toggle-bookmark', () => UserProfile.findOneAndUpdate({ userId }, { bookmarks, updatedAt: new Date() }, { upsert: true })),
+        safeTursoWrite('profile/toggle-bookmark', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, bookmarks, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/match') {
-      const tursoProfile = await safeTursoRead('profile/match profile', () => TursoDB.getProfile(userId), null);
-      const mongoProfile = await safeMongoRead('profile/match profile', () => UserProfile.findOne({ userId }).lean(), null);
-      const profile = tursoProfile || mongoProfile;
+      const { profile } = await loadHybridProfile(userId, 'profile/match');
 
       // Get Jobs from both tiers
-      const tursoJobs = await safeTursoRead('profile/match jobs', () => TursoDB.getJobAnalytics(userId), []);
-      const mongoJobs = await safeMongoRead('profile/match jobs', () => JobRecord.find({ userId }).lean(), []);
-      const allJobs = [...tursoJobs, ...mongoJobs];
+      const [tursoJobs, mongoJobs, trackerJobs, alertJobs] = await Promise.all([
+        safeTursoRead('profile/match jobs', () => TursoDB.getJobAnalytics(userId), []),
+        safeMongoRead('profile/match jobs', () => JobRecord.find(mongoJobQuery(userId)).lean(), []),
+        readSupabaseTrackerJobs(),
+        readSupabaseJobAlertRows(180)
+      ]);
+      const allJobs = mergeDashboardJobs(tursoJobs, mongoJobs, trackerJobs, alertJobs);
 
       console.log(`[MATCH] Analyzing ${allJobs.length} total jobs for ${userId}`);
       const filtered = allJobs.filter(j => (j.match_score || 0) >= 60);
@@ -1163,7 +1297,7 @@ export default async function(req, res) {
         safeTursoRead('jobs', () => TursoDB.getJobs(userId, 160), []),
         safeMongoRead(
           'jobs',
-          () => JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ updatedAt: -1, createdAt: -1 }).limit(160).lean(),
+          () => JobRecord.find(mongoJobQuery(userId)).sort({ updatedAt: -1, createdAt: -1 }).limit(220).lean(),
           []
         ),
         readSupabaseTrackerJobs(),
@@ -1230,7 +1364,7 @@ export default async function(req, res) {
     if (path === 'jobs/analytics') {
       const [tursoJobs, mongoJobs, trackerJobs, alertJobs] = await Promise.all([
         safeTursoRead('jobs/analytics', () => TursoDB.getJobAnalytics(userId), []),
-        safeMongoRead('jobs/analytics', () => JobRecord.find({ userId }).lean(), []),
+        safeMongoRead('jobs/analytics', () => JobRecord.find(mongoJobQuery(userId)).lean(), []),
         readSupabaseTrackerJobs(),
         readSupabaseJobAlertRows(180)
       ]);
@@ -1276,7 +1410,7 @@ export default async function(req, res) {
       const [mongoJobs, tursoJobs, trackerJobs, alertJobs] = await Promise.all([
         safeMongoRead(
           'jobs/list',
-          () => JobRecord.find({ userId }).sort({ date_added: -1 }).lean(),
+          () => JobRecord.find(mongoJobQuery(userId)).sort({ date_added: -1, createdAt: -1 }).limit(220).lean(),
           []
         ),
         safeTursoRead('jobs/list', () => TursoDB.getJobAnalytics(userId), []),
@@ -1306,29 +1440,43 @@ export default async function(req, res) {
     }
 
     if (path === 'study/session' && req.method === 'POST') {
-      console.log(`[STUDY] Saving session to Primary Mongo for ${userId}`);
-      const session = new StudySession({ ...req.body, userId });
-      await session.save();
-      return res.status(200).json({ success: true });
+      console.log(`[STUDY] Saving session to hybrid stores for ${userId}`);
+      const sessionPayload = { ...readBody(req), userId };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('study/session', async () => {
+          const session = new StudySession(sessionPayload);
+          await session.save();
+        }),
+        safeTursoWrite('study/session', () => TursoDB.saveStudySession(userId, sessionPayload))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No study storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'study/stats') {
-      const mongoSessions = await StudySession.find({ userId }).lean();
-      const totalSeconds = mongoSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+      const [tursoSessions, mongoSessions] = await Promise.all([
+        safeTursoRead('study/stats turso', () => TursoDB.getFullHistory(userId), []),
+        safeMongoRead('study/stats mongo', () => StudySession.find({ userId }).lean(), [])
+      ]);
+      const sessions = [...tursoSessions, ...mongoSessions];
+      const totalSeconds = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
       const topicCounts = {};
-      mongoSessions.forEach(s => {
-        if (s.topicId) topicCounts[s.topicId] = (topicCounts[s.topicId] || 0) + (s.duration || 0);
+      sessions.forEach(s => {
+        const topicId = s.topicId || s.topic;
+        if (topicId) topicCounts[topicId] = (topicCounts[topicId] || 0) + (s.duration || 0);
       });
       return res.status(200).json({
         totalSeconds,
-        sessionsCount: mongoSessions.length,
+        sessionsCount: sessions.length,
         breakdown: topicCounts
       });
     }
 
     if (path === 'study/tasks') {
       const tursoProfile = await safeTursoRead('study/tasks profile', () => TursoDB.getProfile(userId), null);
-      const mongoTasks = await TaskStatus.find({ userId, completed: true }).lean();
+      const mongoTasks = await safeMongoRead('study/tasks mongo', () => TaskStatus.find({ userId, completed: true }).lean(), []);
       const combinedTasks = Array.from(new Set([
         ...(tursoProfile?.completedTasks || []),
         ...mongoTasks.map(t => t.index)
@@ -1344,38 +1492,54 @@ export default async function(req, res) {
         return res.status(400).json({ success: false, error: 'index or taskId is required' });
       }
 
-      const existing = await TaskStatus.findOne({ userId, index: taskIndex }).lean();
+      const existing = await safeMongoRead('study/toggle-task existing', () => TaskStatus.findOne({ userId, index: taskIndex }).lean(), null);
       const nextCompleted = typeof body.completed === 'boolean' ? body.completed : !existing?.completed;
-      console.log(`[TASK] Toggling task ${taskIndex} in Primary Mongo for ${userId} -> ${nextCompleted}`);
+      console.log(`[TASK] Toggling task ${taskIndex} in hybrid stores for ${userId} -> ${nextCompleted}`);
 
-      await TaskStatus.findOneAndUpdate(
-        { userId, index: taskIndex },
-        { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
-        { upsert: true, new: true }
-      );
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('study/toggle-task', () => TaskStatus.findOneAndUpdate(
+          { userId, index: taskIndex },
+          { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('study/toggle-task', () => TursoDB.toggleTask(userId, taskIndex, nextCompleted))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No task storage backend is currently writable.' });
+      }
 
-      const completedTasks = (await TaskStatus.find({ userId, completed: true }).lean()).map(t => t.index);
-      return res.status(200).json({ success: true, completedTasks });
+      const tursoProfile = await safeTursoRead('study/toggle-task profile', () => TursoDB.getProfile(userId), null);
+      const mongoTasks = await safeMongoRead('study/toggle-task tasks', () => TaskStatus.find({ userId, completed: true }).lean(), []);
+      const completedTasks = Array.from(new Set([
+        ...(tursoProfile?.completedTasks || []),
+        ...mongoTasks.map(t => t.index)
+      ].map(Number).filter(Number.isFinite)));
+      return res.status(200).json({ success: true, completedTasks, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'study/reset' && req.method === 'POST') {
-      await StudySession.deleteMany({ userId });
-      await TaskStatus.deleteMany({ userId });
-      await UserProfile.findOneAndUpdate(
-        { userId },
-        { userId, studyPlanTopics: [], studyStreak: { current: 0, best: 0, lastDate: '' }, updatedAt: new Date() },
-        { upsert: true }
-      );
-      return res.status(200).json({ success: true, completedTasks: [], sessions: [] });
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('study/reset', async () => {
+          await StudySession.deleteMany({ userId });
+          await TaskStatus.deleteMany({ userId });
+          await UserProfile.findOneAndUpdate(
+            { userId },
+            { userId, studyPlanTopics: [], studyStreak: { current: 0, best: 0, lastDate: '' }, updatedAt: new Date() },
+            { upsert: true }
+          );
+        }),
+        safeTursoWrite('study/reset', () => TursoDB.resetStudyData(userId))
+      ]);
+      return res.status(200).json({ success: true, completedTasks: [], sessions: [], storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'study/leaderboard') {
-      const rows = await StudySession.aggregate([
+      const rows = await safeMongoRead('study/leaderboard rows', () => StudySession.aggregate([
         { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
         { $sort: { totalSeconds: -1, sessions: -1 } },
         { $limit: 10 }
-      ]);
-      const users = await User.find({ googleId: { $in: rows.map(r => r._id) } }).lean();
+      ]), []);
+      const users = await safeMongoRead('study/leaderboard users', () => User.find({ googleId: { $in: rows.map(r => r._id) } }).lean(), []);
       const userMap = new Map(users.map(u => [u.googleId, u]));
       const leaderboard = rows.map(row => {
         const user = userMap.get(row._id) || {};
@@ -1401,13 +1565,19 @@ export default async function(req, res) {
       );
       const allSessions = [...tursoSessions, ...mongoSessions];
       
-      const mongoJobs = await safeMongoRead(
-        'summary/jobs',
-        () => JobRecord.find({ userId }).sort({ createdAt: -1 }).limit(1000).lean(),
-        []
-      );
+      const [mongoJobs, tursoJobs, trackerJobs, alertJobs] = await Promise.all([
+        safeMongoRead(
+          'summary/jobs mongo',
+          () => JobRecord.find(mongoJobQuery(userId)).sort({ createdAt: -1 }).limit(1000).lean(),
+          []
+        ),
+        safeTursoRead('summary/jobs turso', () => TursoDB.getJobAnalytics(userId), []),
+        readSupabaseTrackerJobs(),
+        readSupabaseJobAlertRows(180)
+      ]);
+      const allJobs = mergeDashboardJobs(mongoJobs, tursoJobs, trackerJobs, alertJobs);
       
-      console.log(`[SUMMARY] Hybrid Analyzing ${allSessions.length} sessions and ${mongoJobs.length} jobs`);
+      console.log(`[SUMMARY] Hybrid Analyzing ${allSessions.length} sessions and ${allJobs.length} jobs`);
       
       const historyObj = {};
       
@@ -1437,7 +1607,7 @@ export default async function(req, res) {
       });
       
       // Aggregate Jobs
-      mongoJobs.forEach(j => {
+      allJobs.forEach(j => {
         const d = j.date_added || new Date(j.createdAt).toISOString().split('T')[0];
         if (!historyObj[d]) {
           historyObj[d] = { 
