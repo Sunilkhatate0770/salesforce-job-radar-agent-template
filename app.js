@@ -415,8 +415,14 @@ function hydratePremiumSetupForm(profile = {}) {
   const targetEl = document.getElementById('premiumTargetDesignation');
   const currentEl = document.getElementById('premiumCurrentDesignation');
   const skillsEl = document.getElementById('premiumSkills');
-  if (expEl) expEl.value = String(clampPremiumExperience(profile.experienceYears || 1));
-  if (targetEl && (profile.targetDesignation || profile.targetRole)) targetEl.value = profile.targetDesignation || profile.targetRole;
+  
+  // Use both experienceYears and yearsOfExperience for maximum compatibility
+  const expValue = profile.experienceYears ?? profile.yearsOfExperience ?? 1;
+  if (expEl) expEl.value = String(clampPremiumExperience(expValue));
+  
+  if (targetEl && (profile.targetDesignation || profile.targetRole)) {
+    targetEl.value = profile.targetDesignation || profile.targetRole;
+  }
   if (currentEl) currentEl.value = profile.currentDesignation || profile.currentRole || '';
   if (skillsEl) skillsEl.value = Array.isArray(profile.skills) ? profile.skills.join(', ') : '';
 }
@@ -2172,7 +2178,18 @@ function setHistoryPage(delta) {
   if (container) renderHistoryUI(container, cachedHistories, getLocalDateString(0), getLocalDateString(-1));
 }
 
+function hydrateHistoryFilter() {
+  const filterEl = document.getElementById('historyPeriodFilter');
+  if (filterEl) {
+    filterEl.value = getScopedItem('last_history_filter', 'current_month');
+  }
+}
+
 function resetHistoryPageAndRender() {
+  const filterEl = document.getElementById('historyPeriodFilter');
+  if (filterEl) {
+    setScopedItem('last_history_filter', filterEl.value);
+  }
   historyPage = 0;
   renderHistory();
 }
@@ -3555,7 +3572,6 @@ async function showPage(id) {
 	          renderProfileMatchPage(cachedUserProfile);
 	          loadJobIntelligence();
 	        } else {
-	          // Show loading skeleton while fetching profile data
 	          if (loadingEl) loadingEl.style.display = 'block';
 	          loadUserProfile().then(() => {
 	            if (cachedUserProfile) {
@@ -3570,6 +3586,14 @@ async function showPage(id) {
 	            if (loadingEl) loadingEl.style.display = 'none';
 	          });
 	        }
+	    }
+	    if (id === 'interview_room') {
+	        console.log('🎙️ [NAV] Hydrating Interview Room...');
+	        hydrateInterviewRoom();
+	    }
+	    if (id === 'study_history') {
+	        console.log('📜 [NAV] Hydrating History Filter...');
+	        hydrateHistoryFilter();
 	    }
 	    if (id === 'salesforce_releases') {
 	        console.log('[NAV] Loading Salesforce release intelligence...');
@@ -4044,9 +4068,20 @@ window.switchRadarSubTab = function(tabId) {
 // AI INTERVIEW SYSTEM
 let interviewMessages = [];
 
+function hydrateInterviewRoom() {
+  const topicEl = document.getElementById('interviewTopic');
+  const diffEl = document.getElementById('interviewDifficulty');
+  if (topicEl) topicEl.value = getScopedItem('last_interview_topic', 'Apex & Technical');
+  if (diffEl) diffEl.value = getScopedItem('last_interview_difficulty', 'Senior');
+}
+
 async function startAIInterview() {
   const topic = document.getElementById('interviewTopic').value;
   const difficulty = document.getElementById('interviewDifficulty').value;
+  
+  // Persist selections so they don't reset on tab switch
+  setScopedItem('last_interview_topic', topic);
+  setScopedItem('last_interview_difficulty', difficulty);
   
   const chatContainer = document.getElementById('interviewChat');
   chatContainer.innerHTML = '';
