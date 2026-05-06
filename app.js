@@ -284,7 +284,20 @@ window.addEventListener('click', () => {
 });
 
 function signOut() {
+  // Clear all user state before reload (v1413)
   localStorage.removeItem('google_auth_token');
+  sessionStorage.removeItem('sf_login_ui_mode_intent');
+  currentUser = null;
+  cachedUserProfile = null;
+  GSI_TOKEN = null;
+  clientStateLoadedFor = null;
+
+  // Clear floating profile container immediately
+  const container = document.getElementById('floatingProfileContainer');
+  if (container) container.style.display = 'none';
+  const sidebarWrap = document.getElementById('userProfile');
+  if (sidebarWrap) sidebarWrap.style.display = 'none';
+
   location.reload();
 }
 
@@ -1115,6 +1128,15 @@ async function loadUserProfile() {
 	      updateSidebarProfileStatus(cachedUserProfile);
 	      updateSyncModalUI(cachedUserProfile);
 
+	      // Re-render user avatar/name with latest cloud data (v1413)
+	      if (currentUser) {
+	        // Merge cloud picture into currentUser if it was updated via profile import
+	        if (data.profile.picture && data.profile.picture !== currentUser.picture) {
+	          currentUser.picture = data.profile.picture;
+	        }
+	        renderUserProfile(currentUser);
+	      }
+
       // Cloud Sync Streaks & Bookmarks (v1356 - Master MongoDB)
       if (data.profile.studyStreak) {
         studyStreak = data.profile.studyStreak;
@@ -1153,7 +1175,7 @@ async function loadUserProfile() {
         renderRevisionAlerts();
       }
     }
-  } catch (e) { console.log('[Profile] Cloud profile fetch failed or unavailable.'); }
+  } catch (e) { console.error('[Profile] Cloud profile fetch failed:', e.message || e); }
 }
 
 /* UI templates moved to components.js */
@@ -1371,6 +1393,9 @@ async function checkAuth() {
     });
     
     if (res.status === 401) {
+      // Token expired or invalid — clear and show login
+      localStorage.removeItem('google_auth_token');
+      GSI_TOKEN = null;
       syncLoginUiModeControls(currentUiMode);
       document.getElementById('loginOverlay').style.display = 'flex';
       return false;
@@ -1387,12 +1412,14 @@ async function checkAuth() {
       return true;
     }
   } catch (e) {
-    console.warn('Auth check silent failure, showing login only if truly unauthenticated');
+    console.warn('Auth check failed (network error):', e.message);
+    // On network failure, show login overlay so user can re-authenticate
+    syncLoginUiModeControls(currentUiMode);
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
   
-  // If we reach here, the token is likely invalid
-  // But we only show the overlay if we are CERTAIN it's a 401/403
-  return false; 
+  return false;
 }
 var floatingTimerInterval = null;
 
@@ -3569,12 +3596,14 @@ async function showPage(id) {
 	        console.log('👤 [NAV] Analyzing Profile Match...');
 	        const loadingEl = document.getElementById('profileMatchLoading');
 	        if (cachedUserProfile) {
+	          hydratePremiumSetupForm(cachedUserProfile);
 	          renderProfileMatchPage(cachedUserProfile);
 	          loadJobIntelligence();
 	        } else {
 	          if (loadingEl) loadingEl.style.display = 'block';
 	          loadUserProfile().then(() => {
 	            if (cachedUserProfile) {
+	              hydratePremiumSetupForm(cachedUserProfile);
 	              loadJobIntelligence();
 	              return;
 	            }
@@ -3999,13 +4028,14 @@ document.addEventListener('visibilitychange', function() {
   const lastTab = getScopedItem('last_active_tab', 'schedule', 'last_active_tab');
   showPage(lastTab);
   
+  // Full dashboard sync on page reload — ensures timetable, daily summary,
+  // jobs, history, and profile are all loaded (same as fresh login flow)
   try {
-    await Promise.all([
-      fetchJobsList(),
-      renderHistory(),
-      loadUserProfile()
-    ]);
-  } catch(e) { console.warn('Background preload partially failed', e); }
+    await syncDashboard();
+  } catch(e) { console.warn('Background dashboard sync partially failed', e); }
+
+  // Re-render user profile with latest data from cloud (streak, avatar, etc.)
+  if (currentUser) renderUserProfile(currentUser);
 })();
 
 /**
@@ -4928,8 +4958,9 @@ function checkOfferComparison() {
   }
 }
 
-function showToast(msg, isError) {
+function showToast(msg, typeHint) {
   // Enhanced toast queue system (v1413)
+  // Backward compatible: accepts boolean, string ('red','error','green','blue'), or undefined
   const container = document.getElementById('toastContainer') || (() => {
     const c = document.createElement('div');
     c.id = 'toastContainer';
@@ -4938,7 +4969,12 @@ function showToast(msg, isError) {
     return c;
   })();
 
-  const type = isError ? 'error' : 'success';
+  // Normalize type from legacy callers
+  let type = 'success';
+  if (typeHint === true || typeHint === 'red' || typeHint === 'error') type = 'error';
+  else if (typeHint === 'warning' || typeHint === 'amber') type = 'warning';
+  else if (typeHint === 'blue' || typeHint === 'info') type = 'info';
+  else if (typeHint === 'green' || typeHint === 'success') type = 'success';
   const icons = {
     success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>',
     error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
@@ -4959,7 +4995,7 @@ function showToast(msg, isError) {
   requestAnimationFrame(() => toast.classList.add('toast-show'));
 
   // Auto-dismiss
-  const duration = isError ? 6000 : 3500;
+  const duration = type === 'error' ? 6000 : type === 'warning' ? 5000 : 3500;
   setTimeout(() => {
     toast.classList.remove('toast-show');
     toast.classList.add('toast-hide');
