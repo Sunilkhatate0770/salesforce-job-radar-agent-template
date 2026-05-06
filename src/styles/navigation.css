@@ -79,6 +79,37 @@
   border: 0;
   text-align: left;
   cursor: pointer;
+  background: rgba(15, 23, 42, 0.56) !important;
+  color: #c7d2fe !important;
+  border-left: 3px solid transparent !important;
+  box-shadow: none !important;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+#sidebar .nav-config-section .nav-item:hover {
+  background: rgba(30, 41, 59, 0.88) !important;
+  color: #e5edff !important;
+  border-left-color: rgba(59, 130, 246, 0.55) !important;
+}
+
+#sidebar .nav-config-section .nav-item.active {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.26), rgba(15, 23, 42, 0.82)) !important;
+  color: #f8fbff !important;
+  border-left-color: #3b82f6 !important;
+}
+
+#sidebar .nav-config-section .nav-item .count {
+  background: rgba(37, 99, 235, 0.16) !important;
+  border: 1px solid rgba(96, 165, 250, 0.28) !important;
+  color: #9cc7ff !important;
+  border-radius: 999px !important;
+  padding: 2px 7px !important;
+}
+
+#sidebar .nav-config-section .nav-item.active .count {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: rgba(45, 212, 191, 0.3) !important;
+  color: #99f6e4 !important;
 }
 
 #sidebar .nav-item-label {
