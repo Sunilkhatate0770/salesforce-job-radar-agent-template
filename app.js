@@ -3611,6 +3611,10 @@ async function ensurePageLoaded(pageId) {
         return true;
     }
 
+    if (pageId === 'job_radar') {
+        await loadFeatureStylesheet(JOB_RADAR_CSS);
+    }
+
     console.log(`%c 🔍 [LOADER] Checking if modular page is loaded: ${pageId}`, 'color: #a855f7; font-weight: bold;');
     const pageEl = document.getElementById(pageId);
     if (!pageEl) {
@@ -3637,9 +3641,6 @@ async function ensurePageLoaded(pageId) {
         pageEl.innerHTML = html;
         console.log(`%c ✅ [LOADER] Page ${pageId} injected successfully.`, 'color: #10b981; font-weight: bold;');
         if (typeof refreshSearchIndex === 'function') refreshSearchIndex();
-        
-        // Refresh specific UI components if needed
-        if (pageId === 'job_radar') fetchJobsList();
         
         return true;
     } catch (err) {
@@ -3670,6 +3671,9 @@ async function showPage(id) {
 
   setScopedItem('last_active_tab', id);
   await stopTracking();
+  if (id !== 'job_radar') {
+    closeLogPanel();
+  }
   
   console.log(`🧹 [NAV] Hiding all .page elements...`);
   document.querySelectorAll('.page').forEach(function(p) { 
@@ -3952,6 +3956,7 @@ function searchContent(val) {
   var results = searchData.filter(function(d) { return d.question.toLowerCase().indexOf(lower) !== -1 || (d.answerEl.textContent||'').toLowerCase().indexOf(lower) !== -1; });
   var container = document.getElementById('searchResults');
   var sp = document.getElementById('searchPage');
+  closeLogPanel();
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); p.style.display = 'none'; });
   sp.style.display = 'block'; sp.classList.add('active');
   if (!results.length && !contentResults.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No interview content found for "'+escapeHtml(val)+'". Try Apex, Agentforce, Data Cloud, Integration, or FDE.</p>'; return; }
@@ -4466,6 +4471,7 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     const sidebar = document.getElementById('sidebar');
     if (sidebar && sidebar.classList.contains('mobile-open')) toggleMobileSidebar(false);
+    closeLogPanel();
     const syncModal = document.getElementById('syncModal');
     if (syncModal && syncModal.style.display !== 'none' && typeof closeSyncModal === 'function') closeSyncModal();
   }
@@ -4813,10 +4819,43 @@ function setLogPage(delta) {
   renderLog();
 }
 
+function isJobRadarActive() {
+  const radarPage = document.getElementById('job_radar');
+  return Boolean(radarPage && radarPage.classList.contains('active'));
+}
+
+function openLogPanel() {
+  const panel = document.getElementById('logPanel');
+  if (!panel) return;
+  if (!isJobRadarActive()) {
+    closeLogPanel();
+    showToast('Activity Log is available inside Job Radar Dashboard.');
+    return;
+  }
+  renderLog();
+  panel.hidden = false;
+  panel.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => panel.classList.add('open'));
+  const closeButton = panel.querySelector('.close-panel-btn');
+  if (closeButton) closeButton.focus({ preventScroll: true });
+}
+
+function closeLogPanel() {
+  const panel = document.getElementById('logPanel');
+  if (!panel) return;
+  panel.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+  panel.hidden = true;
+}
+
 function toggleLog() {
   const panel = document.getElementById('logPanel');
-  renderLog();
-  if (panel) panel.classList.toggle('open');
+  if (!panel) return;
+  if (panel.classList.contains('open')) {
+    closeLogPanel();
+  } else {
+    openLogPanel();
+  }
 }
 
 /* UI templates moved to components.js */

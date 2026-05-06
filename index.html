@@ -1041,13 +1041,13 @@
 
   <!-- GLOBAL OVERLAYS -->
   <button class="fab-add" onclick="openAddJobModal()" title="Add Custom Job">+</button>
-  <div class="activity-log-panel" id="logPanel">
+  <div class="activity-log-panel" id="logPanel" role="dialog" aria-modal="false" aria-labelledby="logPanelTitle" aria-hidden="true" hidden>
     <div class="log-panel-header">
-      <div style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.85rem;">
+      <div id="logPanelTitle" style="display:flex; align-items:center; gap:8px; font-weight:700; font-size:0.85rem;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;color:var(--blue);"><path d="M12 20V10M18 20V4M6 20v-6"></path></svg>
         Activity Log
       </div>
-      <button class="close-panel-btn" onclick="toggleLog()">&times;</button>
+      <button class="close-panel-btn" type="button" onclick="closeLogPanel()" aria-label="Close activity log">&times;</button>
     </div>
     <div class="log-panel-body" id="logBody">
       <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.8rem;">No activity logged yet.</div>

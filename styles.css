@@ -3481,6 +3481,11 @@ pre.code,
   right: min(-360px, -100vw) !important;
 }
 
+.activity-log-panel[hidden],
+body:not(:has(#job_radar.active)) .activity-log-panel {
+  display: none !important;
+}
+
 .activity-log-panel.open {
   right: 0 !important;
 }
