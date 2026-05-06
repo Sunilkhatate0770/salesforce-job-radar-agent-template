@@ -24,11 +24,22 @@ Industrial-grade Salesforce career intelligence platform with job tracking, inte
 - **AI Profile Matching** — Resume skill extraction and job market intelligence
 - **Career Roadmap** — Experience-based study plan with designation targeting
 - **Interview Prep** — 40+ topic modules (Apex, LWC, Integration, Security, etc.)
+- **Structured Content Bank** — searchable Salesforce Developer, FDE, Agentforce, Data Cloud, architecture, company, and manager-round interview content
 - **Code Practice** — Browser-based coding challenges with static + AI review
 - **Study Tracker** — Time tracking, leaderboard, spaced repetition
 - **Release Center** — Personalized Salesforce release intelligence
 - **Platform Sync** — LinkedIn/Naukri profile import (text-based, no credentials)
 - **PWA** — Installable progressive web app with offline support
+
+## User Data Notes
+
+Authenticated app data is private per Google user. Browser persistence uses namespaced keys such as `sfjr:${userId}:bookmarks`, `sfjr:${userId}:progress`, `sfjr:${userId}:pipelineJobs`, and `sfjr:${userId}:activityLog`. Legacy generic keys are migrated once into the signed-in user's namespace.
+
+Public/system job feeds may be shared as opportunity recommendations, but user actions on those jobs such as status, notes, saved state, and analytics must remain scoped to the authenticated user. Server routes should derive identity from the Google token and not trust a client-provided `userId`.
+
+## Demo Mode vs Real User Mode
+
+The app can show deterministic fallback content when optional AI or cloud providers are missing. Real private persistence requires a valid Google token and at least one configured storage backend. The app must not collect LinkedIn, Naukri, or third-party job-board passwords; profile import should stay text/upload based.
 
 ## Quick Start
 
@@ -58,7 +69,13 @@ npm run doctor
 # 5. Start local web server
 npm run web
 
-# 6. Or run the full agent
+# 6. Run tests
+npm test
+
+# 7. Refresh Salesforce release intelligence locally
+npm run release:pulse
+
+# 8. Or run the full agent
 npm start
 ```
 

@@ -33,6 +33,7 @@ let premiumStaticDataCache = null;
 let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
+let lastSidebarTrigger = null;
 // --- CLOUD-NATIVE STATE (v1356) ---
 let userBookmarks = []; 
 let studyStreak = { current: 0, best: 0, lastDate: "" };
@@ -154,6 +155,13 @@ const STATIC_TOPIC_FALLBACKS = {
 
 async function loadKnowledgeData(topicId) {
   if (TOPIC_DATA[topicId]) return TOPIC_DATA[topicId];
+  const structuredContent = window.SFJR_SALESFORCE_CONTENT;
+  const structuredSection = structuredContent?.getSection?.(topicId);
+  if (structuredSection && typeof structuredContent.asKnowledgeTopic === 'function') {
+    const topic = structuredContent.asKnowledgeTopic(structuredSection);
+    TOPIC_DATA[topicId] = topic;
+    return topic;
+  }
   try {
     const res = await apiFetch(`/api/knowledge/${topicId}`);
     if (res.ok) {
@@ -750,10 +758,7 @@ async function loadReleaseCenter(force = false) {
     };
   }
   renderReleaseCenterPage(premiumReleaseCache);
-  const releaseBadge = document.querySelector(".nav-item[onclick=\"showPage('salesforce_releases')\"] .count");
-  if (releaseBadge && premiumReleaseCache?.activeRelease?.releaseName) {
-    releaseBadge.textContent = premiumReleaseCache.activeRelease.releaseName;
-  }
+  renderRecentTopicsPanel();
   return premiumReleaseCache;
 }
 
@@ -764,6 +769,37 @@ function getCurrentUserId() {
 
 function scopedStorageKey(key) {
   return `sfjr:${getCurrentUserId()}:${key}`;
+}
+
+function migrateLegacyUserStorage() {
+  const userId = getCurrentUserId();
+  const sentinel = scopedStorageKey('migration:v2');
+  if (localStorage.getItem(sentinel) === 'done') return;
+  const mappings = [
+    ['pipelineJobs', 'sfpipe2026v3', true],
+    ['activityLog', 'sfActivityLog', true],
+    ['bookmarks', 'sf_bookmarks', true],
+    ['recentTopics', 'sf_recent_topics', true],
+    ['last_active_tab', 'last_active_tab', false],
+    ['premium_ui_mode', 'sf_premium_ui_mode', false]
+  ];
+  mappings.forEach(([scopedKey, legacyKey, isJson]) => {
+    const target = scopedStorageKey(scopedKey);
+    if (localStorage.getItem(target) !== null) return;
+    const legacyValue = localStorage.getItem(legacyKey);
+    if (legacyValue === null) return;
+    if (isJson) {
+      try {
+        JSON.parse(legacyValue);
+        localStorage.setItem(target, legacyValue);
+      } catch (err) {
+        localStorage.setItem(target, JSON.stringify([]));
+      }
+      return;
+    }
+    localStorage.setItem(target, legacyValue);
+  });
+  localStorage.setItem(sentinel, 'done');
 }
 
 function readJsonStorage(key, fallback) {
@@ -815,50 +851,137 @@ function getRecentTopicItems() {
     }));
 }
 
-function renderRecentTopicsPanel() {
+function getSidebarBadge(item) {
+  if (!item || !item.badgeSource) return '';
+  if (item.badgeSource === 'bookmarks') {
+    const count = Array.isArray(userBookmarks) ? userBookmarks.length : 0;
+    return count > 0 ? String(count) : '';
+  }
+  if (item.badgeSource === 'release') {
+    return premiumReleaseCache?.activeRelease?.releaseName || '';
+  }
+  return '';
+}
+
+function getNavigationQuestionCount(item) {
+  const section = window.SFJR_SALESFORCE_CONTENT?.getSection?.(item.id);
+  return section?.questionCount ? `${section.questionCount} Q` : '';
+}
+
+function renderSidebarNavigation() {
   const host = document.getElementById('sidebarNavContent');
   if (!host) return;
-
-  const allItems = getRecentTopicItems();
-  if (!allItems.length) {
-    host.innerHTML = '';
-    return;
-  }
-
-  const totalPages = Math.ceil(allItems.length / RECENT_PAGE_SIZE);
-  if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
-  if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
-
-  const start = recentTopicsPage * RECENT_PAGE_SIZE;
-  const items = allItems.slice(start, start + RECENT_PAGE_SIZE);
-
-  host.innerHTML = `
-    <div class="nav-recent-panel" aria-label="Recently used study topics">
+  const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+  const recentItems = getRecentTopicItems();
+  const recentHtml = recentItems.length ? `
+    <section class="nav-recent-panel" aria-label="Recently used study topics">
       <div class="nav-recent-header">
         <div class="nav-recent-title">Recently Used</div>
-        ${allItems.length > RECENT_PAGE_SIZE ? `
+        ${recentItems.length > RECENT_PAGE_SIZE ? `
           <div class="nav-recent-pager">
-            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(-1)" title="Previous">&larr;</button>
-            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(1)" title="Next">&rarr;</button>
+            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(-1)" aria-label="Previous recently used topic">&larr;</button>
+            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(1)" aria-label="Next recently used topic">&rarr;</button>
           </div>
         ` : ''}
       </div>
       <div class="nav-recent-list" tabindex="0">
-        ${items.map(item => `
-          <button type="button" class="nav-recent-chip" onclick="showPage(decodeURIComponent('${encodeInlineArg(item.id)}'))" title="${escapeHtml(item.name)}">
-            <span>${escapeHtml(item.name)}</span>
-            <b>${escapeHtml(item.group)}</b>
-          </button>
-        `).join('')}
+        ${recentItems
+          .slice(recentTopicsPage * RECENT_PAGE_SIZE, recentTopicsPage * RECENT_PAGE_SIZE + RECENT_PAGE_SIZE)
+          .map(item => `
+            <button type="button" class="nav-recent-chip" onclick="showPage(decodeURIComponent('${encodeInlineArg(item.id)}'))" title="${escapeHtml(item.name)}">
+              <span>${escapeHtml(item.name)}</span>
+              <b>${escapeHtml(item.group)}</b>
+            </button>
+          `).join('')}
       </div>
-    </div>
+    </section>
+  ` : '';
+
+  host.innerHTML = `
+    ${recentHtml}
+    ${groups.map((group, groupIndex) => {
+      const sectionId = `nav-group-${group.id}`;
+      const isOpen = groupIndex < 2 || group.items.some(item => item.id === getScopedItem('last_active_tab', 'profile_match'));
+      return `
+        <section class="nav-parent-section nav-config-section" data-nav-group="${escapeHtml(group.id)}">
+          <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')">
+            <span>${escapeHtml(group.label)}</span>
+            <span class="nav-group-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
+            ${group.items.map(item => {
+              const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
+              return `
+                <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}">
+                  <span class="nav-item-label">${escapeHtml(item.label)}</span>
+                  ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </section>
+      `;
+    }).join('')}
   `;
+  updateSidebarActiveState(getScopedItem('last_active_tab', 'profile_match'));
+}
+
+function renderRecentTopicsPanel() {
+  const allItems = getRecentTopicItems();
+  const totalPages = Math.max(1, Math.ceil(allItems.length / RECENT_PAGE_SIZE));
+  if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
+  if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
+  renderSidebarNavigation();
 }
 
 window.changeRecentPage = function(delta) {
   recentTopicsPage += delta;
   renderRecentTopicsPanel();
 };
+
+window.toggleNavGroup = function(groupId) {
+  const section = document.querySelector(`[data-nav-group="${CSS.escape(String(groupId))}"]`);
+  if (!section) return;
+  const button = section.querySelector('.nav-group-toggle');
+  const panel = section.querySelector('.nav-group-items');
+  const isOpen = button?.getAttribute('aria-expanded') === 'true';
+  if (button) button.setAttribute('aria-expanded', String(!isOpen));
+  if (panel) panel.hidden = isOpen;
+};
+
+function updateSidebarActiveState(id) {
+  document.querySelectorAll('#sidebar .nav-item').forEach(function(n) {
+    const isActive = n.getAttribute('data-page-id') === id;
+    n.classList.toggle('active', isActive);
+    if (isActive) {
+      const panel = n.closest('.nav-group-items');
+      const section = n.closest('.nav-parent-section');
+      if (panel) panel.hidden = false;
+      const toggle = section?.querySelector('.nav-group-toggle');
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      setTimeout(() => n.scrollIntoView({ block: 'nearest' }), 0);
+    }
+  });
+}
+
+function ensureNavigationTopicConfig() {
+  const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+  groups.flatMap(group => group.items || []).forEach(item => {
+    if (!topicConfig[item.id]) {
+      topicConfig[item.id] = {
+        name: item.label,
+        recommended: item.requiresAuth ? 0 : 45,
+        group: groups.find(group => (group.items || []).some(navItem => navItem.id === item.id))?.label || 'Salesforce',
+        noTimer: item.requiresAuth || item.id === 'bookmarks_page'
+      };
+    } else if (item.label && topicConfig[item.id].name !== item.label) {
+      topicConfig[item.id].name = item.label;
+    }
+    if (window.SFJR_SALESFORCE_CONTENT?.getSection?.(item.id)) {
+      DATA_DRIVEN_TOPIC_IDS.add(item.id);
+    }
+  });
+}
 
 function trackRecentTopic(id) {
   if (!topicConfig[id] || topicConfig[id].noTimer) {
@@ -876,6 +999,18 @@ function trackRecentTopic(id) {
   renderRecentTopicsPanel();
 }
 
+window.markContentProgress = function(sectionId, status) {
+  const progress = readScopedJson('progress', {}, 'sf_progress');
+  progress[sectionId] = {
+    ...(progress[sectionId] || {}),
+    sectionId,
+    status,
+    updatedAt: new Date().toISOString()
+  };
+  writeScopedJson('progress', progress);
+  showToast(status === 'mastered' ? 'Marked as mastered for your profile.' : 'Marked as revised for your profile.');
+};
+
 function removeScopedStorage(key, legacyKey) {
   localStorage.removeItem(scopedStorageKey(key));
   if (legacyKey) localStorage.removeItem(legacyKey);
@@ -892,6 +1027,7 @@ function removeScopedPrefix(prefix, legacyPrefix) {
 function loadUserScopedClientState() {
   const userId = getCurrentUserId();
   if (clientStateLoadedFor === userId) return;
+  migrateLegacyUserStorage();
   pipelineJobs = readScopedJson('pipelineJobs', [], 'sfpipe2026v3');
   activityLog = readScopedJson('activityLog', [], 'sfActivityLog');
   userBookmarks = readScopedJson('bookmarks', userBookmarks || [], 'sf_bookmarks');
@@ -3395,7 +3531,7 @@ function switchTrackerTab(tabId) {
 async function fetchLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
-  container.innerHTML = '<span style="color:var(--muted); font-size:0.8rem;">Loading scholars...</span>';
+  container.innerHTML = '<span style="color:var(--muted); font-size:0.8rem;">Loading your study summary...</span>';
   
   try {
     const response = await apiFetch('/api/study/leaderboard');
@@ -3648,27 +3784,14 @@ async function showPage(id) {
   const headerTitle = document.getElementById('headerTitle');
   if (headerTitle) headerTitle.textContent = topicConfig[id] ? topicConfig[id].name : 'SF Prep Guide';
   trackRecentTopic(id);
-  document.querySelectorAll('.nav-item').forEach(function(n) {
-    var oc = n.getAttribute('onclick');
-    if (oc && (oc.indexOf("'"+id+"'") !== -1 || oc.indexOf("\""+id+"\"") !== -1)) n.classList.add('active');
-  });
+  updateSidebarActiveState(id);
   const mainEl = document.getElementById('main');
   if (mainEl) mainEl.scrollTop = 0;
   
   // Mobile Sidebar Close (guard against double-toggle)
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebarOverlay');
-  if (sidebar && sidebar.classList.contains('mobile-open')) {
-    sidebar.classList.remove('mobile-open');
-    const mobileToggle = document.getElementById('mobileToggle');
-    if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'false');
-    if (sidebarOverlay) {
-      sidebarOverlay.style.display = 'none';
-      sidebarOverlay.style.opacity = '0';
-      sidebarOverlay.setAttribute('aria-hidden', 'true');
-    }
-    document.body.style.overflow = '';
-  }
+  if (sidebar && sidebar.classList.contains('mobile-open')) toggleMobileSidebar(false);
 
   const cfg = topicConfig[id];
   if (cfg && !cfg.noTimer) startTracking(id);
@@ -3708,8 +3831,11 @@ function refreshSearchIndex() {
 
 // Initial index build
 window.addEventListener('DOMContentLoaded', () => {
+  ensureNavigationTopicConfig();
   refreshSearchIndex();
   renderRecentTopicsPanel();
+  const overlay = document.getElementById('sidebarOverlay');
+  if (overlay) overlay.addEventListener('click', () => toggleMobileSidebar(false));
   
   // Initialize Page Visibility
   document.querySelectorAll('.page').forEach(function(p) {
@@ -3724,12 +3850,10 @@ function filterSidebar(val) {
   const query = val.toLowerCase().trim();
   const items = document.querySelectorAll('#sidebar .nav-item');
   const sections = document.querySelectorAll('#sidebar .nav-parent-section');
-  const sectionTitles = document.querySelectorAll('#sidebar .nav-parent-title');
   
   if (!query) {
     items.forEach(el => el.style.display = 'flex');
     sections.forEach(el => el.style.display = 'block');
-    sectionTitles.forEach(el => el.style.display = 'block');
     const recentPanel = document.querySelector('.nav-recent-panel');
     if (recentPanel) recentPanel.style.display = 'grid';
     return;
@@ -3738,15 +3862,12 @@ function filterSidebar(val) {
   const recentPanel = document.querySelector('.nav-recent-panel');
   if (recentPanel) recentPanel.style.display = 'none';
 
-  // Hide all titles initially
-  sectionTitles.forEach(el => el.style.display = 'none');
-
   sections.forEach(section => {
     const navItems = section.querySelectorAll('.nav-item');
     let hasMatch = false;
     
     navItems.forEach(item => {
-      const text = item.textContent.toLowerCase();
+      const text = `${item.textContent} ${item.getAttribute('data-nav-search') || ''}`.toLowerCase();
       if (text.includes(query)) {
         item.style.display = 'flex';
         hasMatch = true;
@@ -3757,8 +3878,10 @@ function filterSidebar(val) {
 
     if (hasMatch) {
       section.style.display = 'block';
-      const title = section.querySelector('.nav-parent-title');
-      if (title) title.style.display = 'block';
+      const panel = section.querySelector('.nav-group-items');
+      const toggle = section.querySelector('.nav-group-toggle');
+      if (panel) panel.hidden = false;
+      if (toggle) toggle.setAttribute('aria-expanded', 'true');
     } else {
       section.style.display = 'none';
     }
@@ -3787,16 +3910,43 @@ function filterSidebar(val) {
 function searchContent(val) {
   if (!val || val.length < 2) { document.getElementById('searchPage').style.display = 'none'; return; }
   var lower = val.toLowerCase();
+  var contentResults = (window.SFJR_SALESFORCE_CONTENT?.getAllQuestions?.() || [])
+    .filter(function(q) {
+      return [
+        q.question,
+        q.shortAnswer,
+        q.detailedAnswer,
+        q.scenario,
+        q.difficulty,
+        q.sectionTitle,
+        ...(q.tags || []),
+        ...(q.relatedTopics || [])
+      ].join(' ').toLowerCase().indexOf(lower) !== -1;
+    })
+    .slice(0, 24);
   var results = searchData.filter(function(d) { return d.question.toLowerCase().indexOf(lower) !== -1 || (d.answerEl.textContent||'').toLowerCase().indexOf(lower) !== -1; });
   var container = document.getElementById('searchResults');
   var sp = document.getElementById('searchPage');
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); p.style.display = 'none'; });
   sp.style.display = 'block'; sp.classList.add('active');
-  if (!results.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No results for "'+val+'"</p>'; return; }
-  container.innerHTML = results.map(function(r) {
+  if (!results.length && !contentResults.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No interview content found for "'+escapeHtml(val)+'". Try Apex, Agentforce, Data Cloud, Integration, or FDE.</p>'; return; }
+  const contentHtml = contentResults.map(function(q) {
+    return `<div class="search-result-item rich-search-result">
+      <div class="sr-q">${escapeHtml(q.question)}</div>
+      <div class="sr-section">${escapeHtml(q.sectionTitle)} • ${escapeHtml(q.difficulty)} • ${(q.tags || []).slice(0, 3).map(escapeHtml).join(', ')}</div>
+      <p>${escapeHtml(q.shortAnswer)}</p>
+      <div class="search-actions">
+        <button type="button" onclick="showPage('${escapeHtml(q.sectionId)}')">Open Q&A</button>
+        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId)}','revised')">Mark revised</button>
+        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId)}','mastered')">Mark mastered</button>
+      </div>
+    </div>`;
+  }).join('');
+  const pageHtml = results.map(function(r) {
     var idx = searchData.indexOf(r);
     return '<div class="search-result-item" onclick="goToResult(\''+r.pageId+'\','+idx+')"><div class="sr-q">'+r.question+'</div><div class="sr-section">'+r.pageName+'</div></div>';
   }).join('');
+  container.innerHTML = contentHtml + pageHtml;
 }
 
 function goToResult(pageId, idx) {
@@ -3929,7 +4079,12 @@ window.addEventListener('storage', (e) => {
 });
 
 function openSyncModal() {
-  document.getElementById('syncModal').style.display = 'flex';
+  const modal = document.getElementById('syncModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => modal.querySelector('button, [tabindex], input')?.focus(), 0);
+  }
   if (cachedUserProfile) updateSyncModalUI(cachedUserProfile);
 }
 
@@ -3982,7 +4137,11 @@ function updateSyncModalUI(profile) {
 }
 
 function closeSyncModal() {
-  document.getElementById('syncModal').style.display = 'none';
+  const modal = document.getElementById('syncModal');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function updateSidebarProfileStatus(profile) {
@@ -3992,11 +4151,11 @@ function updateSidebarProfileStatus(profile) {
   const countEl = document.getElementById('syncPlatformCount');
   const statusEl = document.getElementById('sidebarSyncStatus');
   
-  if (countEl) countEl.textContent = count + ' Linked';
+  if (countEl) countEl.textContent = count ? `${count} private import${count === 1 ? '' : 's'}` : 'Private';
   
   if (statusEl) {
     if (count === 0) {
-        statusEl.innerHTML = '<div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">No platforms linked yet</div>';
+        statusEl.innerHTML = '<div style="font-size:0.72rem; color:var(--muted); font-style:italic; text-align:center; padding:10px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed rgba(255,255,255,0.1);">Profile imports are private to your signed-in account.</div>';
     } else {
         let badges = '';
         if (platforms.linkedin && platforms.linkedin.synced) {
@@ -4279,6 +4438,12 @@ document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === 'Enter' && document.activeElement.id === 'userAnswerInput') {
     submitAnswer();
   }
+  if (e.key === 'Escape') {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar && sidebar.classList.contains('mobile-open')) toggleMobileSidebar(false);
+    const syncModal = document.getElementById('syncModal');
+    if (syncModal && syncModal.style.display !== 'none' && typeof closeSyncModal === 'function') closeSyncModal();
+  }
 });
 
 // =============================================
@@ -4352,7 +4517,12 @@ stopTracking = async function() {
     // ONLY ask for feedback if topic is due AND studied > 30s AND not already asked in this session (v1354)
     if (topicConfig[tid] && !topicConfig[tid].noTimer && isDue && spentSeconds > 30 && !sessionFeedbackProvided.has(tid)) {
       currentRetentionTopicId = tid;
-      document.getElementById('confidenceModal').style.display = 'flex';
+      const confidenceModal = document.getElementById('confidenceModal');
+      if (confidenceModal) {
+        confidenceModal.style.display = 'flex';
+        confidenceModal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => confidenceModal.querySelector('button')?.focus(), 0);
+      }
     }
   }
 };
@@ -4502,13 +4672,17 @@ function toggleMobileSidebar(forceOpen) {
   const toggle = document.getElementById('mobileToggle');
   if (!sidebar) return;
   
-  const isOpen = typeof forceOpen === 'boolean' ? !forceOpen : sidebar.classList.contains('mobile-open');
+  const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('mobile-open');
   const syncA11y = open => {
-    if (toggle) toggle.setAttribute('aria-expanded', String(open));
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    }
     if (overlay) overlay.setAttribute('aria-hidden', String(!open));
+    sidebar.setAttribute('aria-hidden', String(!open && window.innerWidth <= 900));
   };
 
-  if (isOpen) {
+  if (!shouldOpen) {
     sidebar.classList.remove('mobile-open');
     syncA11y(false);
     if (overlay) {
@@ -4516,7 +4690,12 @@ function toggleMobileSidebar(forceOpen) {
       setTimeout(() => { overlay.style.display = 'none'; }, 300);
     }
     document.body.style.overflow = '';
+    if (lastSidebarTrigger && typeof lastSidebarTrigger.focus === 'function') {
+      lastSidebarTrigger.focus();
+      lastSidebarTrigger = null;
+    }
   } else {
+    lastSidebarTrigger = document.activeElement;
     sidebar.classList.add('mobile-open');
     syncA11y(true);
     if (overlay) {
@@ -4524,6 +4703,8 @@ function toggleMobileSidebar(forceOpen) {
       requestAnimationFrame(() => { overlay.style.opacity = '1'; });
     }
     document.body.style.overflow = 'hidden';
+    const focusTarget = sidebar.querySelector('#sidebarCloseBtn, #searchInput, .nav-item, button');
+    setTimeout(() => focusTarget?.focus(), 0);
   }
 }
 
@@ -4534,7 +4715,11 @@ async function saveRetention(q) {
   const topicId = currentRetentionTopicId;
   if (!topicId) return;
   
-  document.getElementById('confidenceModal').style.display = 'none';
+  const confidenceModal = document.getElementById('confidenceModal');
+  if (confidenceModal) {
+    confidenceModal.style.display = 'none';
+    confidenceModal.setAttribute('aria-hidden', 'true');
+  }
   sessionFeedbackProvided.add(topicId);
   
   // SM-2 Algorithm (Simplified for Industrial Study)
@@ -5065,7 +5250,7 @@ document.addEventListener('click', function(e) {
   if ((isNavItem || isOverlay) && window.innerWidth <= 768) {
     const sidebar = document.getElementById('sidebar');
     if (sidebar && sidebar.classList.contains('mobile-open')) {
-      toggleMobileSidebar();
+      toggleMobileSidebar(false);
     }
   }
 });

@@ -3,6 +3,42 @@
 **Generated:** 2026-05-06  
 **Codebase Version:** v1412 → v1413 (post-audit + big upgrade)
 
+## 2026-05-06 Production Fix Addendum
+
+### Fixes Completed In This Pass
+
+- Replaced the overloaded legacy sidebar with a config-driven navigation model in `src/data/navigation.js`.
+- Added the required professional menu groups for Salesforce Core, LWC/UI, Security/Data Model, Integration, Flow/Admin, Agentforce/Data Cloud, FDE, company prep, and mock interview communication.
+- Hid the old static sidebar DOM from visual output and assistive technology to remove fake badges and duplicate/broken labels.
+- Added mobile drawer hardening: accessible buttons, overlay click close, Escape close, body scroll lock, focus movement, and active item scroll-into-view.
+- Added structured Salesforce interview content in `src/data/salesforceContent.js` with the requested minimum question counts across Apex, SOQL/SOSL, triggers, async Apex, LWC, integration, security, Flow/Admin, Data Cloud, Agentforce, FDE, behavioral, record-page/LWC communication, and architecture scenarios.
+- Added unified question search results with section, difficulty, tags, preview, open action, and user-scoped revised/mastered actions.
+- Added one-time legacy localStorage migration into `sfjr:${userId}:...` keys.
+- Scoped local Mongo job reads to the signed-in user plus explicit `system` public feed records.
+- Replaced global leaderboard exposure with current-user-only study summary behavior.
+- Changed Mongo job uniqueness from global `job_hash` to compound `{ userId, job_hash }`.
+
+### User-Based Data Architecture
+
+- Authenticated API routes resolve the current user from Google ID token and should ignore client-supplied `userId`.
+- Private client state uses `sfjr:${userId}:...` keys for pipeline jobs, activity log, bookmarks, progress, recent topics, and user settings.
+- Public/system job feeds remain separate from private job radar state. Users may see the same public opportunity, but their saved status, notes, and progress are private.
+- Mongo, Turso, and Supabase user data must stay scoped by `userId`; any future route must follow this pattern before it is exposed.
+
+### Auth And Database Roadmap
+
+- Drop the old Mongo `job_hash_1` unique index manually if it already exists, then allow the new `{ userId: 1, job_hash: 1 }` sparse unique index to build.
+- Move Google Client ID out of `index.html` into environment-injected configuration.
+- Add server-side schema validation helpers for every mutation route.
+- Add repository-level tests for cross-user update/delete rejection.
+- Consider replacing leaderboard with an opt-in anonymized aggregate if social ranking is needed later.
+
+### Vercel Checklist
+
+- Required: `GOOGLE_CLIENT_ID`, `GITHUB_REPOSITORY`, `GITHUB_TOKEN`, plus at least one writable storage backend for full private persistence.
+- Recommended: `MONGODB_URI`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `TURSO_URL`, `TURSO_AUTH_TOKEN`, `OPENAI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`.
+- Build remains serverless/static; do not deploy until `npm test`, syntax checks, and release pulse pass locally.
+
 ---
 
 ## Current Implementation Summary

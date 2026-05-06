@@ -1600,11 +1600,10 @@ export default async function(req, res) {
 
     if (path === 'study/leaderboard') {
       const rows = await safeMongoRead('study/leaderboard rows', () => StudySession.aggregate([
-        { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
-        { $sort: { totalSeconds: -1, sessions: -1 } },
-        { $limit: 10 }
+        { $match: { userId } },
+        { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } }
       ]), []);
-      const users = await safeMongoRead('study/leaderboard users', () => User.find({ googleId: { $in: rows.map(r => r._id) } }).lean(), []);
+      const users = await safeMongoRead('study/leaderboard users', () => User.find({ googleId: userId }).lean(), []);
       const userMap = new Map(users.map(u => [u.googleId, u]));
       const leaderboard = rows.map(row => {
         const user = userMap.get(row._id) || {};

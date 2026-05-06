@@ -40,10 +40,12 @@ const jobRecordSchema = new mongoose.Schema({
   missing_skills: [String],
   resume_actions: [String],
   apply_link: String,
-  job_hash: { type: String, unique: true, index: true },
+  job_hash: { type: String, index: true },
   status: { type: String, default: 'new', enum: ['new', 'applied', 'ignored'] },
   url: String
 }, { timestamps: true });
+
+jobRecordSchema.index({ userId: 1, job_hash: 1 }, { unique: true, sparse: true });
 
 export const JobRecord = mongoose.models.JobRecord || mongoose.model('JobRecord', jobRecordSchema);
 

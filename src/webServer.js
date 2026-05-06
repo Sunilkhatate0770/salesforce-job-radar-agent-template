@@ -703,8 +703,8 @@ export default async function handler(req, res) {
           );
         }
         fs.mkdirSync(CACHE_DIR, { recursive: true });
-        fs.writeFileSync(path.join(CACHE_DIR, 'study-tracker.json'), JSON.stringify({ sessions: [], completedTasks: [], topics: {} }, null, 2));
-        fs.writeFileSync(path.join(CACHE_DIR, 'daily-summaries.json'), JSON.stringify({}, null, 2));
+        fs.writeFileSync(path.join(CACHE_DIR, `study-tracker-${encodeURIComponent(userId)}.json`), JSON.stringify({ sessions: [], completedTasks: [], topics: {} }, null, 2));
+        fs.writeFileSync(path.join(CACHE_DIR, `daily-summaries-${encodeURIComponent(userId)}.json`), JSON.stringify({}, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, completedTasks: [], sessions: [] }));
       }
@@ -757,7 +757,7 @@ export default async function handler(req, res) {
           mongo: 0
         };
         if (isMongoConnected) {
-          const mongoJobs = await JobRecord.find({}).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean();
+          const mongoJobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean();
           sourceCounts.mongo = mongoJobs.length;
           const mergedJobs = mergeDashboardJobs(
             mongoJobs.map(job => normalizeDashboardJob(job, 'Legacy (Mongo)')),
@@ -919,11 +919,10 @@ export default async function handler(req, res) {
           return;
         }
         const rows = await StudySession.aggregate([
-          { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } },
-          { $sort: { totalSeconds: -1, sessions: -1 } },
-          { $limit: 10 }
+          { $match: { userId } },
+          { $group: { _id: '$userId', totalSeconds: { $sum: '$duration' }, sessions: { $sum: 1 }, lastStudy: { $max: '$endTime' } } }
         ]);
-        const users = await User.find({ googleId: { $in: rows.map(r => r._id) } }).lean();
+        const users = await User.find({ googleId: userId }).lean();
         const userMap = new Map(users.map(u => [u.googleId, u]));
         const leaderboard = rows.map(row => {
           const user = userMap.get(row._id) || {};
