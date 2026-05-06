@@ -890,9 +890,10 @@ function getNavigationQuestionCount(item) {
   return section?.questionCount ? `${section.questionCount} Q` : '';
 }
 
-function renderSidebarNavigation() {
+function renderSidebarNavigation(options = {}) {
   const host = document.getElementById('sidebarNavContent');
   if (!host) return;
+  const shouldScrollActive = options.scrollActive === true;
   const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
   const recentItems = getRecentTopicItems();
   const recentHtml = recentItems.length ? `
@@ -945,7 +946,7 @@ function renderSidebarNavigation() {
       `;
     }).join('')}
   `;
-  updateSidebarActiveState(getScopedItem('last_active_tab', 'profile_match'));
+  updateSidebarActiveState(getScopedItem('last_active_tab', 'profile_match'), { scrollIntoView: shouldScrollActive });
 }
 
 function renderRecentTopicsPanel() {
@@ -998,7 +999,8 @@ window.toggleNavGroup = function(groupId) {
   if (panel) panel.hidden = isOpen;
 };
 
-function updateSidebarActiveState(id) {
+function updateSidebarActiveState(id, options = {}) {
+  const shouldScrollIntoView = options.scrollIntoView !== false;
   document.querySelectorAll('#sidebar .nav-item').forEach(function(n) {
     const isActive = n.getAttribute('data-page-id') === id;
     n.classList.toggle('active', isActive);
@@ -1008,7 +1010,9 @@ function updateSidebarActiveState(id) {
       if (panel) panel.hidden = false;
       const toggle = section?.querySelector('.nav-group-toggle');
       if (toggle) toggle.setAttribute('aria-expanded', 'true');
-      setTimeout(() => n.scrollIntoView({ block: 'nearest' }), 0);
+      if (shouldScrollIntoView) {
+        setTimeout(() => n.scrollIntoView({ block: 'nearest' }), 0);
+      }
     }
   });
 }
