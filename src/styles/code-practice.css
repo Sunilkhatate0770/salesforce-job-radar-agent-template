@@ -291,19 +291,20 @@
 
 .cp-builder-body {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   padding: 0 10px 10px;
 }
 
 .cp-builder-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 9px;
+  grid-template-columns: minmax(108px, 0.78fr) minmax(0, 1.22fr);
+  gap: 8px;
+  align-items: start;
 }
 
 .cp-builder-field {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -329,19 +330,38 @@
   font-size: 0.8rem;
 }
 
+#code_practice .cp-builder-field input,
+#code_practice .cp-builder-field select,
+#code_practice .cp-builder-field textarea {
+  display: block;
+  box-sizing: border-box;
+  background: #07111f !important;
+  color: var(--cp-text) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
 .cp-builder-field input,
 .cp-builder-field select {
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 10px;
 }
 
 .cp-builder-field textarea {
-  min-height: 92px;
+  min-height: 76px;
   max-height: 220px;
   padding: 9px 10px;
   resize: vertical;
   line-height: 1.45;
   font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+}
+
+.cp-builder-field textarea[data-cp-draft="question"] {
+  height: clamp(76px, 10dvh, 112px);
+}
+
+.cp-builder-field textarea[data-cp-draft="starter"] {
+  height: clamp(98px, 15dvh, 150px);
 }
 
 .cp-builder-field input:focus-visible,
@@ -375,7 +395,7 @@
 
 .cp-custom-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, auto);
   gap: 7px;
   align-items: stretch;
 }
@@ -389,6 +409,13 @@
   color: var(--cp-text);
   font: inherit;
   cursor: pointer;
+}
+
+#code_practice .cp-custom-select,
+#code_practice .cp-icon-btn {
+  background: rgba(255, 255, 255, 0.035) !important;
+  color: var(--cp-text) !important;
+  border-color: var(--cp-border) !important;
 }
 
 .cp-custom-select {
@@ -419,12 +446,21 @@
   background: rgba(34, 197, 94, 0.08);
 }
 
+#code_practice .cp-custom-select.is-active {
+  border-color: rgba(34, 197, 94, 0.48) !important;
+  background: rgba(34, 197, 94, 0.08) !important;
+}
+
 .cp-icon-btn {
   min-width: 64px;
   padding: 0 9px;
   color: #fecdd3;
   font-size: 0.68rem;
   font-weight: 900;
+}
+
+#code_practice .cp-icon-btn {
+  color: #fecdd3 !important;
 }
 
 .cp-section-title {
@@ -873,6 +909,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .cp-builder-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .cp-editor,
   .code-practice-shell .CodeMirror {
     height: min(440px, 52dvh);
@@ -882,6 +922,17 @@
   .cp-salesforce-preview {
     min-height: 230px;
     height: min(360px, 44dvh);
+  }
+}
+
+@media (max-width: 380px) {
+  .cp-builder-grid,
+  .cp-custom-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cp-icon-btn {
+    width: 100%;
   }
 }
 
@@ -934,7 +985,7 @@
   }
 }
 
-@media (min-width: 769px) and (max-width: 1120px) {
+@media (min-width: 769px) and (max-width: 980px) {
   .cp-layout {
     grid-template-columns: minmax(0, 1fr);
   }

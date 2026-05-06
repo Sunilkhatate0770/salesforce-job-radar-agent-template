@@ -3,7 +3,7 @@
 
   const STORAGE_KEY = 'sf_code_practice_workspace_v1';
   const CUSTOM_STORAGE_KEY = 'sf_code_practice_custom_single_files_v1';
-  const CP_CSS = 'src/styles/code-practice.css?v=20260506-split';
+  const CP_CSS = 'src/styles/code-practice.css?v=20260506-builder-fix';
   const CM_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css';
   const CM_CORE = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js';
   const CM_MODES = [
@@ -133,7 +133,7 @@
       if (action === 'reset-single-file-draft') {
         const type = state.singleFileDraft.type || 'html';
         state.singleFileDraft = getDefaultSingleFileDraft(type);
-        render();
+        render({ scrollToTop: true });
       }
 
       if (action === 'delete-custom-challenge') {
@@ -684,7 +684,7 @@ window.solve = solve;`
     selectChallenge(challenge.id);
     saveLocalWorkspace();
     showToast('Single-file practice created.');
-    render();
+    render({ scrollToTop: true });
   }
 
   function deleteCustomChallenge(id) {
@@ -1089,7 +1089,7 @@ window.solve = solve;`
 </html>`;
   }
 
-  function render() {
+  function render(options = {}) {
     if (!state.root) return;
     syncEditorToState();
     const selected = getCurrentChallenge();
@@ -1105,6 +1105,16 @@ window.solve = solve;`
     window.requestAnimationFrame(() => {
       renderEditor();
       renderPreview();
+      if (options.scrollToTop) scrollPracticeToTop();
+    });
+  }
+
+  function scrollPracticeToTop() {
+    const scroller = document.getElementById('main') || document.scrollingElement;
+    if (!scroller) return;
+    scroller.scrollTo({
+      top: 0,
+      behavior: 'auto'
     });
   }
 
