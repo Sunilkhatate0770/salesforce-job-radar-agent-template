@@ -901,8 +901,8 @@ function renderSidebarNavigation() {
         <div class="nav-recent-title">Recently Used</div>
         ${recentItems.length > RECENT_PAGE_SIZE ? `
           <div class="nav-recent-pager">
-            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(-1)" aria-label="Previous recently used topic">&larr;</button>
-            <button type="button" class="nav-recent-btn" onclick="changeRecentPage(1)" aria-label="Next recently used topic">&rarr;</button>
+            <button type="button" class="nav-recent-btn" data-recent-delta="-1" onclick="changeRecentPage(-1, event)" aria-label="Previous recently used topic">&larr;</button>
+            <button type="button" class="nav-recent-btn" data-recent-delta="1" onclick="changeRecentPage(1, event)" aria-label="Next recently used topic">&rarr;</button>
           </div>
         ` : ''}
       </div>
@@ -956,9 +956,36 @@ function renderRecentTopicsPanel() {
   renderSidebarNavigation();
 }
 
-window.changeRecentPage = function(delta) {
+window.changeRecentPage = function(delta, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  const sidebar = document.getElementById('sidebar');
+  const previousScrollTop = sidebar ? sidebar.scrollTop : 0;
   recentTopicsPage += delta;
   renderRecentTopicsPanel();
+  if (!sidebar) return;
+
+  const restoreSidebarPosition = () => {
+    sidebar.scrollTop = previousScrollTop;
+    const recentPanel = sidebar.querySelector('.nav-recent-panel');
+    const searchWrap = sidebar.querySelector('.search-wrap');
+    if (recentPanel && searchWrap) {
+      const panelTop = recentPanel.getBoundingClientRect().top;
+      const safeTop = searchWrap.getBoundingClientRect().bottom + 8;
+      if (panelTop < safeTop) {
+        sidebar.scrollTop = Math.max(0, sidebar.scrollTop - Math.ceil(safeTop - panelTop));
+      }
+    }
+    const pagerButton = sidebar.querySelector(`.nav-recent-btn[data-recent-delta="${delta}"]`);
+    if (pagerButton && typeof pagerButton.focus === 'function') {
+      pagerButton.focus({ preventScroll: true });
+    }
+  };
+
+  restoreSidebarPosition();
+  requestAnimationFrame(restoreSidebarPosition);
 };
 
 window.toggleNavGroup = function(groupId) {

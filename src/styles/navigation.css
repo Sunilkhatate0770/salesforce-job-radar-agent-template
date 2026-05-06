@@ -123,6 +123,7 @@
 .nav-group-toggle:focus-visible,
 .sidebar-close-btn:focus-visible,
 .mobile-toggle:focus-visible,
+.nav-recent-btn:focus-visible,
 .nav-recent-chip:focus-visible,
 .search-actions button:focus-visible {
   outline: 2px solid var(--blue);

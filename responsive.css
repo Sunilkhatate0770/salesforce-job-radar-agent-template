@@ -59,6 +59,8 @@ table {
   border: 1px solid rgba(148, 163, 184, 0.13);
   background: rgba(15, 23, 42, 0.55);
   min-height: 0;
+  overflow-anchor: none;
+  scroll-margin-top: calc(var(--sidebar-sticky-header-h, 118px) + 56px);
 }
 
 .nav-recent-header {
@@ -88,6 +90,7 @@ table {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  scroll-margin-top: calc(var(--sidebar-sticky-header-h, 118px) + 56px);
 }
 
 .nav-recent-btn:hover {
@@ -129,6 +132,7 @@ table {
   cursor: pointer;
   font: inherit;
   text-align: left;
+  scroll-margin-top: calc(var(--sidebar-sticky-header-h, 118px) + 56px);
 }
 
 .nav-recent-chip span,
