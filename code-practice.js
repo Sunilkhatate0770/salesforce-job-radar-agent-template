@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'sf_code_practice_workspace_v1';
+  const CUSTOM_STORAGE_KEY = 'sf_code_practice_custom_single_files_v1';
   const CP_CSS = 'src/styles/code-practice.css?v=20260506-split';
   const CM_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css';
   const CM_CORE = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js';
@@ -19,6 +20,7 @@
     eventsBound: false,
     codeMirrorReady: false,
     challenges: [],
+    customChallenges: [],
     progress: null,
     profile: null,
     selectedId: '',
@@ -31,7 +33,8 @@
     trackFilter: 'all',
     experienceFilter: 'all',
     runResult: null,
-    evaluation: null
+    evaluation: null,
+    singleFileDraft: getDefaultSingleFileDraft()
   };
 
   window.CodePractice = {
@@ -51,6 +54,7 @@
       const profilePromise = loadProfile();
       const codeMirrorPromise = loadCodeMirrorAssets();
       await loadChallenges();
+      loadCustomChallenges();
       await profilePromise;
       await loadProgress();
       await codeMirrorPromise;
@@ -120,6 +124,22 @@
       if (action === 'save') {
         await saveAttempt();
       }
+
+      if (action === 'create-single-file') {
+        syncSingleFileDraftFromDom();
+        createSingleFilePractice();
+      }
+
+      if (action === 'reset-single-file-draft') {
+        const type = state.singleFileDraft.type || 'html';
+        state.singleFileDraft = getDefaultSingleFileDraft(type);
+        render();
+      }
+
+      if (action === 'delete-custom-challenge') {
+        const id = actionEl.getAttribute('data-id');
+        deleteCustomChallenge(id);
+      }
     });
 
     state.root.addEventListener('change', event => {
@@ -128,6 +148,25 @@
         state.experienceFilter = event.target.value || 'all';
         ensureVisibleSelection();
         render();
+      }
+      if (event.target?.matches('[data-cp-draft]')) {
+        syncSingleFileDraftFromDom();
+        if (event.target.getAttribute('data-cp-draft') === 'type') {
+          const previousQuestion = state.singleFileDraft.question;
+          const previousTitle = state.singleFileDraft.title;
+          state.singleFileDraft = {
+            ...getDefaultSingleFileDraft(state.singleFileDraft.type),
+            title: previousTitle || getDefaultSingleFileDraft(state.singleFileDraft.type).title,
+            question: previousQuestion
+          };
+          render();
+        }
+      }
+    });
+
+    state.root.addEventListener('input', event => {
+      if (event.target?.matches('[data-cp-draft]')) {
+        syncSingleFileDraftFromDom();
       }
     });
   }
@@ -162,19 +201,194 @@
     }
   }
 
+  function loadCustomChallenges() {
+    try {
+      const raw = localStorage.getItem(getScopedPracticeKey('custom-single-files')) || localStorage.getItem(CUSTOM_STORAGE_KEY) || '[]';
+      const parsed = JSON.parse(raw);
+      state.customChallenges = Array.isArray(parsed)
+        ? parsed.map(normalizeCustomChallenge).filter(Boolean).slice(0, 40)
+        : [];
+      if (state.customChallenges.length && !localStorage.getItem(getScopedPracticeKey('custom-single-files'))) {
+        saveCustomChallenges();
+      }
+    } catch (err) {
+      state.customChallenges = [];
+    }
+  }
+
+  function saveCustomChallenges() {
+    try {
+      localStorage.setItem(getScopedPracticeKey('custom-single-files'), JSON.stringify(state.customChallenges));
+    } catch (err) {
+      // Keep practice usable even when browser storage is blocked.
+    }
+  }
+
+  function normalizeCustomChallenge(challenge) {
+    if (!challenge || typeof challenge !== 'object') return null;
+    const type = normalizeSingleFileType(challenge.singleFileType || challenge.type || challenge.practiceMode);
+    const template = getSingleFileTemplate(type);
+    const files = normalizeFiles(challenge.files || [], []);
+    if (!files.length) {
+      files.push({ name: template.fileName, language: template.language, content: template.content });
+    }
+    return {
+      id: String(challenge.id || `custom-${type}-${Date.now()}`).slice(0, 80),
+      title: String(challenge.title || template.title).slice(0, 90),
+      summary: String(challenge.summary || 'Your own single-file practice prompt.').slice(0, 160),
+      instructions: String(challenge.instructions || challenge.question || template.question).slice(0, 1200),
+      expectedBehavior: String(challenge.expectedBehavior || template.expected).slice(0, 700),
+      track: type === 'html' || type === 'js' ? 'web' : 'salesforce',
+      practiceMode: template.practiceMode,
+      singleFileType: type,
+      difficulty: String(challenge.difficulty || 'Custom').slice(0, 40),
+      experienceLevels: Array.isArray(challenge.experienceLevels) && challenge.experienceLevels.length
+        ? challenge.experienceLevels.map(Number).filter(Number.isFinite)
+        : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+      designations: Array.isArray(challenge.designations) && challenge.designations.length
+        ? challenge.designations.map(String).slice(0, 4)
+        : ['Salesforce Developer', 'FDE'],
+      files: files.slice(0, 1),
+      tests: Array.isArray(challenge.tests) ? challenge.tests : [],
+      staticChecks: Array.isArray(challenge.staticChecks) && challenge.staticChecks.length
+        ? challenge.staticChecks
+        : buildSingleFileStaticChecks(type, files[0]?.name || template.fileName),
+      custom: true,
+      createdAt: challenge.createdAt || new Date().toISOString()
+    };
+  }
+
+  function getDefaultSingleFileDraft(type = 'html') {
+    const template = getSingleFileTemplate(type);
+    return {
+      type: template.type,
+      title: template.title,
+      question: template.question,
+      fileName: template.fileName,
+      starter: template.content
+    };
+  }
+
+  function getSingleFileTemplate(type = 'html') {
+    const normalized = normalizeSingleFileType(type);
+    const templates = {
+      html: {
+        type: 'html',
+        title: 'Single HTML File Practice',
+        question: 'Create one responsive HTML file for the interview prompt. Include semantic structure, accessible labels, and a clear result area.',
+        fileName: 'index.html',
+        language: 'html',
+        practiceMode: 'html-single',
+        expected: 'One complete HTML file that renders without external files and works on mobile and desktop.',
+        content: `<main class="practice-card">
+  <h1>Salesforce Practice</h1>
+  <p id="status">Build the requested UI here.</p>
+  <button type="button">Start</button>
+</main>`
+      },
+      js: {
+        type: 'js',
+        title: 'Single JavaScript File Practice',
+        question: 'Create one JavaScript file for the prompt. Keep logic readable, validate inputs, and expose a function that can be tested.',
+        fileName: 'solution.js',
+        language: 'javascript',
+        practiceMode: 'js-single',
+        expected: 'One JavaScript file with valid syntax and a clear exported/global function or runnable logic.',
+        content: `function solve(input) {
+  if (!input) return '';
+  return String(input).trim();
+}
+
+window.solve = solve;`
+      },
+      apex: {
+        type: 'apex',
+        title: 'Single Apex Class Practice',
+        question: 'Create one Apex class for the prompt. Use bulk-safe collections, clear method names, and security-aware thinking.',
+        fileName: 'PracticeSolution.cls',
+        language: 'apex',
+        practiceMode: 'apex-single',
+        expected: 'One Apex class with a valid class declaration, balanced braces, and no obvious SOQL/DML inside loops.',
+        content: `public with sharing class PracticeSolution {
+    public static void execute(List<Account> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+
+        // Add bulk-safe logic for the prompt here.
+    }
+}`
+      },
+      trigger: {
+        type: 'trigger',
+        title: 'Single Trigger File Practice',
+        question: 'Create one Salesforce trigger for the prompt. Keep it bulk-safe and call a handler if the scenario needs more logic.',
+        fileName: 'PracticeTrigger.trigger',
+        language: 'apex',
+        practiceMode: 'apex-trigger-single',
+        expected: 'One trigger file with a valid trigger declaration and Trigger context usage.',
+        content: `trigger PracticeTrigger on Account (before insert, before update) {
+    if (Trigger.isBefore && (Trigger.isInsert || Trigger.isUpdate)) {
+        for (Account recordItem : Trigger.new) {
+            // Add lightweight context logic for the prompt here.
+        }
+    }
+}`
+      }
+    };
+    return templates[normalized] || templates.html;
+  }
+
+  function normalizeSingleFileType(type) {
+    const value = String(type || '').toLowerCase();
+    if (value.includes('trigger')) return 'trigger';
+    if (value.includes('apex') || value.includes('cls')) return 'apex';
+    if (value.includes('js') || value.includes('javascript')) return 'js';
+    return 'html';
+  }
+
+  function buildSingleFileStaticChecks(type, fileName) {
+    const escapedFile = String(fileName || '*').slice(0, 80);
+    const checks = [
+      { id: 'custom-not-empty', label: `${escapedFile} has meaningful source`, file: '*', regex: '[\\s\\S]{24,}', weight: 10 }
+    ];
+    if (type === 'html') {
+      checks.push(
+        { id: 'custom-html-structure', label: 'Uses semantic HTML structure', file: '*', regex: '<(main|section|article|form|header|button|h1)\\b', weight: 12 },
+        { id: 'custom-html-viewport', label: 'Includes responsive viewport when using a full document', file: '*', regex: 'viewport|<(main|section|article|form|button)\\b', weight: 8 }
+      );
+    } else if (type === 'js') {
+      checks.push(
+        { id: 'custom-js-function', label: 'Defines executable JavaScript logic', file: '*', regex: '\\b(function|const|let|=>)\\b', weight: 12 },
+        { id: 'custom-js-no-alert-only', label: 'Does more than only alert/log output', file: '*', negativeRegex: '^\\s*(alert|console\\.log)\\s*\\(', weight: 8 }
+      );
+    } else if (type === 'apex') {
+      checks.push(
+        { id: 'custom-apex-class', label: 'Declares an Apex class', file: '*', regex: '\\bclass\\s+\\w+', weight: 14 },
+        { id: 'custom-apex-sharing', label: 'Considers sharing context', file: '*', regex: '\\b(with|without|inherited)\\s+sharing\\b', weight: 8 }
+      );
+    } else if (type === 'trigger') {
+      checks.push(
+        { id: 'custom-trigger-declaration', label: 'Declares a Salesforce trigger', file: '*', regex: '\\btrigger\\s+\\w+\\s+on\\s+\\w+\\s*\\(', weight: 14 },
+        { id: 'custom-trigger-context', label: 'Uses Trigger context variables', file: '*', regex: '\\bTrigger\\.(new|old|newMap|oldMap|isInsert|isUpdate|isBefore|isAfter)\\b', weight: 8 }
+      );
+    }
+    return checks;
+  }
+
   async function loadProgress() {
     const token = localStorage.getItem('google_auth_token');
     if (!token) {
-      state.progress = getDefaultProgress();
+      state.progress = readLocalProgress() || getDefaultProgress();
       return;
     }
     try {
       const response = await safeApiFetch('/api/code-practice/progress');
       if (!response.ok) throw new Error(`progress ${response.status}`);
       const data = await response.json();
-      state.progress = data.codingPractice || getDefaultProgress();
+      state.progress = mergeProgress(data.codingPractice || getDefaultProgress(), readLocalProgress());
     } catch (err) {
-      state.progress = getDefaultProgress();
+      state.progress = readLocalProgress() || getDefaultProgress();
     }
   }
 
@@ -225,7 +439,8 @@
     const visible = getVisibleChallenges();
     const lastWorkspace = state.progress?.lastWorkspace;
     const saved = readLocalWorkspace();
-    const candidateId = lastWorkspace?.challengeId || saved?.challengeId || visible[0]?.id || state.challenges[0]?.id;
+    const all = getAllChallenges();
+    const candidateId = lastWorkspace?.challengeId || saved?.challengeId || visible[0]?.id || all[0]?.id;
     const filesOverride = lastWorkspace?.challengeId === candidateId ? lastWorkspace.files : (saved?.challengeId === candidateId ? saved.files : null);
     selectChallenge(candidateId, filesOverride);
   }
@@ -268,7 +483,7 @@
   }
 
   function getVisibleChallenges() {
-    return state.challenges.filter(challenge => {
+    return getAllChallenges().filter(challenge => {
       const trackMatch = state.trackFilter === 'all' || challenge.track === state.trackFilter;
       const years = state.experienceFilter === 'all' ? 0 : Number(state.experienceFilter);
       const yearMatch = !years || (challenge.experienceLevels || []).includes(years);
@@ -276,8 +491,12 @@
     });
   }
 
+  function getAllChallenges() {
+    return [...state.customChallenges, ...state.challenges];
+  }
+
   function getChallenge(id) {
-    return state.challenges.find(challenge => challenge.id === id) || null;
+    return getAllChallenges().find(challenge => challenge.id === id) || null;
   }
 
   function getCurrentChallenge() {
@@ -376,6 +595,13 @@
     if (!challenge) return;
     if (!state.evaluation) await reviewCurrentChallenge();
     syncEditorToState();
+    if (challenge.custom) {
+      saveCustomAttempt(challenge);
+      saveLocalWorkspace();
+      showToast('Custom practice attempt saved locally.');
+      render();
+      return;
+    }
     state.busy = 'save';
     render();
     try {
@@ -405,6 +631,130 @@
       state.busy = '';
       render();
     }
+  }
+
+  function syncSingleFileDraftFromDom() {
+    if (!state.root) return;
+    const draft = { ...state.singleFileDraft };
+    state.root.querySelectorAll('[data-cp-draft]').forEach(input => {
+      const field = input.getAttribute('data-cp-draft');
+      if (!field) return;
+      draft[field] = input.value;
+    });
+    const template = getSingleFileTemplate(draft.type);
+    state.singleFileDraft = {
+      ...draft,
+      type: template.type,
+      fileName: normalizeSingleFileName(draft.fileName, template),
+      starter: String(draft.starter || template.content).slice(0, 60000)
+    };
+  }
+
+  function createSingleFilePractice() {
+    const draft = { ...state.singleFileDraft };
+    const template = getSingleFileTemplate(draft.type);
+    const title = String(draft.title || template.title).trim();
+    const question = String(draft.question || template.question).trim();
+    const starter = String(draft.starter || template.content).trim();
+    const fileName = normalizeSingleFileName(draft.fileName || template.fileName, template);
+    if (!title || !question || !starter || !fileName) {
+      showToast('Add a title, question, file name, and starter code first.');
+      return;
+    }
+    const challenge = normalizeCustomChallenge({
+      id: `custom-${template.type}-${Date.now()}`,
+      title,
+      summary: `Custom ${formatSingleFileType(template.type)} practice from your own prompt.`,
+      instructions: question,
+      expectedBehavior: template.expected,
+      singleFileType: template.type,
+      practiceMode: template.practiceMode,
+      track: template.type === 'html' || template.type === 'js' ? 'web' : 'salesforce',
+      files: [{ name: fileName, language: template.language, content: starter }],
+      staticChecks: buildSingleFileStaticChecks(template.type, fileName),
+      createdAt: new Date().toISOString()
+    });
+    if (!challenge) return;
+    state.customChallenges = [
+      challenge,
+      ...state.customChallenges.filter(item => item.id !== challenge.id)
+    ].slice(0, 40);
+    saveCustomChallenges();
+    state.singleFileDraft = getDefaultSingleFileDraft(template.type);
+    selectChallenge(challenge.id);
+    saveLocalWorkspace();
+    showToast('Single-file practice created.');
+    render();
+  }
+
+  function deleteCustomChallenge(id) {
+    const challengeId = String(id || '');
+    const before = state.customChallenges.length;
+    state.customChallenges = state.customChallenges.filter(challenge => challenge.id !== challengeId);
+    if (state.customChallenges.length === before) return;
+    saveCustomChallenges();
+    if (state.selectedId === challengeId) {
+      const next = getVisibleChallenges()[0] || state.challenges[0];
+      if (next) selectChallenge(next.id);
+    }
+    saveLocalWorkspace();
+    showToast('Custom practice removed.');
+    render();
+  }
+
+  function saveCustomAttempt(challenge) {
+    const progress = state.progress || getDefaultProgress();
+    const score = Number(state.evaluation?.score || 0);
+    const attempt = {
+      challengeId: challenge.id,
+      title: challenge.title,
+      languageTrack: challenge.track,
+      score,
+      correctnessPercent: score,
+      savedAt: new Date().toISOString(),
+      custom: true
+    };
+    const attempts = [attempt, ...(progress.attempts || [])].slice(0, 50);
+    const bestScores = { ...(progress.bestScores || {}) };
+    bestScores[challenge.id] = Math.max(Number(bestScores[challenge.id] || 0), score);
+    const completed = new Set(progress.completedChallengeIds || []);
+    if (score >= 70) completed.add(challenge.id);
+    state.progress = {
+      ...progress,
+      attempts,
+      bestScores,
+      completedChallengeIds: [...completed],
+      lastWorkspace: {
+        challengeId: challenge.id,
+        files: filesToMap(),
+        updatedAt: new Date().toISOString()
+      }
+    };
+    try {
+      localStorage.setItem(getScopedPracticeKey('progress'), JSON.stringify(state.progress));
+    } catch (err) {
+      // Best effort local save.
+    }
+  }
+
+  function normalizeSingleFileName(value, template) {
+    const fallback = template.fileName;
+    let name = String(value || fallback).trim().replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80);
+    if (!name) name = fallback;
+    const lower = name.toLowerCase();
+    if (template.type === 'html' && !lower.endsWith('.html')) name += '.html';
+    if (template.type === 'js' && !lower.endsWith('.js')) name += '.js';
+    if (template.type === 'apex' && !lower.endsWith('.cls')) name += '.cls';
+    if (template.type === 'trigger' && !lower.endsWith('.trigger')) name += '.trigger';
+    return name;
+  }
+
+  function formatSingleFileType(type) {
+    if (type === 'html') return 'HTML';
+    if (type === 'js') return 'JavaScript';
+    if (type === 'apex') return 'Apex class';
+    if (type === 'trigger') return 'trigger';
+    return 'single-file';
   }
 
   function runDeterministicChecks(challenge, files, runResult) {
@@ -816,12 +1166,84 @@
     const visible = getVisibleChallenges();
     return `
       <aside class="cp-sidebar" aria-label="Code practice challenges">
+        ${renderSingleFileBuilder()}
+        ${renderCustomPracticeList()}
         <div class="cp-section-title">Challenges</div>
         <div class="cp-challenge-list">
           ${visible.length ? visible.map(renderChallengeCard).join('') : '<div class="cp-empty">No challenge matches this filter.</div>'}
         </div>
         ${renderProgressCard()}
       </aside>
+    `;
+  }
+
+  function renderSingleFileBuilder() {
+    const draft = state.singleFileDraft || getDefaultSingleFileDraft();
+    const type = normalizeSingleFileType(draft.type);
+    return `
+      <details class="cp-single-builder" open>
+        <summary>
+          <span>Create Single File</span>
+          <span aria-hidden="true">+</span>
+        </summary>
+        <div class="cp-builder-body">
+          <div class="cp-builder-grid">
+            <label class="cp-builder-field">
+              <span>File type</span>
+              <select data-cp-draft="type" aria-label="Single file practice type">
+                ${renderDraftOption(type, 'html', 'HTML')}
+                ${renderDraftOption(type, 'js', 'JavaScript')}
+                ${renderDraftOption(type, 'apex', 'Apex Class')}
+                ${renderDraftOption(type, 'trigger', 'Trigger')}
+              </select>
+            </label>
+            <label class="cp-builder-field">
+              <span>File name</span>
+              <input data-cp-draft="fileName" type="text" value="${escapeAttr(draft.fileName || '')}" placeholder="index.html">
+            </label>
+          </div>
+          <label class="cp-builder-field">
+            <span>Practice title</span>
+            <input data-cp-draft="title" type="text" value="${escapeAttr(draft.title || '')}" placeholder="Build account search">
+          </label>
+          <label class="cp-builder-field">
+            <span>Your question / requirement</span>
+            <textarea data-cp-draft="question" rows="4" placeholder="Paste your own interview question or requirement...">${escapeHtml(draft.question || '')}</textarea>
+          </label>
+          <label class="cp-builder-field">
+            <span>Starter code</span>
+            <textarea data-cp-draft="starter" rows="6" spellcheck="false" placeholder="Add the single file starter code...">${escapeHtml(draft.starter || '')}</textarea>
+          </label>
+          <div class="cp-builder-actions">
+            <button type="button" class="cp-btn primary" data-cp-action="create-single-file">Create</button>
+            <button type="button" class="cp-btn" data-cp-action="reset-single-file-draft">Reset</button>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  function renderDraftOption(current, value, label) {
+    return `<option value="${value}"${current === value ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+  }
+
+  function renderCustomPracticeList() {
+    if (!state.customChallenges.length) {
+      return '<div class="cp-custom-empty">Create your own HTML, JS, Apex class, or trigger file practice above.</div>';
+    }
+    return `
+      <div class="cp-custom-list" aria-label="Custom single-file practices">
+        <div class="cp-section-title">Your Single Files</div>
+        ${state.customChallenges.slice(0, 6).map(challenge => `
+          <div class="cp-custom-item">
+            <button type="button" class="cp-custom-select${challenge.id === state.selectedId ? ' is-active' : ''}" data-cp-action="select-challenge" data-id="${escapeAttr(challenge.id)}">
+              <span>${escapeHtml(challenge.title)}</span>
+              <small>${escapeHtml(formatSingleFileType(challenge.singleFileType))}</small>
+            </button>
+            <button type="button" class="cp-icon-btn" aria-label="Delete ${escapeAttr(challenge.title)}" data-cp-action="delete-custom-challenge" data-id="${escapeAttr(challenge.id)}">Remove</button>
+          </div>
+        `).join('')}
+      </div>
     `;
   }
 
@@ -1087,9 +1509,33 @@
     return { attempts: [], bestScores: {}, lastWorkspace: null, completedChallengeIds: [] };
   }
 
+  function mergeProgress(primary, localOnly) {
+    if (!localOnly) return primary || getDefaultProgress();
+    const base = primary || getDefaultProgress();
+    const attemptsByKey = new Map();
+    [...(localOnly.attempts || []), ...(base.attempts || [])].forEach(attempt => {
+      const key = `${attempt.challengeId || ''}:${attempt.savedAt || attempt.attemptedAt || ''}:${attempt.score || 0}`;
+      if (!attemptsByKey.has(key)) attemptsByKey.set(key, attempt);
+    });
+    const bestScores = { ...(localOnly.bestScores || {}), ...(base.bestScores || {}) };
+    Object.entries(localOnly.bestScores || {}).forEach(([id, score]) => {
+      bestScores[id] = Math.max(Number(bestScores[id] || 0), Number(score || 0));
+    });
+    const completed = new Set([...(localOnly.completedChallengeIds || []), ...(base.completedChallengeIds || [])]);
+    return {
+      ...base,
+      attempts: [...attemptsByKey.values()]
+        .sort((a, b) => String(b.savedAt || b.attemptedAt || '').localeCompare(String(a.savedAt || a.attemptedAt || '')))
+        .slice(0, 50),
+      bestScores,
+      completedChallengeIds: [...completed],
+      lastWorkspace: base.lastWorkspace || localOnly.lastWorkspace || null
+    };
+  }
+
   function saveLocalWorkspace() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      localStorage.setItem(getScopedPracticeKey('workspace'), JSON.stringify({
         challengeId: state.selectedId,
         files: filesToMap(),
         updatedAt: new Date().toISOString()
@@ -1101,10 +1547,47 @@
 
   function readLocalWorkspace() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      const scoped = localStorage.getItem(getScopedPracticeKey('workspace'));
+      if (scoped) return JSON.parse(scoped);
+      const legacy = localStorage.getItem(STORAGE_KEY);
+      if (!legacy) return null;
+      const parsed = JSON.parse(legacy);
+      localStorage.setItem(getScopedPracticeKey('workspace'), legacy);
+      return parsed;
     } catch (err) {
       return null;
     }
+  }
+
+  function readLocalProgress() {
+    try {
+      return JSON.parse(localStorage.getItem(getScopedPracticeKey('progress')) || 'null');
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function getScopedPracticeKey(key) {
+    return `sfjr:${getPracticeUserId()}:code-practice:${key}:v1`;
+  }
+
+  function getPracticeUserId() {
+    const fromApp = window.currentUser?.id || window.currentUser?.googleId || window.currentUser?.email;
+    if (fromApp) return normalizeStorageUserId(fromApp);
+    const token = localStorage.getItem('google_auth_token');
+    if (token && token.split('.').length >= 2) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        return normalizeStorageUserId(payload.sub || payload.email || payload.name || 'guest');
+      } catch (err) {
+        return 'guest';
+      }
+    }
+    return 'guest';
+  }
+
+  function normalizeStorageUserId(value) {
+    return String(value || 'guest').toLowerCase().replace(/[^a-z0-9._-]+/g, '_').slice(0, 80) || 'guest';
   }
 
   function showToast(message) {

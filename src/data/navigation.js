@@ -60,7 +60,9 @@
         i('exception_handling', 'Exception Handling', ['errors', 'logging'], 'Core'),
         i('order_of_execution', 'Order of Execution', ['save cycle', 'automation order'], 'Core'),
         i('sc_async', 'Async Processing + Credit Pull', ['async', 'callout', 'credit pull'], 'Scenario', { questionCount: 10 }),
-        i('scenario', 'Architecture Scenario Questions', ['scenario', 'architect thinking'], 'Scenario', { questionCount: 16 })
+        i('scenario', 'Architecture Scenario Questions', ['scenario', 'architect thinking'], 'Scenario', { questionCount: 16 }),
+        i('trigger_handler_scenarios', 'Trigger Handler Scenarios', ['trigger handler', 'recursion', 'bulkification'], 'Scenario', { questionCount: 8 }),
+        i('soql_ldv_scenarios', 'SOQL LDV Scenarios', ['soql', 'ldv', 'selectivity'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -79,7 +81,8 @@
         i('ui_performance', 'UI Performance', ['performance', 'rendering'], 'Core'),
         i('ui_accessibility', 'Accessibility', ['a11y', 'keyboard'], 'Core'),
         i('sc_recordpage', 'Record Page + Custom LWC', ['recordId', 'record page', 'LMS'], 'Scenario', { questionCount: 10 }),
-        i('sc_fileupload', 'File Upload + Google Drive', ['files', 'external storage'], 'Scenario', { questionCount: 10 })
+        i('sc_fileupload', 'File Upload + Google Drive', ['files', 'external storage'], 'Scenario', { questionCount: 10 }),
+        i('lwc_performance_scenarios', 'LWC Performance Scenarios', ['lwc', 'performance', 'datatable'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -99,7 +102,8 @@
         i('sc_objects', 'Objects & Fields', ['objects', 'fields'], 'Core', { questionCount: 10 }),
         i('relationships', 'Relationships', ['lookup', 'master detail', 'junction'], 'Core'),
         i('sc_validation', 'Validation Scenarios', ['validation'], 'Scenario', { questionCount: 10 }),
-        i('duplicate_rules', 'Duplicate Rules', ['duplicate management'], 'Scenario')
+        i('duplicate_rules', 'Duplicate Rules', ['duplicate management'], 'Scenario'),
+        i('security_sharing_scenarios', 'Sharing Debug Scenarios', ['sharing', 'owd', 'role hierarchy'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -119,7 +123,8 @@
         i('middleware_patterns', 'Middleware Patterns', ['mulesoft', 'middleware'], 'Core'),
         i('large_data_volume', 'Large Data Volume', ['ldv', 'query plan'], 'Core'),
         i('sc_arch', 'Architecture Mix', ['architecture', 'LDV', 'integration', 'security'], 'Scenario', { questionCount: 10 }),
-        i('fde_integration', 'FDE Integration Patterns', ['agentforce', 'data cloud', 'integration'], 'Scenario', { questionCount: 5 })
+        i('fde_integration', 'FDE Integration Patterns', ['agentforce', 'data cloud', 'integration'], 'Scenario', { questionCount: 5 }),
+        i('integration_retry_scenarios', 'Integration Retry Scenarios', ['retry', 'idempotency', 'middleware'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -139,7 +144,8 @@
         i('sales_cloud', 'Sales Cloud', ['sales cloud'], 'Core'),
         i('service_cloud', 'Service Cloud', ['service cloud'], 'Core'),
         i('experience_cloud', 'Experience Cloud', ['experience cloud'], 'Core'),
-        i('sc_flow', 'Flow Scenarios', ['flow scenario', 'invocable apex'], 'Scenario', { questionCount: 10 })
+        i('sc_flow', 'Flow Scenarios', ['flow scenario', 'invocable apex'], 'Scenario', { questionCount: 10 }),
+        i('flow_vs_apex_scenarios', 'Flow vs Apex Decision Scenarios', ['flow vs apex', 'tradeoff'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -168,7 +174,8 @@
         i('fde_dc_adv', 'Data Cloud Advanced Scenarios', ['data cloud', 'scenario'], 'Scenario', { questionCount: 7 }),
         i('agentforce_apex', 'Agentforce + Apex', ['agentforce apex'], 'Scenario'),
         i('agentforce_flow', 'Agentforce + Flow', ['agentforce flow'], 'Scenario'),
-        i('agentforce_data_cloud', 'Agentforce + Data Cloud', ['agentforce data cloud'], 'Scenario')
+        i('agentforce_data_cloud', 'Agentforce + Data Cloud', ['agentforce data cloud'], 'Scenario'),
+        i('data_cloud_identity_scenarios', 'Identity Resolution Scenarios', ['data cloud', 'identity resolution'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -187,7 +194,8 @@
         i('demo_storytelling', 'Demo Storytelling', ['demo'], 'Core'),
         i('production_debugging', 'Production Debugging', ['debugging'], 'Scenario'),
         i('fde_behavioral', 'FDE Behavioral', ['star', 'behavioral'], 'Scenario', { questionCount: 9 }),
-        i('fde_apex', 'Apex in Agents', ['apex', 'agentforce'], 'Scenario', { questionCount: 6 })
+        i('fde_apex', 'Apex in Agents', ['apex', 'agentforce'], 'Scenario', { questionCount: 6 }),
+        i('fde_customer_crisis_scenarios', 'Customer Crisis Scenarios', ['fde', 'production issue', 'executive demo'], 'Scenario', { questionCount: 8 })
       ]
     },
     {
@@ -229,6 +237,7 @@
         i('project_explanation', 'Project Explanation', ['project'], 'Scenario'),
         i('behavioral', 'Behavioral Q&A', ['behavioral'], 'Scenario', { questionCount: 20 }),
         i('manager_round', 'Manager Round', ['manager'], 'Scenario'),
+        i('manager_project_scenarios', 'Manager Round Project Scenarios', ['manager', 'project explanation', 'ownership'], 'Scenario', { questionCount: 8 }),
         i('salary', 'Salary Negotiation', ['salary'], 'Scenario'),
         i('mock', 'Mock Interview Scripts', ['mock interview'], 'Scenario'),
         i('ai_interview', 'AI Mock Interview', ['ai interview'], 'Scenario', { requiresAuth: true })

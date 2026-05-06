@@ -86,3 +86,24 @@ test('navigation items are grouped by core/scenario and resolve to content', () 
     });
   });
 });
+
+test('scenario-only upgrades expose practical deep-dive question banks', () => {
+  const { SFJR_SALESFORCE_CONTENT } = loadBrowserData('src/data/salesforceContent.js');
+  [
+    'trigger_handler_scenarios',
+    'soql_ldv_scenarios',
+    'lwc_performance_scenarios',
+    'security_sharing_scenarios',
+    'integration_retry_scenarios',
+    'flow_vs_apex_scenarios',
+    'data_cloud_identity_scenarios',
+    'fde_customer_crisis_scenarios',
+    'manager_project_scenarios'
+  ].forEach(sectionId => {
+    const section = SFJR_SALESFORCE_CONTENT.getSection(sectionId);
+    assert.ok(section, `${sectionId} exists`);
+    assert.equal(section.questions.length, 8, `${sectionId} has eight scenario prompts`);
+    assert.ok(section.questions.every(question => question.followUps.length >= 3));
+    assert.ok(section.questions.every(question => /production|manager|customer|business/i.test(question.detailedAnswer)));
+  });
+});

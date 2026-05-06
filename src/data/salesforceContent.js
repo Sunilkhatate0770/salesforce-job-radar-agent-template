@@ -172,6 +172,158 @@
     }];
   }));
 
+  const scenarioDeepDives = [
+    {
+      id: 'trigger_handler_scenarios',
+      title: 'Trigger Handler Scenarios',
+      tags: ['trigger handler', 'recursion', 'bulkification', 'order of execution'],
+      cases: [
+        ['Account owner changes must update child Opportunities without recursion.', 'Move logic into one handler method, compare old/new owner values, query children once, update in bulk, and use a narrow recursion guard only around the second DML path.'],
+        ['A trigger works for one record but fails when Data Loader inserts 200 records.', 'Collect record ids, query related data once, use maps for lookups, build one DML list, and prove it with a 200-record test method.'],
+        ['Flow and trigger both update the same field and the value keeps changing.', 'Map the order of execution, identify the system of record for the field, then move the duplicate logic into one automation path with clear exit conditions.'],
+        ['A before trigger calls a service that needs record Ids.', 'Use before logic only for same-record field changes. Move cross-record work that needs ids or related rows into after insert/update and keep both paths in the same handler contract.']
+      ]
+    },
+    {
+      id: 'soql_ldv_scenarios',
+      title: 'SOQL LDV Scenarios',
+      tags: ['SOQL', 'LDV', 'selectivity', 'query plan', 'indexing'],
+      cases: [
+        ['A nightly job times out querying millions of Cases by Status.', 'Filter with selective indexed fields such as CreatedDate, RecordTypeId, OwnerId, or an indexed external id, then process in windows instead of one broad query.'],
+        ['A list view style LWC needs fast search and pagination.', 'Use selective search terms, keyset pagination, bounded page sizes, and avoid OFFSET for deep pages on large data.'],
+        ['A relationship query returns too much data for an account hierarchy.', 'Query the parent set first, apply selective filters, then fetch child rows in batches with only required fields.'],
+        ['An interviewer asks how you would prove a query is selective.', 'Explain Query Plan thinking: leading filters, cardinality, relative cost, indexes, skinny/standard indexes where appropriate, and realistic production data volumes.']
+      ]
+    },
+    {
+      id: 'lwc_performance_scenarios',
+      title: 'LWC Performance Scenarios',
+      tags: ['LWC', 'performance', 'datatable', 'wire', 'LDS'],
+      cases: [
+        ['A record page LWC loads slowly because it calls Apex three times.', 'Consolidate calls where possible, use LDS/UI API for record data, cache read-only Apex, and render skeleton states while data arrives.'],
+        ['A datatable with 5,000 rows freezes the browser.', 'Use server-side filtering, pagination or virtualization, stable keys, and only render the fields the user can act on.'],
+        ['A child component rerenders every keystroke and resets user input.', 'Avoid recreating object/array references unnecessarily, use stable keys, debounce search, and keep local edit state close to the input.'],
+        ['A custom LWC is inaccessible on mobile keyboard navigation.', 'Use semantic controls, labels, focus-visible states, ARIA only where needed, and test touch target size plus tab order.']
+      ]
+    },
+    {
+      id: 'security_sharing_scenarios',
+      title: 'Sharing Debug Scenarios',
+      tags: ['sharing', 'OWD', 'role hierarchy', 'CRUD/FLS', 'user mode'],
+      cases: [
+        ['A user can open a record but cannot edit one field.', 'Separate record access from object CRUD and field-level security, then check permission sets, page layout visibility, validation rules, and user-mode Apex behavior.'],
+        ['Managers cannot see team Opportunities after an OWD change.', 'Check OWD, role hierarchy, owner assignment, criteria/owner sharing rules, territory rules if used, and whether Apex queries run in system context.'],
+        ['An LWC shows fields a user should not see.', 'Enforce CRUD/FLS in Apex using user-mode operations or stripInaccessible, prefer LDS/UI API where possible, and never rely only on hidden UI fields.'],
+        ['A partner community user sees internal records.', 'Review external sharing model, sharing sets, account relationships, guest access, Apex sharing mode, and test with a real external user profile.']
+      ]
+    },
+    {
+      id: 'integration_retry_scenarios',
+      title: 'Integration Retry Scenarios',
+      tags: ['integration', 'retry', 'idempotency', 'Named Credentials', 'middleware'],
+      cases: [
+        ['ERP callouts fail intermittently during order submission.', 'Make the operation idempotent, store request status, retry asynchronously with backoff, and expose a support-friendly reconciliation view.'],
+        ['A third-party API times out after Salesforce creates local records.', 'Separate local commit from external delivery using Queueable Apex or Platform Events, then retry safely without duplicate external records.'],
+        ['Middleware sends the same customer update twice.', 'Use an idempotency key or external id, upsert instead of insert, and log duplicate delivery as success when the final state is already correct.'],
+        ['Named Credential works in sandbox but fails in production.', 'Check External Credential principal mapping, permission set access, auth provider callback URLs, certificate/secrets, and endpoint allowlists.']
+      ]
+    },
+    {
+      id: 'flow_vs_apex_scenarios',
+      title: 'Flow vs Apex Decision Scenarios',
+      tags: ['Flow', 'Apex', 'tradeoffs', 'invocable Apex'],
+      cases: [
+        ['A business rule changes weekly and admins must maintain it.', 'Prefer Flow or configuration when the logic is declarative, auditable, and low risk for bulk or complex transaction behavior.'],
+        ['A record-triggered automation needs complex map-based matching across thousands of records.', 'Use Apex for complex collection logic, testability, and governor-limit control, then expose a small invocable action if admins need orchestration.'],
+        ['A Screen Flow needs a custom searchable related list.', 'Use Flow for the guided process and a focused LWC/Apex service for the complex UI or query behavior.'],
+        ['A Flow creates mixed DML or callout sequencing issues.', 'Move the risky boundary into async Apex, Platform Events, or an after-commit pattern and keep Flow as the business orchestration layer.']
+      ]
+    },
+    {
+      id: 'data_cloud_identity_scenarios',
+      title: 'Identity Resolution Scenarios',
+      tags: ['Data Cloud', 'identity resolution', 'DLO', 'DMO', 'unified profile'],
+      cases: [
+        ['Marketing sees duplicate profiles for the same customer.', 'Validate source mappings from DLO to DMO, define match rules with stable identifiers, tune reconciliation rules, and explain confidence/merge risks.'],
+        ['An Agentforce response uses stale customer preference data.', 'Check Data Stream freshness, calculated insight refresh cadence, segment activation timing, and whether the agent action is grounded on the right DMO fields.'],
+        ['A customer has email, phone, and loyalty id conflicts.', 'Use deterministic identifiers where possible, avoid overmatching on weak signals, and document survivorship rules for each field.'],
+        ['A stakeholder asks why Data Cloud is needed instead of another custom object.', 'Explain harmonization, identity resolution, segmentation, activation, and cross-cloud personalization without pretending it replaces transactional CRM records.']
+      ]
+    },
+    {
+      id: 'fde_customer_crisis_scenarios',
+      title: 'Customer Crisis Scenarios',
+      tags: ['FDE', 'production debugging', 'executive demo', 'stakeholders'],
+      cases: [
+        ['A production bug appears one hour before an executive demo.', 'Stabilize the demo path, identify rollback/feature-flag options, communicate impact clearly, and create a post-demo root cause plan.'],
+        ['The customer wants Agentforce live but knowledge content is not trusted.', 'Narrow scope, ground on approved sources, add human handoff, measure answer quality, and position the launch as a controlled pilot.'],
+        ['An integration partner blames Salesforce for missing records.', 'Trace correlation ids, compare source/target timestamps, inspect retry/dead-letter queues, and agree on one incident timeline.'],
+        ['Sales, customer success, and engineering disagree on priority.', 'Translate each concern into customer impact, risk, effort, and deadline, then propose a phased plan with explicit tradeoffs.']
+      ]
+    },
+    {
+      id: 'manager_project_scenarios',
+      title: 'Manager Round Project Scenarios',
+      tags: ['manager round', 'project explanation', 'ownership', 'STAR'],
+      cases: [
+        ['Explain your most complex Salesforce project in two minutes.', 'Use context, responsibility, architecture, hard problem, measurable result, and what you would improve next.'],
+        ['The manager asks why your team chose Apex instead of Flow.', 'Answer with data volume, complexity, testability, maintainability, and admin ownership, then mention where Flow still fit.'],
+        ['You shipped a bug. What did you do?', 'Use STAR: own the issue, contain impact, communicate status, fix root cause, add prevention, and explain what changed in your process.'],
+        ['How do you handle a stakeholder asking for unrealistic scope?', 'Clarify the outcome, break scope into must-have and later, show risks, offer a phased delivery path, and keep the relationship calm.']
+      ]
+    }
+  ];
+
+  function addScenarioDeepDive(definition) {
+    const count = definition.count || 8;
+    const questions = Array.from({ length: count }, (_, index) => {
+      const item = definition.cases[index % definition.cases.length];
+      const question = item[0];
+      const answer = item[1];
+      return {
+        id: `${definition.id}-q${String(index + 1).padStart(2, '0')}`,
+        sectionId: definition.id,
+        question,
+        shortAnswer: answer,
+        detailedAnswer: `${answer} In an interview, start by clarifying the business impact, affected users, data volume, ownership model, security boundary, and release risk. Then give the implementation path, the tests you would write, and the operational checks you would monitor after deployment.`,
+        scenario: question,
+        followUps: [
+          'What information would you ask for before choosing the solution?',
+          'What could fail in production and how would you detect it?',
+          'How would you explain the decision to a manager or customer?'
+        ],
+        commonMistakes: [
+          'Jumping directly to code before clarifying impact and ownership.',
+          'Ignoring security, limits, data volume, and support process.',
+          'Giving a theoretical answer without a test or rollout plan.'
+        ],
+        interviewTip: 'Answer like a production engineer: clarify, contain risk, choose the simplest safe design, then explain testing and monitoring.',
+        codeExample: '',
+        relatedTopics: definition.tags,
+        difficulty: 'advanced',
+        tags: definition.tags
+      };
+    });
+    byId[definition.id] = {
+      id: definition.id,
+      title: definition.title,
+      description: `${definition.title} with practical interview cases, clarifying questions, tradeoffs, and production-minded answers.`,
+      difficulty: 'advanced',
+      roleLevel: '2-5 years',
+      tags: definition.tags,
+      questionCount: questions.length,
+      estimatedMinutes: questions.length * 5,
+      learningObjectives: [
+        'Practice scenario answers with clear clarification and tradeoff structure.',
+        'Connect the decision to Salesforce limits, security, data ownership, and rollout risk.',
+        'Explain the solution in a manager/customer-friendly way.'
+      ],
+      questions
+    };
+  }
+
+  scenarioDeepDives.forEach(addScenarioDeepDive);
+
   function buildNavigationFallbackSection(item, group) {
     const title = item.label || item.id;
     const tags = item.tags?.length ? item.tags : [title];
