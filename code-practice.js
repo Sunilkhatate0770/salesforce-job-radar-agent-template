@@ -2,6 +2,7 @@
   'use strict';
 
   const STORAGE_KEY = 'sf_code_practice_workspace_v1';
+  const CP_CSS = 'src/styles/code-practice.css?v=20260506-split';
   const CM_CSS = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css';
   const CM_CORE = 'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js';
   const CM_MODES = [
@@ -42,6 +43,7 @@
     const root = document.getElementById('codePracticeApp');
     if (!root) return;
     state.root = root;
+    loadStylesheet(CP_CSS);
     bindEvents();
 
     if (!state.mounted) {

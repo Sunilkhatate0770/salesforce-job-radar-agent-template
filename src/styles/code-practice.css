@@ -1,0 +1,793 @@
+/* Lazy-loaded Code Practice workspace styles. */
+.code-practice-shell {
+  --cp-bg: #08111f;
+  --cp-panel: #0f1b2e;
+  --cp-panel-2: #13233b;
+  --cp-border: rgba(148, 163, 184, 0.22);
+  --cp-text: #e5edf8;
+  --cp-muted: #8ca2bf;
+  --cp-blue: #38bdf8;
+  --cp-green: #22c55e;
+  --cp-amber: #f59e0b;
+  --cp-red: #fb7185;
+  --cp-violet: #a78bfa;
+  color: var(--cp-text);
+  min-width: 0;
+  max-width: 100%;
+}
+
+#code_practice.page {
+  padding-top: 14px !important;
+}
+
+#code_practice > .page-header {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+#code_practice > .page-header > .page-title {
+  color: #dceaff !important;
+  font-size: clamp(1.15rem, 1vw + 0.9rem, 1.55rem) !important;
+  line-height: 1.2 !important;
+}
+
+#code_practice > .page-header > .page-sub {
+  max-width: 940px;
+  color: var(--cp-muted, #8ca2bf) !important;
+}
+
+.cp-frame,
+.cp-panel,
+.cp-challenge-card,
+.cp-result-card,
+.cp-progress-card {
+  border: 1px solid var(--cp-border);
+  border-radius: 8px;
+  background: var(--cp-panel);
+}
+
+.cp-frame {
+  padding: clamp(10px, 1.2vw, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.cp-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.cp-title-block {
+  min-width: 0;
+}
+
+.cp-kicker {
+  color: var(--cp-blue);
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.cp-heading {
+  margin: 4px 0 6px;
+  font-size: clamp(1.25rem, 1vw + 1rem, 1.75rem);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.cp-subtle {
+  color: var(--cp-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.cp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.cp-btn,
+.cp-segment {
+  min-height: 38px;
+  border: 1px solid var(--cp-border);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cp-text);
+  font: inherit;
+}
+
+.cp-btn,
+.cp-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.cp-btn:hover,
+.cp-segment:hover,
+.cp-challenge-card:hover,
+.cp-file-tab:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.cp-btn:focus-visible,
+.cp-segment:focus-visible,
+.cp-file-tab:focus-visible,
+.cp-challenge-card:focus-visible,
+.cp-panel-tab:focus-visible,
+.cp-year-menu summary:focus-visible,
+.cp-year-options button:focus-visible {
+  outline: 2px solid var(--cp-blue);
+  outline-offset: 2px;
+}
+
+.cp-year-menu {
+  position: relative;
+  flex: 0 0 128px;
+  min-width: 128px;
+  z-index: 30;
+}
+
+.cp-year-menu summary {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  list-style: none;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  border-radius: 7px;
+  background: #0b1728;
+  color: var(--cp-text);
+  padding: 0 11px;
+  font-weight: 850;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cp-year-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.cp-year-menu[open] summary {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+}
+
+.cp-year-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 148px;
+  max-height: 286px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  border-radius: 8px;
+  background: #0b1728;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+}
+
+.cp-year-options button {
+  width: 100%;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #c9d8ee;
+  padding: 0 10px;
+  text-align: left;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.cp-year-options button:hover,
+.cp-year-options button.is-active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #f8fbff;
+}
+
+.cp-btn:active,
+.cp-segment:active {
+  transform: translateY(1px);
+}
+
+.cp-btn.primary {
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+  color: #03111d;
+  border-color: transparent;
+}
+
+.cp-btn.success {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #86efac;
+}
+
+.cp-btn.warning {
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.34);
+  color: #fcd34d;
+}
+
+.cp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.cp-segments {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cp-segment.is-active,
+.cp-panel-tab.is-active,
+.cp-file-tab.is-active {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #bae6fd;
+}
+
+.cp-layout {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cp-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cp-section-title {
+  color: var(--cp-muted);
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.cp-challenge-list {
+  display: grid;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.cp-challenge-card {
+  width: 100%;
+  padding: 11px;
+  text-align: left;
+  color: var(--cp-text);
+  cursor: pointer;
+}
+
+.cp-challenge-card.is-active {
+  border-color: rgba(34, 197, 94, 0.48);
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.cp-challenge-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.cp-challenge-summary {
+  margin-top: 6px;
+  color: var(--cp-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.cp-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.cp-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--cp-muted);
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cp-badge.score {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.34);
+  background: rgba(34, 197, 94, 0.11);
+}
+
+.cp-workspace {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cp-current {
+  padding: clamp(11px, 1vw, 14px);
+}
+
+.cp-current-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cp-current h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.cp-current-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cp-info-box {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.13);
+}
+
+.cp-info-box strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #c4d7f3;
+  font-size: 0.73rem;
+}
+
+.cp-info-box span {
+  color: var(--cp-muted);
+  font-size: 0.78rem;
+  line-height: 1.48;
+}
+
+.cp-mobile-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.cp-panel-tab {
+  min-height: 36px;
+  border: 1px solid var(--cp-border);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.04);
+  color: var(--cp-muted);
+  font-weight: 900;
+}
+
+.cp-desktop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.cp-output-column {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cp-panel {
+  min-width: 0;
+  overflow: hidden;
+  align-self: start;
+}
+
+.cp-panel-header {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cp-border);
+  background: rgba(255,255,255,0.025);
+}
+
+.cp-panel-title {
+  font-weight: 900;
+  font-size: 0.84rem;
+}
+
+.cp-file-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 10px 10px 0;
+}
+
+.cp-file-tab {
+  flex: 0 0 auto;
+  max-width: 210px;
+  min-height: 34px;
+  border: 1px solid var(--cp-border);
+  border-radius: 7px 7px 0 0;
+  background: rgba(255,255,255,0.035);
+  color: var(--cp-muted);
+  padding: 0 10px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-editor-wrap {
+  padding: 10px;
+}
+
+.cp-editor {
+  width: 100%;
+  height: clamp(320px, 52vh, 620px);
+  resize: vertical;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 7px;
+  background: #07111f;
+  color: #e5edf8;
+  padding: 12px;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.code-practice-shell .CodeMirror {
+  height: clamp(320px, 52vh, 620px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 7px;
+  background: #07111f;
+  color: #e5edf8;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.code-practice-shell .CodeMirror-gutters {
+  background: #0c1728;
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.code-practice-shell .CodeMirror-linenumber {
+  color: #60718a;
+}
+
+.code-practice-shell .CodeMirror-cursor {
+  border-left-color: #f8fafc;
+}
+
+.cp-output-stack {
+  display: grid;
+  gap: 12px;
+  padding: 10px;
+  min-height: 0;
+}
+
+.cp-preview-frame {
+  width: 100%;
+  min-height: 280px;
+  height: clamp(280px, 44vh, 520px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 7px;
+  background: white;
+}
+
+.cp-salesforce-preview {
+  min-height: 280px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 7px;
+  background: #08111f;
+}
+
+.cp-file-summary {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cp-file-summary code {
+  display: block;
+  padding: 8px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.05);
+  color: #c4d7f3;
+  overflow-wrap: anywhere;
+}
+
+.cp-results {
+  display: grid;
+  gap: 10px;
+}
+
+.cp-score-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.cp-score {
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--cp-green) var(--cp-score, 0%), rgba(255,255,255,0.09) 0);
+  position: relative;
+  font-weight: 900;
+}
+
+.cp-score::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--cp-panel);
+}
+
+.cp-score span {
+  position: relative;
+}
+
+.cp-check-list {
+  display: grid;
+  gap: 7px;
+}
+
+.cp-check {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.035);
+  color: var(--cp-muted);
+  font-size: 0.77rem;
+}
+
+.cp-check.pass {
+  color: #bbf7d0;
+}
+
+.cp-check.fail {
+  color: #fecdd3;
+}
+
+.cp-review-list {
+  display: grid;
+  gap: 7px;
+}
+
+.cp-review-list li {
+  margin-left: 18px;
+  color: var(--cp-muted);
+  line-height: 1.45;
+  font-size: 0.78rem;
+}
+
+.cp-empty,
+.cp-loading {
+  padding: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  color: var(--cp-muted);
+  text-align: center;
+}
+
+.cp-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 21000;
+  max-width: min(360px, calc(100vw - 36px));
+  padding: 11px 13px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  background: #0f1b2e;
+  color: var(--cp-text);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  transform: translateY(16px);
+  opacity: 0;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.cp-toast.is-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  #code_practice.page {
+    padding-top: calc(60px + 14px) !important;
+  }
+
+  .code-practice-shell {
+    margin-left: -2px;
+    margin-right: -2px;
+  }
+
+  .cp-frame {
+    padding: 10px;
+  }
+
+  .cp-toolbar,
+  .cp-segments {
+    width: 100%;
+  }
+
+  .cp-year-menu,
+  .cp-btn,
+  .cp-segment {
+    flex: 1 1 auto;
+  }
+
+  .cp-year-menu {
+    min-width: min(100%, 150px);
+  }
+
+  .cp-year-options {
+    left: 0;
+    right: auto;
+    width: min(240px, calc(100vw - 44px));
+  }
+
+  .cp-panel[data-panel] {
+    display: none;
+  }
+
+  .cp-panel[data-panel].is-active {
+    display: block;
+  }
+
+  .cp-challenge-list {
+    max-height: 250px;
+  }
+
+  .cp-current-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cp-current-head > .cp-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cp-editor,
+  .code-practice-shell .CodeMirror {
+    height: min(440px, 52dvh);
+  }
+
+  .cp-preview-frame,
+  .cp-salesforce-preview {
+    min-height: 230px;
+    height: min(360px, 44dvh);
+  }
+}
+
+@media (min-width: 769px) {
+  .cp-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .cp-layout {
+    grid-template-columns: minmax(220px, 286px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .cp-mobile-tabs {
+    display: none;
+  }
+
+  .cp-desktop-grid {
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  }
+
+  .cp-current-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cp-challenge-list {
+    max-height: calc(100dvh - 330px);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1460px) {
+  .cp-desktop-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cp-output-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cp-editor,
+  .code-practice-shell .CodeMirror {
+    height: clamp(300px, 42dvh, 480px);
+  }
+
+  .cp-preview-frame,
+  .cp-salesforce-preview {
+    min-height: 240px;
+    height: clamp(240px, 34dvh, 420px);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1120px) {
+  .cp-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cp-challenge-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: 260px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 980px) {
+  .cp-topbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cp-output-column {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cp-challenge-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
