@@ -1,11 +1,13 @@
 {
-  "name": "Salesforce Master Prep Guide",
-  "short_name": "SF Prep",
-  "description": "Premium Industrial-Grade Salesforce Study & Job Radar Agent",
+  "name": "Salesforce Job Radar Agent",
+  "short_name": "Job Radar",
+  "description": "Industrial-Grade Salesforce Career Intelligence & Interview Prep Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0d12",
-  "theme_color": "#4f8ef7",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "categories": ["education", "productivity", "business"],
   "icons": [
     {
       "src": "https://img.icons8.com/fluency/192/lightning-bolt.png",
@@ -19,5 +21,8 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false
 }

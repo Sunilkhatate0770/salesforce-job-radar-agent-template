@@ -37,6 +37,62 @@ import {
  * the 512MB MongoDB limit. READS must merge both tiers.
  */
 
+// ===== INPUT VALIDATION HELPERS (v1413) =====
+function validateString(value, maxLength = 500) {
+  if (value === undefined || value === null) return '';
+  const str = String(value).trim();
+  return str.slice(0, maxLength);
+}
+
+function validateNumber(value, min = 0, max = 100, fallback = 0) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.max(min, Math.min(max, num));
+}
+
+function validateArray(value, maxItems = 100, maxItemLength = 200) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, maxItems)
+    .map(item => validateString(item, maxItemLength))
+    .filter(Boolean);
+}
+
+function validateEnum(value, allowed, fallback) {
+  const str = String(value || '').toLowerCase().trim();
+  return allowed.includes(str) ? str : fallback;
+}
+
+function sanitizeBody(body, schema) {
+  if (!body || typeof body !== 'object') return {};
+  const result = {};
+  for (const [key, rule] of Object.entries(schema)) {
+    if (!(key in body)) continue;
+    const value = body[key];
+    switch (rule.type) {
+      case 'string':
+        result[key] = validateString(value, rule.maxLength || 500);
+        break;
+      case 'number':
+        result[key] = validateNumber(value, rule.min || 0, rule.max || 10000, rule.fallback || 0);
+        break;
+      case 'array':
+        result[key] = validateArray(value, rule.maxItems || 100, rule.maxItemLength || 200);
+        break;
+      case 'enum':
+        result[key] = validateEnum(value, rule.allowed || [], rule.fallback || '');
+        break;
+      case 'boolean':
+        result[key] = Boolean(value);
+        break;
+      default:
+        result[key] = value;
+    }
+  }
+  return result;
+}
+// ===== END INPUT VALIDATION =====
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const DATA_DIR = path.join(process.cwd(), 'data');
 const dataCache = new Map();
@@ -811,6 +867,15 @@ async function checkAndArchiveOverflow(userId) {
 }
 
 export default async function(req, res) {
+  // CORS preflight handling for cross-origin requests
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
+  }
+
   try {
     let { slug } = req.query;
     let path = '';
@@ -1670,12 +1735,13 @@ export default async function(req, res) {
 
   } catch (e) {
     console.error('Hybrid API Error:', e);
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
     const payload = {
       success: false, 
-      error: e.message,
-      hint: 'This error is coming from the Vercel Serverless Function.'
+      error: isProduction ? 'An internal error occurred. Please try again later.' : e.message,
+      hint: isProduction ? undefined : 'This error is coming from the Vercel Serverless Function.'
     };
-    if (process.env.NODE_ENV !== 'production') payload.stack = e.stack;
+    if (!isProduction) payload.stack = e.stack;
     return res.status(500).json(payload);
   }
 }

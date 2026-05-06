@@ -2096,3 +2096,99 @@ body:has(#job_radar.active) #main > footer {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== ACCESSIBILITY IMPROVEMENTS (v1413) ===== */
+
+/* Focus-visible outlines for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--blue, #3b82f6) !important;
+  outline-offset: 2px !important;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.nav-item:focus-visible,
+.qa-question:focus-visible {
+  outline: 2px solid var(--blue, #3b82f6) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Minimum touch target sizing */
+button,
+.nav-item,
+select,
+[role="button"],
+[tabindex="0"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.nav-item {
+  min-height: 36px;
+}
+
+/* High-contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-alpha: 0.3;
+    --text-soft: #c8d6e5;
+    --muted: #8d99ae;
+  }
+
+  .nav-item.active {
+    border-left-width: 4px;
+  }
+
+  .qa-block {
+    border-width: 2px;
+  }
+}
+
+/* Print styles */
+@media print {
+  #sidebar,
+  #sidebarOverlay,
+  #loginOverlay,
+  #floatingTimer,
+  .mobile-toggle,
+  .floating-profile,
+  .floating-dropdown,
+  .sync-btn-premium,
+  .sidebar-action-btn,
+  #btnScanJobs {
+    display: none !important;
+  }
+
+  #main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  .page {
+    display: block !important;
+    padding: 1rem !important;
+    max-width: 100% !important;
+  }
+
+  body {
+    display: block !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+}
