@@ -4431,6 +4431,117 @@ body.ui-classic .premium-mini-panel {
   display: none !important;
 }
 
+/* Shared pagination controls used by Study History, Bookmarks, Activity Log,
+   and the Job Radar board before feature-specific CSS is loaded. */
+.industrial-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: 14px;
+}
+
+.industrial-pager .pager-btn {
+  appearance: none;
+  width: auto;
+  min-width: 76px;
+  height: 36px;
+  min-height: 36px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  color: var(--text, #f8fafc);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  gap: 7px;
+  padding: 0 12px;
+  font: inherit;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.industrial-pager .pager-btn:not(:disabled):hover {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.58);
+  color: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.industrial-pager .pager-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+  background: rgba(15, 23, 42, 0.58);
+  border-color: rgba(148, 163, 184, 0.16);
+  color: var(--muted, #64748b);
+}
+
+.industrial-pager .pager-btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.pager-btn-text {
+  color: inherit;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.industrial-pager .pager-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  text-align: center;
+  line-height: 1.15;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  letter-spacing: 0;
+}
+
+.industrial-pager .pager-page {
+  color: var(--text, #f8fafc);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.industrial-pager .pager-total {
+  margin-top: 3px;
+  color: var(--muted, #64748b);
+  font-size: 0.62rem;
+}
+
+.kanban-board-pager {
+  margin-top: 0;
+}
+
+.kanban-board-pager .pager-btn {
+  min-width: 36px;
+  width: 36px;
+  padding: 0;
+}
+
+.kanban-board-pager .pager-btn-text {
+  display: none;
+}
+
+.history-topic-pager {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
 /* Job Radar final board stability and pagination moved to src/styles/job-radar.css and loaded on demand. */
 
 /* ============================================================

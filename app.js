@@ -1101,7 +1101,7 @@ function renderPager(total, page, pageSize, prevAction, nextAction, force = fals
   const end = Math.min(Number(total || 0), (safePage + 1) * safeSize);
   return `
     <div class="industrial-pager ${force ? 'kanban-board-pager' : ''}">
-      <button onclick="${prevAction}" ${safePage <= 0 ? 'disabled' : ''} class="pager-btn" aria-label="Previous page">
+      <button type="button" onclick="${prevAction}" ${safePage <= 0 ? 'disabled' : ''} class="pager-btn" aria-label="Previous page">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
         <span class="pager-btn-text">Prev</span>
       </button>
@@ -1109,7 +1109,7 @@ function renderPager(total, page, pageSize, prevAction, nextAction, force = fals
         <span class="pager-page">${safePage + 1} / ${totalPages}</span>
         <span class="pager-total">${start}-${end} of ${total}</span>
       </span>
-      <button onclick="${nextAction}" ${safePage >= totalPages - 1 ? 'disabled' : ''} class="pager-btn" aria-label="Next page">
+      <button type="button" onclick="${nextAction}" ${safePage >= totalPages - 1 ? 'disabled' : ''} class="pager-btn" aria-label="Next page">
         <span class="pager-btn-text">Next</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </button>
@@ -4089,10 +4089,19 @@ async function showHistoryModal(date, page = 0) {
     // Pagination Controls for Topics
     if (totalTopicPages > 1) {
       topicHtml += `
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding:10px 0;">
-          <button onclick="showHistoryModal('${date}', ${page - 1})" ${page === 0 ? 'disabled' : ''} style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:5px 15px; border-radius:6px; cursor:pointer; opacity:${page === 0 ? '0.3' : '1'}; font-size:0.75rem;">← Prev</button>
-          <span style="font-size:0.75rem; color:var(--muted);">Page ${page + 1} of ${totalTopicPages}</span>
-          <button onclick="showHistoryModal('${date}', ${page + 1})" ${page >= totalTopicPages - 1 ? 'disabled' : ''} style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text); padding:5px 15px; border-radius:6px; cursor:pointer; opacity:${page >= totalTopicPages - 1 ? '0.3' : '1'}; font-size:0.75rem;">Next →</button>
+        <div class="industrial-pager history-topic-pager">
+          <button type="button" onclick="showHistoryModal('${date}', ${page - 1})" ${page === 0 ? 'disabled' : ''} class="pager-btn" aria-label="Previous topic page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <span class="pager-btn-text">Prev</span>
+          </button>
+          <span class="pager-info">
+            <span class="pager-page">${page + 1} / ${totalTopicPages}</span>
+            <span class="pager-total">Topic page</span>
+          </span>
+          <button type="button" onclick="showHistoryModal('${date}', ${page + 1})" ${page >= totalTopicPages - 1 ? 'disabled' : ''} class="pager-btn" aria-label="Next topic page">
+            <span class="pager-btn-text">Next</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
         </div>
       `;
     }
