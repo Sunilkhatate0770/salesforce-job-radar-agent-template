@@ -25,6 +25,7 @@ Generated: 2026-05-06
 | Local cache reset | Local study reset wrote global cache files. | Reset now writes user-specific cache files. | `src/webServer.js` |
 | Legacy localStorage | Old generic keys could be read by any signed-in browser profile. | Added one-time migration into `sfjr:${userId}:...` keys with a v2 sentinel. | `app.js` |
 | Weak Salesforce content | Content depth was spread across many pages and not searchable as one bank. | Added structured Salesforce content bank with required minimum counts and unified search results. | `src/data/salesforceContent.js`, `app.js` |
+| Oversized base CSS | Page-specific Code Practice and Job Radar styles lived in the global `styles.css`, increasing base CSS parse cost and making duplicate rule audits harder. | Split Code Practice and Job Radar styles into `src/styles/code-practice.css` and `src/styles/job-radar.css`; each feature stylesheet is loaded only when its page is opened. | `styles.css`, `code-practice.js`, `app.js`, `src/styles/code-practice.css`, `src/styles/job-radar.css` |
 
 ## Verification Steps
 
@@ -38,4 +39,4 @@ Generated: 2026-05-06
 - Production-grade isolation still depends on Google auth and correct env configuration on Vercel.
 - Existing Mongo deployments may need the old global `job_hash` unique index dropped manually before the new compound index can be created.
 - Public/system job feeds are intentionally visible as recommendations; private job notes/statuses remain user-scoped.
-- The app still has large legacy `app.js` and CSS files. Further component splitting is recommended for long-term maintainability.
+- The app still has a large legacy `app.js`; further module splitting is recommended for long-term maintainability.

@@ -264,6 +264,8 @@ Gradually migrate to TypeScript:
 - [x] Loading skeleton CSS system
 - [x] Empty state patterns
 - [x] Micro-interaction improvements (page transitions, hover effects)
+- [x] Split Code Practice CSS into `src/styles/code-practice.css` and lazy-load on demand
+- [x] Split Job Radar CSS into `src/styles/job-radar.css` and lazy-load before rendering the dashboard
 - [x] GitHub Actions CI pipeline
 - [x] Service worker auto-versioning
 - [x] Backend input validation helpers
@@ -280,7 +282,7 @@ Gradually migrate to TypeScript:
 ### Medium-term (1-2 Months)
 - [ ] Add Vite build pipeline for bundling and minification
 - [ ] Split `app.js` into ES modules
-- [ ] CSS optimization and purging
+- [ ] Continue CSS optimization and duplicate selector cleanup after feature-level stylesheet splits
 - [ ] Add Chart.js for study analytics visualization
 - [ ] Implement real PDF resume parsing
 - [ ] Add drag-and-drop to Kanban board

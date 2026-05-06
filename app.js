@@ -34,6 +34,28 @@ let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
 let lastSidebarTrigger = null;
+const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-split';
+
+const featureStylesheetPromises = new Map();
+
+function loadFeatureStylesheet(href) {
+  if (!href) return Promise.resolve();
+  const existing = document.querySelector(`link[data-feature-style="${href}"], link[href="${href}"]`);
+  if (existing) return Promise.resolve();
+  if (featureStylesheetPromises.has(href)) return featureStylesheetPromises.get(href);
+
+  const promise = new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.featureStyle = href;
+    link.onload = resolve;
+    link.onerror = resolve;
+    document.head.appendChild(link);
+  });
+  featureStylesheetPromises.set(href, promise);
+  return promise;
+}
 // --- CLOUD-NATIVE STATE (v1356) ---
 let userBookmarks = []; 
 let studyStreak = { current: 0, best: 0, lastDate: "" };
@@ -3642,6 +3664,9 @@ async function showPage(id) {
   
   // Ensure the page content is loaded before showing
   await ensurePageLoaded(id);
+  if (id === 'job_radar') {
+    await loadFeatureStylesheet(JOB_RADAR_CSS);
+  }
 
   setScopedItem('last_active_tab', id);
   await stopTracking();
