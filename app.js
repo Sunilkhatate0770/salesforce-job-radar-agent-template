@@ -34,7 +34,7 @@ let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
 let lastSidebarTrigger = null;
-const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-ui-layer';
+const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-core-scenario-layering';
 
 const featureStylesheetPromises = new Map();
 
@@ -887,7 +887,38 @@ function getSidebarBadge(item) {
 
 function getNavigationQuestionCount(item) {
   const section = window.SFJR_SALESFORCE_CONTENT?.getSection?.(item.id);
-  return section?.questionCount ? `${section.questionCount} Q` : '';
+  const count = section?.questionCount || item?.questionCount || 0;
+  return count ? `${count} Q` : '';
+}
+
+function renderSidebarNavItem(item) {
+  const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
+  return `
+    <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}">
+      <span class="nav-item-label">${escapeHtml(item.label)}</span>
+      ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
+    </button>
+  `;
+}
+
+function renderSidebarNavSections(items) {
+  const buckets = [];
+  (items || []).forEach(item => {
+    const sectionName = item.section || 'Core';
+    let bucket = buckets.find(entry => entry.sectionName === sectionName);
+    if (!bucket) {
+      bucket = { sectionName, items: [] };
+      buckets.push(bucket);
+    }
+    bucket.items.push(item);
+  });
+
+  return buckets.map(bucket => `
+    <div class="nav-subsection" data-nav-subsection="${escapeHtml(bucket.sectionName)}">
+      <div class="nav-subsection-title">${escapeHtml(bucket.sectionName)}</div>
+      ${bucket.items.map(renderSidebarNavItem).join('')}
+    </div>
+  `).join('');
 }
 
 function renderSidebarNavigation(options = {}) {
@@ -932,15 +963,7 @@ function renderSidebarNavigation(options = {}) {
             <span class="nav-group-chevron" aria-hidden="true">⌄</span>
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
-            ${group.items.map(item => {
-              const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
-              return `
-                <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}">
-                  <span class="nav-item-label">${escapeHtml(item.label)}</span>
-                  ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
-                </button>
-              `;
-            }).join('')}
+            ${renderSidebarNavSections(group.items)}
           </div>
         </section>
       `;
@@ -3627,9 +3650,9 @@ async function ensurePageLoaded(pageId) {
     // List of pages that should be loaded dynamically
     const modularPages = [
         'job_radar', 'schedule', 'study_tracker', 'profile_match', 'study_history',
-        'intro', 'speaking', 'comm', 'vocab', 'salary', 'mock',
+        'intro', 'speaking', 'comm', 'comm30', 'mistakes', 'questions', 'vocab', 'salary', 'mock',
         'behavioral', 'apex', 'soql', 'async', 'triggers', 'lwc', 'aura', 'integration', 'security',
-        'domain', 'scenario', 'design', 'adv_apex', 'admin',
+        'domain', 'scenario', 'design', 'adv_apex', 'adv_lwc', 'adv_intg', 'admin',
         'sc_objects', 'sc_recordpage', 'sc_flow', 'sc_arch', 'sc_async', 'sc_fileupload', 
         'sc_reports', 'sc_agentforce', 'sc_navmixin', 'sc_validation',
         'fde_ag_concept', 'fde_ag_scenario', 'fde_atlas', 'fde_trust',
@@ -3696,9 +3719,6 @@ async function showPage(id) {
   
   // Ensure the page content is loaded before showing
   await ensurePageLoaded(id);
-  if (id === 'job_radar') {
-    await loadFeatureStylesheet(JOB_RADAR_CSS);
-  }
 
   setScopedItem('last_active_tab', id);
   await stopTracking();
@@ -3716,7 +3736,14 @@ async function showPage(id) {
   
   let page = document.getElementById(id);
   let isIndustrial = false;
-  if (DATA_DRIVEN_TOPIC_IDS.has(id)) {
+  const hasLoadedPageContent = () => Boolean(
+    page &&
+    page.id === id &&
+    page.innerHTML &&
+    page.innerHTML.trim().length > 80
+  );
+
+  if (!hasLoadedPageContent() && DATA_DRIVEN_TOPIC_IDS.has(id)) {
     isIndustrial = await renderTopicContent(id);
     if (isIndustrial) {
       console.log(`🏰 [NAV] Data-driven topic rendered for: ${id}`);
@@ -3915,6 +3942,7 @@ function filterSidebar(val) {
   
   if (!query) {
     items.forEach(el => el.style.display = 'flex');
+    document.querySelectorAll('#sidebar .nav-subsection').forEach(el => el.style.display = 'grid');
     sections.forEach(el => el.style.display = 'block');
     const recentPanel = document.querySelector('.nav-recent-panel');
     if (recentPanel) recentPanel.style.display = 'grid';
@@ -3936,6 +3964,11 @@ function filterSidebar(val) {
       } else {
         item.style.display = 'none';
       }
+    });
+
+    section.querySelectorAll('.nav-subsection').forEach(subsection => {
+      const visibleItem = Array.from(subsection.querySelectorAll('.nav-item')).some(item => item.style.display !== 'none');
+      subsection.style.display = visibleItem ? 'grid' : 'none';
     });
 
     if (hasMatch) {

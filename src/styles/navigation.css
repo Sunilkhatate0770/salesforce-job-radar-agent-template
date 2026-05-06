@@ -73,6 +73,27 @@
   padding: 0 6px 8px;
 }
 
+.nav-subsection {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.nav-subsection + .nav-subsection {
+  margin-top: 8px;
+}
+
+.nav-subsection-title {
+  padding: 8px 10px 4px;
+  color: #7dd3fc;
+  font-family: var(--app-font-mono, 'IBM Plex Mono', monospace);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
 #sidebar .nav-item {
   width: 100%;
   min-height: 44px;

@@ -2419,11 +2419,11 @@ body:has(#job_radar.active) #headerTitle {
   align-items: center;
   gap: 8px;
   padding: 0 20px !important;
-  background: var(--jr-bg2);
+  background: #0d1526;
   border-bottom: 1px solid var(--jr-border);
   position: sticky;
   top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h)) !important;
-  z-index: 28;
+  z-index: 32;
 }
 
 #job_radar .radar-tab-btn {
@@ -2456,8 +2456,8 @@ body:has(#job_radar.active) #headerTitle {
   flex-wrap: nowrap !important;
   padding: 8px 20px !important;
   position: sticky !important;
-  top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h)) !important;
-  z-index: 28 !important;
+  top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h) + 40px) !important;
+  z-index: 31 !important;
 }
 
 #job_radar .filter-label {
@@ -3475,9 +3475,32 @@ body:has(#job_radar.active) #headerTitle {
     padding: 12px !important;
   }
 
-  #job_radar .jcard-actions > .jcard-btn {
+#job_radar .jcard-actions > .jcard-btn {
     font-size: 9.5px !important;
   }
+}
+
+/* Final Job Radar layering guard: keep the slide-over opaque and keep sticky
+   tabs above the filter toolbar at every scroll position. */
+body:has(#job_radar.active) .activity-log-panel {
+  background: #08111f !important;
+  color: var(--jr-text, #e2e8f0) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-left: 1px solid rgba(96, 165, 250, 0.28) !important;
+  box-shadow: -28px 0 70px rgba(0, 0, 0, 0.72) !important;
+  z-index: 12050 !important;
+}
+
+body:has(#job_radar.active) .activity-log-panel .log-panel-header,
+body:has(#job_radar.active) .activity-log-panel .log-panel-footer {
+  background: #0d1526 !important;
+}
+
+body:has(#job_radar.active) .activity-log-panel .log-entry {
+  background: #111d35 !important;
+  border-color: rgba(96, 165, 250, 0.18) !important;
 }
 
 /* Final Radar chrome hardening.

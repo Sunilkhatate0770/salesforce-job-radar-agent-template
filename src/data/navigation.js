@@ -5,6 +5,8 @@
    * @property {string} label
    * @property {string} [description]
    * @property {string[]} [tags]
+   * @property {string} [section] Core or Scenario subsection inside the group.
+   * @property {number} [questionCount]
    * @property {string} [badgeSource]
    * @property {boolean} [requiresAuth]
    */
@@ -16,128 +18,157 @@
    * @property {NavItem[]} items
    */
 
+  const i = (id, label, tags = [], section = 'Core', extra = {}) => ({
+    id,
+    label,
+    tags,
+    section,
+    ...extra
+  });
+
   const groups = [
     {
       id: 'home-dashboard',
       label: 'Home & Dashboard',
-      description: 'Daily actions, progress, bookmarks, and job radar.',
+      description: 'Private workspace, daily plan, progress, bookmarks, releases, and Job Radar.',
       items: [
-        { id: 'profile_match', label: 'Agent Dashboard', tags: ['dashboard', 'profile', 'home'], requiresAuth: true },
-        { id: 'schedule', label: 'Daily Study Schedule', tags: ['plan', 'today', 'study'], requiresAuth: true },
-        { id: 'study_tracker', label: 'Progress Tracker', tags: ['progress', 'analytics'], requiresAuth: true },
-        { id: 'study_history', label: 'Study History', tags: ['history', 'sessions'], requiresAuth: true },
-        { id: 'bookmarks_page', label: 'Bookmarked Q&A', tags: ['bookmarks', 'saved'], badgeSource: 'bookmarks', requiresAuth: true },
-        { id: 'job_radar', label: 'Job Radar Dashboard', tags: ['jobs', 'pipeline', 'applications'], requiresAuth: true },
-        { id: 'salesforce_releases', label: 'Salesforce Releases', tags: ['release', 'salesforce updates'], badgeSource: 'release', requiresAuth: true }
+        i('profile_match', 'Agent Dashboard', ['dashboard', 'profile', 'home'], 'Core', { requiresAuth: true }),
+        i('schedule', 'Daily Study Schedule', ['plan', 'today', 'study'], 'Core', { requiresAuth: true }),
+        i('study_tracker', 'Progress Tracker', ['progress', 'analytics'], 'Core', { requiresAuth: true }),
+        i('study_history', 'Study History', ['history', 'sessions'], 'Core', { requiresAuth: true }),
+        i('bookmarks_page', 'Bookmarked Q&A', ['bookmarks', 'saved'], 'Core', { badgeSource: 'bookmarks', requiresAuth: true }),
+        i('salesforce_releases', 'Salesforce Releases', ['release', 'salesforce updates'], 'Core', { badgeSource: 'release', requiresAuth: true }),
+        i('job_radar', 'Job Radar Dashboard', ['jobs', 'pipeline', 'applications'], 'Scenario', { requiresAuth: true }),
+        i('code_practice', 'Code Practice Lab', ['html', 'javascript', 'apex', 'triggers', 'practice'], 'Scenario', { requiresAuth: true })
       ]
     },
     {
       id: 'core-developer',
       label: 'Salesforce Core Developer',
-      description: 'Apex, data access, transactions, testing, and platform limits.',
+      description: 'Apex, data access, transactions, testing, limits, and scenario drills.',
       items: [
-        { id: 'apex', label: 'Apex Fundamentals', tags: ['apex', 'oop', 'transactions'] },
-        { id: 'soql', label: 'SOQL & SOSL', tags: ['soql', 'sosl', 'query'] },
-        { id: 'triggers', label: 'Triggers & Order of Execution', tags: ['trigger', 'order of execution'] },
-        { id: 'async', label: 'Async Apex', tags: ['future', 'queueable', 'batch', 'scheduled'] },
-        { id: 'batch_apex', label: 'Batch Apex', tags: ['batch apex', 'large data'] },
-        { id: 'queueable_apex', label: 'Queueable Apex', tags: ['queueable', 'chaining'] },
-        { id: 'scheduled_apex', label: 'Scheduled Apex', tags: ['scheduled apex', 'cron'] },
-        { id: 'governor_limits', label: 'Governor Limits', tags: ['limits', 'bulkification'] },
-        { id: 'test_classes', label: 'Test Classes', tags: ['tests', 'coverage', 'assertions'] },
-        { id: 'exception_handling', label: 'Exception Handling', tags: ['errors', 'logging'] }
+        i('apex', 'Apex Core', ['apex', 'oop', 'transactions'], 'Core', { questionCount: 22 }),
+        i('soql', 'SOQL Deep Dive', ['soql', 'sosl', 'query'], 'Core', { questionCount: 14 }),
+        i('triggers', 'Triggers & Patterns', ['trigger', 'order of execution'], 'Core', { questionCount: 14 }),
+        i('async', 'Async Apex', ['future', 'queueable', 'batch', 'scheduled'], 'Core', { questionCount: 16 }),
+        i('adv_apex', 'Advanced Apex', ['apex', 'senior', 'limits'], 'Core', { questionCount: 18 }),
+        i('batch_apex', 'Batch Apex', ['batch apex', 'large data'], 'Core'),
+        i('queueable_apex', 'Queueable Apex', ['queueable', 'chaining'], 'Core'),
+        i('scheduled_apex', 'Scheduled Apex', ['scheduled apex', 'cron'], 'Core'),
+        i('governor_limits', 'Governor Limits', ['limits', 'bulkification'], 'Core'),
+        i('test_classes', 'Test Classes', ['tests', 'coverage', 'assertions'], 'Core'),
+        i('exception_handling', 'Exception Handling', ['errors', 'logging'], 'Core'),
+        i('order_of_execution', 'Order of Execution', ['save cycle', 'automation order'], 'Core'),
+        i('sc_async', 'Async Processing + Credit Pull', ['async', 'callout', 'credit pull'], 'Scenario', { questionCount: 10 }),
+        i('scenario', 'Architecture Scenario Questions', ['scenario', 'architect thinking'], 'Scenario', { questionCount: 16 })
       ]
     },
     {
       id: 'lightning-ui',
       label: 'Lightning & UI Development',
-      description: 'LWC architecture, communication, performance, and accessibility.',
+      description: 'LWC/Aura fundamentals, communication, performance, accessibility, and record-page scenarios.',
       items: [
-        { id: 'lwc', label: 'LWC Core', tags: ['lwc', 'lifecycle', 'reactivity'] },
-        { id: 'lwc_communication', label: 'LWC Communication', tags: ['events', 'lms', 'parent child'] },
-        { id: 'wire_service', label: 'Wire Service', tags: ['wire', 'lds'] },
-        { id: 'apex_lwc_integration', label: 'Apex + LWC Integration', tags: ['apex', 'imperative', 'wire'] },
-        { id: 'lightning_data_service', label: 'Lightning Data Service', tags: ['lds', 'record ui'] },
-        { id: 'sc_navmixin', label: 'NavigationMixin', tags: ['navigation', 'page reference'] },
-        { id: 'sc_recordpage', label: 'Record Page + Custom LWC', tags: ['recordId', 'record page'] },
-        { id: 'aura', label: 'Aura to LWC Migration', tags: ['aura', 'migration'] },
-        { id: 'ui_performance', label: 'UI Performance', tags: ['performance', 'rendering'] },
-        { id: 'ui_accessibility', label: 'Accessibility', tags: ['a11y', 'keyboard'] }
+        i('lwc', 'LWC Components', ['lwc', 'lifecycle', 'reactivity'], 'Core', { questionCount: 20 }),
+        i('aura', 'Aura Components', ['aura', 'legacy'], 'Core', { questionCount: 10 }),
+        i('adv_lwc', 'Advanced LWC', ['lwc', 'performance', 'testing'], 'Core', { questionCount: 13 }),
+        i('lwc_communication', 'LWC Communication', ['events', 'lms', 'parent child'], 'Core'),
+        i('wire_service', 'Wire Service', ['wire', 'lds'], 'Core'),
+        i('apex_lwc_integration', 'Apex + LWC Integration', ['apex', 'imperative', 'wire'], 'Core'),
+        i('lightning_data_service', 'Lightning Data Service', ['lds', 'record ui'], 'Core'),
+        i('sc_navmixin', 'NavigationMixin', ['navigation', 'page reference'], 'Core', { questionCount: 10 }),
+        i('ui_performance', 'UI Performance', ['performance', 'rendering'], 'Core'),
+        i('ui_accessibility', 'Accessibility', ['a11y', 'keyboard'], 'Core'),
+        i('sc_recordpage', 'Record Page + Custom LWC', ['recordId', 'record page', 'LMS'], 'Scenario', { questionCount: 10 }),
+        i('sc_fileupload', 'File Upload + Google Drive', ['files', 'external storage'], 'Scenario', { questionCount: 10 })
       ]
     },
     {
       id: 'security-data-model',
       label: 'Salesforce Security & Data Model',
-      description: 'User access, secure Apex, object model, validation, and duplicate control.',
+      description: 'Security layers, sharing, object model, validation, and data-quality scenarios.',
       items: [
-        { id: 'profiles_permission_sets', label: 'Profiles / Permission Sets', tags: ['profiles', 'permission sets'] },
-        { id: 'sharing_model', label: 'OWD / Role Hierarchy / Sharing Rules', tags: ['owd', 'roles', 'sharing'] },
-        { id: 'apex_managed_sharing', label: 'Apex Managed Sharing', tags: ['apex sharing'] },
-        { id: 'crud_fls', label: 'CRUD/FLS Enforcement', tags: ['crud', 'fls', 'security'] },
-        { id: 'with_security_enforced', label: 'WITH SECURITY_ENFORCED', tags: ['soql security'] },
-        { id: 'user_mode_system_mode', label: 'User Mode vs System Mode', tags: ['user mode', 'system mode'] },
-        { id: 'sc_objects', label: 'Objects & Fields', tags: ['objects', 'fields'] },
-        { id: 'relationships', label: 'Relationships', tags: ['lookup', 'master detail', 'junction'] },
-        { id: 'sc_validation', label: 'Validation Rules', tags: ['validation'] },
-        { id: 'duplicate_rules', label: 'Duplicate Rules', tags: ['duplicate management'] }
+        i('security', 'Security & Sharing', ['security', 'sharing'], 'Core', { questionCount: 18 }),
+        i('security_full', 'Security Full Guide', ['security model', 'reference'], 'Core'),
+        i('security_5_layers', 'Salesforce 5 Security Layers', ['org', 'object', 'field', 'record'], 'Core'),
+        i('profiles_permission_sets', 'Profiles / Permission Sets', ['profiles', 'permission sets'], 'Core'),
+        i('sharing_model', 'OWD / Role Hierarchy / Sharing Rules', ['owd', 'roles', 'sharing'], 'Core'),
+        i('apex_managed_sharing', 'Apex Managed Sharing', ['apex sharing'], 'Core'),
+        i('crud_fls', 'CRUD/FLS Enforcement', ['crud', 'fls', 'security'], 'Core'),
+        i('with_security_enforced', 'WITH SECURITY_ENFORCED', ['soql security'], 'Core'),
+        i('user_mode_system_mode', 'User Mode vs System Mode', ['user mode', 'system mode'], 'Core'),
+        i('sc_objects', 'Objects & Fields', ['objects', 'fields'], 'Core', { questionCount: 10 }),
+        i('relationships', 'Relationships', ['lookup', 'master detail', 'junction'], 'Core'),
+        i('sc_validation', 'Validation Scenarios', ['validation'], 'Scenario', { questionCount: 10 }),
+        i('duplicate_rules', 'Duplicate Rules', ['duplicate management'], 'Scenario')
       ]
     },
     {
       id: 'integration-architecture',
       label: 'Integration & Enterprise Architecture',
-      description: 'APIs, eventing, identity, middleware, retry design, and LDV.',
+      description: 'APIs, events, identity, middleware, retry design, LDV, and senior integration scenarios.',
       items: [
-        { id: 'rest_api', label: 'REST API', tags: ['rest', 'api'] },
-        { id: 'soap_api', label: 'SOAP API', tags: ['soap', 'enterprise wsdl'] },
-        { id: 'platform', label: 'Platform Events', tags: ['events', 'pub sub'] },
-        { id: 'change_data_capture', label: 'Change Data Capture', tags: ['cdc'] },
-        { id: 'named_credentials', label: 'Named Credentials', tags: ['named credentials', 'external credentials'] },
-        { id: 'external_services', label: 'External Services', tags: ['external services'] },
-        { id: 'oauth_flows', label: 'OAuth Flows', tags: ['oauth', 'identity'] },
-        { id: 'middleware_patterns', label: 'Middleware Patterns', tags: ['mulesoft', 'middleware'] },
-        { id: 'integration', label: 'Error Handling & Retry', tags: ['retry', 'idempotency'] },
-        { id: 'large_data_volume', label: 'Large Data Volume', tags: ['ldv', 'query plan'] }
+        i('integration', 'Integration & APIs', ['rest', 'soap', 'api'], 'Core', { questionCount: 18 }),
+        i('adv_intg', 'Advanced Integration', ['enterprise integration', 'middleware'], 'Core', { questionCount: 13 }),
+        i('platform', 'Platform Events & CDC', ['platform events', 'cdc'], 'Core', { questionCount: 10 }),
+        i('rest_api', 'REST API', ['rest', 'api'], 'Core'),
+        i('soap_api', 'SOAP API', ['soap', 'enterprise wsdl'], 'Core'),
+        i('change_data_capture', 'Change Data Capture', ['cdc'], 'Core'),
+        i('named_credentials', 'Named Credentials', ['named credentials', 'external credentials'], 'Core'),
+        i('external_services', 'External Services', ['external services'], 'Core'),
+        i('oauth_flows', 'OAuth Flows', ['oauth', 'identity'], 'Core'),
+        i('middleware_patterns', 'Middleware Patterns', ['mulesoft', 'middleware'], 'Core'),
+        i('large_data_volume', 'Large Data Volume', ['ldv', 'query plan'], 'Core'),
+        i('sc_arch', 'Architecture Mix', ['architecture', 'LDV', 'integration', 'security'], 'Scenario', { questionCount: 10 }),
+        i('fde_integration', 'FDE Integration Patterns', ['agentforce', 'data cloud', 'integration'], 'Scenario', { questionCount: 5 })
       ]
     },
     {
       id: 'flow-admin',
       label: 'Flow / Admin / Declarative',
-      description: 'Flow design, admin automation, reports, and core Salesforce clouds.',
+      description: 'Flow, admin configuration, reports, clouds, and declarative scenario practice.',
       items: [
-        { id: 'record_triggered_flow', label: 'Record-Triggered Flow', tags: ['flow', 'record triggered'] },
-        { id: 'screen_flow', label: 'Screen Flow', tags: ['screen flow'] },
-        { id: 'scheduled_flow', label: 'Scheduled Flow', tags: ['scheduled flow'] },
-        { id: 'flow_master', label: 'Flow vs Apex', tags: ['flow vs apex', 'tradeoffs'] },
-        { id: 'approval_process', label: 'Approval Process', tags: ['approval'] },
-        { id: 'sc_reports', label: 'Reports & Dashboards', tags: ['reports', 'dashboards'] },
-        { id: 'sales_cloud', label: 'Sales Cloud', tags: ['sales cloud'] },
-        { id: 'service_cloud', label: 'Service Cloud', tags: ['service cloud'] },
-        { id: 'experience_cloud', label: 'Experience Cloud', tags: ['experience cloud'] }
+        i('admin', 'Admin & Configuration', ['admin', 'configuration'], 'Core', { questionCount: 14 }),
+        i('flows_guide', 'Flow Complete Guide', ['flow', 'reference'], 'Core'),
+        i('flow_master', 'Flow vs Apex', ['flow vs apex', 'tradeoffs'], 'Core'),
+        i('record_triggered_flow', 'Record-Triggered Flow', ['flow', 'record triggered'], 'Core'),
+        i('screen_flow', 'Screen Flow', ['screen flow'], 'Core'),
+        i('scheduled_flow', 'Scheduled Flow', ['scheduled flow'], 'Core'),
+        i('approval_process', 'Approval Process', ['approval'], 'Core'),
+        i('reports_guide', 'Reports Full Guide', ['reports', 'analytics api'], 'Core'),
+        i('sc_reports', 'Reports & Dashboards', ['reports', 'dashboards'], 'Scenario', { questionCount: 10 }),
+        i('sales_cloud', 'Sales Cloud', ['sales cloud'], 'Core'),
+        i('service_cloud', 'Service Cloud', ['service cloud'], 'Core'),
+        i('experience_cloud', 'Experience Cloud', ['experience cloud'], 'Core'),
+        i('sc_flow', 'Flow Scenarios', ['flow scenario', 'invocable apex'], 'Scenario', { questionCount: 10 })
       ]
     },
     {
       id: 'agentforce-data-cloud',
       label: 'Agentforce & Data Cloud',
-      description: 'Agentforce, trust, grounding, Data Cloud, activation, and AI scenarios.',
+      description: 'Agentforce, trust, grounding, Data Cloud, activation, and AI implementation scenarios.',
       items: [
-        { id: 'fde_ag_concept', label: 'Agentforce Core', tags: ['agentforce'] },
-        { id: 'agent_builder', label: 'Agent Builder', tags: ['agent builder'] },
-        { id: 'agent_topics_actions', label: 'Topics & Actions', tags: ['topics', 'actions'] },
-        { id: 'prompt_templates', label: 'Prompt Templates', tags: ['prompts'] },
-        { id: 'fde_atlas', label: 'Atlas Reasoning Engine', tags: ['atlas'] },
-        { id: 'fde_trust', label: 'Einstein Trust Layer', tags: ['trust layer'] },
-        { id: 'rag_grounding', label: 'RAG', tags: ['rag', 'grounding'] },
-        { id: 'fde_dc_concept', label: 'Data Cloud Basics', tags: ['data cloud'] },
-        { id: 'data_streams', label: 'Data Streams', tags: ['data streams'] },
-        { id: 'data_lake_objects', label: 'Data Lake Objects', tags: ['dlo'] },
-        { id: 'data_model_objects', label: 'Data Model Objects', tags: ['dmo'] },
-        { id: 'identity_resolution', label: 'Identity Resolution', tags: ['identity resolution'] },
-        { id: 'calculated_insights', label: 'Calculated Insights', tags: ['calculated insights'] },
-        { id: 'segmentation', label: 'Segmentation', tags: ['segmentation'] },
-        { id: 'activation', label: 'Activation', tags: ['activation'] },
-        { id: 'agentforce_apex', label: 'Agentforce + Apex', tags: ['agentforce apex'] },
-        { id: 'agentforce_flow', label: 'Agentforce + Flow', tags: ['agentforce flow'] },
-        { id: 'agentforce_data_cloud', label: 'Agentforce + Data Cloud Scenarios', tags: ['agentforce data cloud'] }
+        i('agentforce_guide', 'Agentforce Reference', ['agentforce', 'reference'], 'Core'),
+        i('fde_ag_concept', 'Agentforce Core', ['agentforce'], 'Core', { questionCount: 8 }),
+        i('agent_builder', 'Agent Builder', ['agent builder'], 'Core'),
+        i('agent_topics_actions', 'Topics & Actions', ['topics', 'actions'], 'Core'),
+        i('prompt_templates', 'Prompt Templates', ['prompts'], 'Core'),
+        i('fde_atlas', 'Atlas Reasoning Engine', ['atlas'], 'Core', { questionCount: 6 }),
+        i('fde_trust', 'Einstein Trust Layer', ['trust layer'], 'Core', { questionCount: 5 }),
+        i('rag_grounding', 'RAG & Grounding', ['rag', 'grounding'], 'Core'),
+        i('fde_dc_concept', 'Data Cloud Core', ['data cloud'], 'Core', { questionCount: 8 }),
+        i('data_streams', 'Data Streams', ['data streams'], 'Core'),
+        i('data_lake_objects', 'Data Lake Objects', ['dlo'], 'Core'),
+        i('data_model_objects', 'Data Model Objects', ['dmo'], 'Core'),
+        i('identity_resolution', 'Identity Resolution', ['identity resolution'], 'Core'),
+        i('calculated_insights', 'Calculated Insights', ['calculated insights'], 'Core'),
+        i('segmentation', 'Segmentation', ['segmentation'], 'Core'),
+        i('activation', 'Activation', ['activation'], 'Core'),
+        i('fde_ag_scenario', 'Agentforce Scenarios', ['agentforce scenario'], 'Scenario', { questionCount: 5 }),
+        i('sc_agentforce', 'Agentforce Scenario Questions', ['agentforce', 'scenario'], 'Scenario', { questionCount: 10 }),
+        i('fde_dc_adv', 'Data Cloud Advanced Scenarios', ['data cloud', 'scenario'], 'Scenario', { questionCount: 7 }),
+        i('agentforce_apex', 'Agentforce + Apex', ['agentforce apex'], 'Scenario'),
+        i('agentforce_flow', 'Agentforce + Flow', ['agentforce flow'], 'Scenario'),
+        i('agentforce_data_cloud', 'Agentforce + Data Cloud', ['agentforce data cloud'], 'Scenario')
       ]
     },
     {
@@ -145,33 +176,39 @@
       label: 'FDE / Forward Deployed Engineer Prep',
       description: 'Discovery, solution design, demos, stakeholder communication, and production judgement.',
       items: [
-        { id: 'customer_discovery', label: 'Customer Discovery', tags: ['fde', 'discovery'] },
-        { id: 'requirement_breakdown', label: 'Requirement Breakdown', tags: ['requirements'] },
-        { id: 'solution_design', label: 'Solution Design', tags: ['solution design'] },
-        { id: 'architecture_whiteboarding', label: 'Architecture Whiteboarding', tags: ['whiteboarding'] },
-        { id: 'stakeholder_communication', label: 'Stakeholder Communication', tags: ['stakeholders'] },
-        { id: 'tradeoff_explanation', label: 'Tradeoff Explanation', tags: ['tradeoffs'] },
-        { id: 'implementation_planning', label: 'Implementation Planning', tags: ['implementation'] },
-        { id: 'demo_storytelling', label: 'Demo Storytelling', tags: ['demo'] },
-        { id: 'production_debugging', label: 'Production Debugging', tags: ['debugging'] },
-        { id: 'fde_behavioral', label: 'Behavioral STAR Answers', tags: ['star', 'behavioral'] }
+        i('fde_cheat', 'FDE Cheat Sheet', ['quick fire', 'definitions'], 'Core', { questionCount: 7 }),
+        i('customer_discovery', 'Customer Discovery', ['fde', 'discovery'], 'Core'),
+        i('requirement_breakdown', 'Requirement Breakdown', ['requirements'], 'Core'),
+        i('solution_design', 'Solution Design', ['solution design'], 'Core'),
+        i('architecture_whiteboarding', 'Architecture Whiteboarding', ['whiteboarding'], 'Core'),
+        i('stakeholder_communication', 'Stakeholder Communication', ['stakeholders'], 'Core'),
+        i('tradeoff_explanation', 'Tradeoff Explanation', ['tradeoffs'], 'Core'),
+        i('implementation_planning', 'Implementation Planning', ['implementation'], 'Core'),
+        i('demo_storytelling', 'Demo Storytelling', ['demo'], 'Core'),
+        i('production_debugging', 'Production Debugging', ['debugging'], 'Scenario'),
+        i('fde_behavioral', 'FDE Behavioral', ['star', 'behavioral'], 'Scenario', { questionCount: 9 }),
+        i('fde_apex', 'Apex in Agents', ['apex', 'agentforce'], 'Scenario', { questionCount: 6 })
       ]
     },
     {
       id: 'company-prep',
       label: 'Company-Specific Prep',
-      description: 'General interview patterns by company type without fake hiring claims.',
+      description: 'General interview patterns by company type plus real model-answer pages from the guide.',
       items: [
-        { id: 'sf_official', label: 'Salesforce Official', tags: ['salesforce company'] },
-        { id: 'deloitte', label: 'Deloitte', tags: ['deloitte'] },
-        { id: 'accenture', label: 'Accenture', tags: ['accenture'] },
-        { id: 'infosys_prep', label: 'Infosys', tags: ['infosys'] },
-        { id: 'tcs_prep', label: 'TCS', tags: ['tcs'] },
-        { id: 'capgemini_prep', label: 'Capgemini', tags: ['capgemini'] },
-        { id: 'cognizant_prep', label: 'Cognizant', tags: ['cognizant'] },
-        { id: 'persistent_prep', label: 'Persistent', tags: ['persistent'] },
-        { id: 'epam_prep', label: 'EPAM', tags: ['epam'] },
-        { id: 'product_company_round', label: 'Product Company Round', tags: ['product company'] }
+        i('sf_official', 'Salesforce Official', ['salesforce company'], 'Core'),
+        i('deloitte', 'Deloitte', ['deloitte'], 'Core'),
+        i('accenture', 'Accenture', ['accenture'], 'Core'),
+        i('infosys_prep', 'Infosys', ['infosys'], 'Core'),
+        i('tcs_prep', 'TCS', ['tcs'], 'Core'),
+        i('capgemini_prep', 'Capgemini', ['capgemini'], 'Core'),
+        i('cognizant_prep', 'Cognizant', ['cognizant'], 'Core'),
+        i('persistent_prep', 'Persistent', ['persistent'], 'Core'),
+        i('epam_prep', 'EPAM', ['epam'], 'Core'),
+        i('product_company_round', 'Product Company Round', ['product company'], 'Core'),
+        i('company_interviews', 'Arago & Morgan Stanley Q&A', ['company interview', 'real questions'], 'Scenario'),
+        i('company_iq', 'Company Model Answers', ['model answers'], 'Scenario'),
+        i('mobigic_pwc', 'Mobigic / PWC Screening', ['screening'], 'Scenario'),
+        i('thenken_globus', 'Thenken Globus Tech Round', ['technical round'], 'Scenario')
       ]
     },
     {
@@ -179,13 +216,22 @@
       label: 'Mock Interview & Communication',
       description: 'Speaking, behavioral, project explanation, manager round, and AI mock practice.',
       items: [
-        { id: 'intro', label: 'Self Introduction', tags: ['introduction'] },
-        { id: 'project_explanation', label: 'Project Explanation', tags: ['project'] },
-        { id: 'behavioral', label: 'Behavioral Q&A', tags: ['behavioral'] },
-        { id: 'manager_round', label: 'Manager Round', tags: ['manager'] },
-        { id: 'salary', label: 'Salary Negotiation', tags: ['salary'] },
-        { id: 'speaking', label: 'English Speaking Drills', tags: ['english', 'speaking'] },
-        { id: 'ai_interview', label: 'AI Mock Interview', tags: ['ai interview'], requiresAuth: true }
+        i('comm30', '30-Day Communication Plan', ['communication', 'daily drills'], 'Core'),
+        i('eng30', '30-Day Speaking Plan', ['english', 'speaking'], 'Core'),
+        i('eng_starters', '50 Sentence Starters', ['sentence starters'], 'Core'),
+        i('eng_phrases', 'Difficult Situation Scripts', ['phrases', 'difficult situations'], 'Core'),
+        i('speaking', 'Speaking Drills', ['english', 'speaking'], 'Core'),
+        i('mistakes', 'Common Communication Mistakes', ['communication mistakes'], 'Core'),
+        i('comm', 'Communication Scripts', ['scripts'], 'Core'),
+        i('vocab', 'Vocabulary & Phrases', ['vocabulary'], 'Core'),
+        i('intro', 'Self Introduction', ['introduction'], 'Core'),
+        i('questions', 'Questions to Ask Them', ['interviewer questions'], 'Core', { questionCount: 20 }),
+        i('project_explanation', 'Project Explanation', ['project'], 'Scenario'),
+        i('behavioral', 'Behavioral Q&A', ['behavioral'], 'Scenario', { questionCount: 20 }),
+        i('manager_round', 'Manager Round', ['manager'], 'Scenario'),
+        i('salary', 'Salary Negotiation', ['salary'], 'Scenario'),
+        i('mock', 'Mock Interview Scripts', ['mock interview'], 'Scenario'),
+        i('ai_interview', 'AI Mock Interview', ['ai interview'], 'Scenario', { requiresAuth: true })
       ]
     }
   ];

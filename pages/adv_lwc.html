@@ -1,0 +1,523 @@
+<div class="page-header">
+  <div class="page-title">Advanced LWC — Senior Level Questions</div>
+  <div class="page-sub">14 deeper questions on performance, architecture, and testing in LWC</div>
+</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How do you optimise a slow LWC component — what are the common performance problems?</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Common LWC performance problems and fixes:</b></p>
+      <ul class="ans-list">
+        <li><b>Too many wire calls on load</b> — multiple wire adapters firing simultaneously. Fix: lazy load non-critical data using imperative calls triggered by user scroll or tab switch.</li>
+        <li><b>Re-renders on every property change</b> — computed getters that return new object/array references each time. Fix: cache computed values, only recalculate when source data changes.</li>
+        <li><b>Large datatable without pagination</b> — rendering 1000+ rows crashes browsers. Fix: implement server-side pagination with OFFSET or cursor-based pagination.</li>
+        <li><b>Calling refreshApex unnecessarily</b> — triggers a server round trip. Fix: only refresh when actual DML happened. Use optimistic UI updates for better perceived performance.</li>
+        <li><b>Event listeners not cleaned up</b> — memory leaks over time. Fix: always unsubscribe LMS, clear intervals/timeouts in disconnectedCallback.</li>
+      </ul>
+      <pre class="code"><span class="cmt">// Problem: getter creates new array every render = unnecessary re-renders</span>
+get approvedLoans() {
+    <span class="kw">return</span> this.loans.filter(l => l.Status__c === <span class="str">'Approved'</span>); <span class="cmt">// new array every call</span>
+}
+
+<span class="cmt">// Fix: cache the computed value, recalculate only when loans changes</span>
+_approvedLoans = [];
+set loans(value) {
+    this._loans = value;
+    this._approvedLoans = value ? value.filter(l => l.Status__c === <span class="str">'Approved'</span>) : [];
+}
+get loans() { <span class="kw">return</span> this._loans; }
+get approvedLoans() { <span class="kw">return</span> this._approvedLoans; } <span class="cmt">// stable reference</span>
+
+<span class="cmt">// Pagination pattern</span>
+currentPage = 1;
+pageSize = 20;
+
+get pagedLoans() {
+    <span class="kw">const</span> start = (this.currentPage - <span class="num">1</span>) * this.pageSize;
+    <span class="kw">return</span> this.allLoans.slice(start, start + this.pageSize);
+}
+
+handleNextPage() { this.currentPage++; }
+handlePrevPage() { <span class="kw">if</span>(this.currentPage > <span class="num">1</span>) this.currentPage--; }</pre>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How do you test LWC components using Jest — show a complete test example</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <pre class="code"><span class="cmt">// __tests__/loanCard.test.js</span>
+<span class="kw">import</span> { createElement } <span class="kw">from</span> 'lwc';
+<span class="kw">import</span> LoanCard <span class="kw">from</span> 'c/loanCard';
+<span class="kw">import</span> getLoanDetails <span class="kw">from</span> '@salesforce/apex/LoanController.getLoanDetails';
+
+<span class="cmt">// Mock the Apex call</span>
+jest.mock('@salesforce/apex/LoanController.getLoanDetails', () => ({
+    default: jest.fn()
+}), { virtual: true });
+
+describe('c-loan-card', () => {
+
+    afterEach(() => {
+        while(document.body.firstChild) document.body.removeChild(document.body.firstChild);
+    });
+
+    it('displays loan amount when data loads', async () => {
+        <span class="cmt">// Mock wire response</span>
+        getLoanDetails.mockResolvedValue({ Id: '001', LoanAmount__c: 250000, Status__c: 'Approved' });
+
+        <span class="kw">const</span> element = createElement('c-loan-card', { is: LoanCard });
+        element.recordId = '001xxx';
+        document.body.appendChild(element);
+
+        await Promise.resolve(); <span class="cmt">// wait for async wire</span>
+
+        <span class="kw">const</span> amountEl = element.shadowRoot.querySelector('.loan-amount');
+        expect(amountEl.textContent).toBe('$250,000');
+    });
+
+    it('shows error when apex fails', async () => {
+        getLoanDetails.mockRejectedValue({ body: { message: 'Record not found' } });
+
+        <span class="kw">const</span> element = createElement('c-loan-card', { is: LoanCard });
+        element.recordId = 'badId';
+        document.body.appendChild(element);
+
+        await Promise.resolve();
+
+        <span class="kw">const</span> errorEl = element.shadowRoot.querySelector('.error-message');
+        expect(errorEl).not.toBeNull();
+        expect(errorEl.textContent).toContain('Record not found');
+    });
+
+    it('fires loansaved event on save button click', async () => {
+        <span class="kw">const</span> element = createElement('c-loan-card', { is: LoanCard });
+        document.body.appendChild(element);
+
+        <span class="kw">const</span> handler = jest.fn();
+        element.addEventListener('loansaved', handler);
+
+        element.shadowRoot.querySelector('lightning-button').click();
+        await Promise.resolve();
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(handler.mock.calls[0][0].detail.loanId).toBeDefined();
+    });
+});</pre>
+      <div class="tip-box"><div class="tip-label">Interview tip</div><p>If asked about LWC testing, say: "LWC uses Jest for unit testing — which is the industry standard JavaScript testing framework. You mock Apex calls and wire adapters using jest.fn() and mockResolvedValue. Tests are run locally with npm run test:unit — no Salesforce org needed. This is a major advantage over Aura which had no unit test framework."</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">What is the Shadow DOM in LWC — how does it affect CSS styling?</span>
+      <span class="qa-q-label lbl-lwc">ADVANCED LWC</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p">Shadow DOM is a web standard that encapsulates a component's internal DOM and CSS. It creates a boundary — styles defined inside a component do NOT leak out to the parent, and parent styles do NOT reach inside a child component. LWC uses a synthetic Shadow DOM (and native in some contexts).</p>
+      <ul class="ans-list">
+        <li><b>CSS scoping</b>: Each component's .css file only applies to elements in THAT component's template. You cannot style a child component's internals from a parent's CSS.</li>
+        <li><b>:host selector</b>: Styles the root element of the component itself from within the component's CSS file.</li>
+        <li><b>CSS custom properties (variables)</b>: The only way to style across shadow boundaries. Parent defines a variable, child uses it.</li>
+        <li><b>SLDS tokens</b>: Salesforce's design system uses CSS variables for this exact reason — they cross shadow boundaries.</li>
+      </ul>
+      <pre class="code"><span class="cmt">/* Parent component CSS - CANNOT style inside child */</span>
+<span class="cmt">/* This does NOT work: */</span>
+c-loan-card .title { color: red; } <span class="cmt">/* blocked by shadow DOM */</span>
+
+<span class="cmt">/* SOLUTION: CSS custom properties cross the boundary */</span>
+<span class="cmt">/* In parent CSS: */</span>
+c-loan-card {
+    --loan-title-color: red;   <span class="cmt">/* define the variable on the host */</span>
+}
+
+<span class="cmt">/* In child (loanCard.css): */</span>
+.title {
+    color: var(--loan-title-color, black); <span class="cmt">/* use the variable with fallback */</span>
+}
+
+<span class="cmt">/* :host - style the component's root element from inside */</span>
+:host {
+    display: block;
+    border-radius: 8px;
+    overflow: hidden;
+}
+:host(.highlighted) { border: 2px solid blue; } <span class="cmt">/* when parent adds class to component */</span></pre>
+    </div>
+  </div>
+
+
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you test LWC components — Jest setup and common test patterns?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Install: npm install @salesforce/sfdx-lwc-jest --save-dev
+// loanCard.test.js
+import { createElement } from 'lwc';
+import LoanCard from 'c/loanCard';
+import getLoanData from '@salesforce/apex/LoanController.getLoanData';
+
+// Mock Apex wire adapter
+jest.mock('@salesforce/apex/LoanController.getLoanData', () => {
+  const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+  return { default: createApexTestWireAdapter() };
+}, { virtual: true });
+
+describe('c-loan-card', () => {
+  afterEach(() => { while (document.body.firstChild) document.body.removeChild(document.body.firstChild); });
+
+  it('displays loan name when data loads', async () => {
+    const element = createElement('c-loan-card', { is: LoanCard });
+    document.body.appendChild(element);
+
+    // Emit wire data
+    getLoanData.emit({ Id: 'a0B001', Name: 'LOAN-001', Status__c: 'Active', Amount__c: 250000 });
+
+    await Promise.resolve(); // wait for re-render
+    const nameEl = element.shadowRoot.querySelector('.loan-name');
+    expect(nameEl.textContent).toBe('LOAN-001');
+  });
+
+  it('shows error when wire returns error', async () => {
+    const element = createElement('c-loan-card', { is: LoanCard });
+    document.body.appendChild(element);
+    getLoanData.error({ body: { message: 'Record not found' } });
+    await Promise.resolve();
+    const errorEl = element.shadowRoot.querySelector('.error-message');
+    expect(errorEl).not.toBeNull();
+    expect(errorEl.textContent).toContain('Record not found');
+  });
+
+  it('fires loanapproved event when approve button clicked', async () => {
+    const element = createElement('c-loan-card', { is: LoanCard });
+    const handler = jest.fn();
+    element.addEventListener('loanapproved', handler);
+    document.body.appendChild(element);
+    getLoanData.emit({ Id: 'a0B001', Name: 'LOAN-001', Status__c: 'Applied', Amount__c: 250000 });
+    await Promise.resolve();
+    element.shadowRoot.querySelector('lightning-button').click();
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0][0].detail.loanId).toBe('a0B001');
+  });
+});</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How does Lightning Data Service (LDS) work — when do you use it vs Apex?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">LDS is Salesforce's client-side data caching layer. It shares one cache across all LWC/Aura components on the page — if two components query the same record, only one network call is made.</p>
+  <pre class="code">// getRecord — LDS wire adapter (uses LDS cache)
+import { getRecord, getFieldValue, updateRecord, deleteRecord } from 'lightning/uiRecordApi';
+import { refreshApex } from '@salesforce/apex';
+import LOAN_NAME from '@salesforce/schema/Loan__c.Name';
+import LOAN_STATUS from '@salesforce/schema/Loan__c.Status__c';
+
+@wire(getRecord, { recordId: '$recordId', fields: [LOAN_NAME, LOAN_STATUS] })
+loan;
+
+// Update via LDS — no Apex needed, respects FLS automatically
+async handleSave() {
+  const fields = { Id: this.recordId, Status__c: 'Approved' };
+  try {
+    await updateRecord({ fields });
+    // LDS automatically invalidates cache — all other components refresh
+  } catch (e) { this.showError(e); }
+}</pre>
+  <table class="comparison-table"><tr><th>Scenario</th><th>Use LDS</th><th>Use Apex</th></tr><tr><td>Single record CRUD</td><td>✓ getRecord, updateRecord</td><td>—</td></tr><tr><td>Multi-record queries with WHERE</td><td>—</td><td>✓ SOQL in @AuraEnabled</td></tr><tr><td>Multi-object transaction</td><td>—</td><td>✓ Apex handles atomicity</td></tr><tr><td>Needs FLS auto-enforcement</td><td>✓ LDS enforces it</td><td>Manually use WITH SECURITY_ENFORCED</td></tr><tr><td>Complex business logic on save</td><td>—</td><td>✓ Apex service layer</td></tr><tr><td>Real-time cache across components</td><td>✓ LDS shared cache</td><td>— (each Apex call is independent)</td></tr></table>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the Lightning Navigation Service — how do you navigate in LWC?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class LoanNavigator extends NavigationMixin(LightningElement) {
+  @api recordId;
+
+  // Navigate to a record page
+  goToRecord() {
+    this[NavigationMixin.Navigate]({ type: 'standard__recordPage',
+      attributes: { recordId: this.recordId, objectApiName: 'Loan__c', actionName: 'view' }});
+  }
+
+  // Navigate to new record form
+  createLoan() {
+    this[NavigationMixin.Navigate]({ type: 'standard__objectPage',
+      attributes: { objectApiName: 'Loan__c', actionName: 'new' }});
+  }
+
+  // Navigate to a custom tab
+  goToTab() {
+    this[NavigationMixin.Navigate]({ type: 'standard__navItemPage',
+      attributes: { apiName: 'Loan_Dashboard' }});
+  }
+
+  // Navigate to external URL
+  openDocuSign() {
+    this[NavigationMixin.Navigate]({ type: 'standard__webPage',
+      attributes: { url: 'https://app.docusign.com/envelopes/' + this.envelopeId }});
+  }
+
+  // Generate URL without navigating (for href or sharing)
+  async getLoanUrl() {
+    const url = await this[NavigationMixin.GenerateUrl]({
+      type: 'standard__recordPage',
+      attributes: { recordId: this.recordId, actionName: 'view' }
+    });
+    return url;
+  }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you use Lightning Message Service (LMS) for cross-component communication?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">LMS is the modern replacement for Aura application events and PubSub patterns. Works across LWC, Aura, and Visualforce components on the same page.</p>
+  <pre class="code">// 1. Create message channel: force-app/main/default/messageChannels/LoanChannel__c.messageChannel-meta.xml
+// &lt;LightningMessageChannel xmlns="..."&gt;&lt;masterLabel&gt;Loan Channel&lt;/masterLabel&gt;&lt;/LightningMessageChannel&gt;
+
+// 2. Publisher component
+import { LightningElement, wire } from 'lwc';
+import { publish, MessageContext } from 'lightning/messageService';
+import LOAN_CHANNEL from '@salesforce/messageChannel/LoanChannel__c';
+
+export default class LoanList extends LightningElement {
+  @wire(MessageContext) messageContext;
+
+  handleLoanSelect(event) {
+    publish(this.messageContext, LOAN_CHANNEL, {
+      loanId: event.detail.loanId,
+      loanName: event.detail.loanName,
+      action: 'SELECTED'
+    });
+  }
+}
+
+// 3. Subscriber component (anywhere on same Lightning page)
+import { subscribe, unsubscribe, MessageContext } from 'lightning/messageService';
+import LOAN_CHANNEL from '@salesforce/messageChannel/LoanChannel__c';
+
+export default class LoanDetail extends LightningElement {
+  @wire(MessageContext) messageContext;
+  subscription = null;
+
+  connectedCallback() {
+    this.subscription = subscribe(this.messageContext, LOAN_CHANNEL, (msg) =&gt; {
+      if (msg.action === 'SELECTED') this.loadLoan(msg.loanId);
+    });
+  }
+
+  disconnectedCallback() { unsubscribe(this.subscription); }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you implement real-time UI updates using Platform Events in LWC?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">import { LightningElement } from 'lwc';
+import { subscribe, unsubscribe, onError } from 'lightning/empApi';
+
+export default class LoanStatusBoard extends LightningElement {
+  subscription = {};
+  loans = [];
+
+  async connectedCallback() {
+    this.subscription = await subscribe(
+      '/event/Loan_Status_Change__e',
+      -1, // -1 = new events only; -2 = replay all retained
+      (response) =&gt; {
+        const payload = response.data.payload;
+        this.updateLoanStatus(payload.Loan_Id__c, payload.New_Status__c, payload.Borrower_Name__c);
+      }
+    );
+    onError(error =&gt; { console.error('Streaming error:', error); this.reconnect(); });
+  }
+
+  updateLoanStatus(loanId, status, borrower) {
+    // Update the specific loan in the list without a full refresh
+    this.loans = this.loans.map(loan =&gt;
+      loan.Id === loanId ? { ...loan, Status__c: status } : loan
+    );
+    // Show toast for important transitions
+    if (status === 'Approved') {
+      this.dispatchEvent(new ShowToastEvent({ title: 'Loan Approved!',
+        message: borrower + ''s loan was approved', variant: 'success' }));
+    }
+  }
+
+  disconnectedCallback() { unsubscribe(this.subscription); }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you implement a custom LWC data table with sorting and filtering?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// loanTable.js
+import { LightningElement, track, wire } from 'lwc';
+import getLoans from '@salesforce/apex/LoanController.getLoans';
+
+export default class LoanTable extends LightningElement {
+  @track loans = [];
+  @track filteredLoans = [];
+  sortField = 'Name'; sortDirection = 'asc'; filterText = '';
+
+  columns = [
+    { label:'Loan', fieldName:'Name', type:'text', sortable:true },
+    { label:'Status', fieldName:'Status__c', type:'text', sortable:true },
+    { label:'Amount', fieldName:'Amount__c', type:'currency', sortable:true },
+    { label:'Date', fieldName:'CloseDate__c', type:'date', sortable:true },
+  ];
+
+  @wire(getLoans)
+  wiredLoans({ data }) { if (data) { this.loans = data; this.applyFilter(); } }
+
+  handleSort(event) {
+    this.sortField = event.detail.fieldName;
+    this.sortDirection = event.detail.sortDirection;
+    this.applyFilter();
+  }
+
+  handleFilter(event) { this.filterText = event.target.value; this.applyFilter(); }
+
+  applyFilter() {
+    let result = [...this.loans];
+    // Filter
+    if (this.filterText) {
+      const term = this.filterText.toLowerCase();
+      result = result.filter(l =&gt; l.Name?.toLowerCase().includes(term) || l.Status__c?.toLowerCase().includes(term));
+    }
+    // Sort
+    result.sort((a, b) =&gt; {
+      const valA = a[this.sortField] ?? ''; const valB = b[this.sortField] ?? '';
+      const cmp = valA > valB ? 1 : valA < valB ? -1 : 0;
+      return this.sortDirection === 'asc' ? cmp : -cmp;
+    });
+    this.filteredLoans = result;
+  }
+
+  get totalCount() { return this.filteredLoans.length; }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you handle file uploads in LWC — upload to Salesforce Files and to external storage?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Upload to Salesforce Files
+&lt;!-- Template --&gt;
+&lt;lightning-file-upload label="Upload Documents" accept=".pdf,.docx"
+  record-id={recordId} onuploadfinished={handleUpload}&gt;&lt;/lightning-file-upload&gt;
+
+// JS handler
+handleUpload(event) {
+  const files = event.detail.files; // [{ documentId, name, size }]
+  const fileIds = files.map(f =&gt; f.documentId);
+  this.dispatchEvent(new CustomEvent('filesadded', { detail: { fileIds } }));
+  this.dispatchEvent(new ShowToastEvent({ title:'Uploaded', message:files.length+' file(s)', variant:'success'}));
+}
+
+// Custom file upload with progress (for large files or external storage)
+async handleCustomUpload(event) {
+  const file = event.target.files[0];
+  const reader = new FileReader();
+  reader.onload = async () =&gt; {
+    const base64 = reader.result.split(',')[1];
+    try {
+      this.uploadProgress = 0;
+      // Call Apex with base64 — max 4.5MB before base64 encoding
+      const result = await uploadDocument({ fileName: file.name, base64Content: base64, recordId: this.recordId });
+      this.uploadProgress = 100;
+    } catch(e) { this.showError(e.body.message); }
+  };
+  reader.readAsDataURL(file);
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What are LWC slots — how do you build reusable container components?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Card container component using slots
+// cardContainer.html
+&lt;template&gt;
+  &lt;div class="card"&gt;
+    &lt;div class="card-header"&gt;
+      &lt;slot name="header"&gt;Default Header&lt;/slot&gt;  &lt;!-- named slot --&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body"&gt;
+      &lt;slot&gt;&lt;/slot&gt;  &lt;!-- default slot -- receives all un-named slotted content --&gt;
+    &lt;/div&gt;
+    &lt;div class="card-footer"&gt;
+      &lt;slot name="footer"&gt;&lt;/slot&gt;  &lt;!-- named slot for footer actions --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+// Parent uses the container
+&lt;c-card-container&gt;
+  &lt;span slot="header"&gt;Loan Application #LOAN-001&lt;/span&gt;  &lt;!-- fills named slot --&gt;
+
+  &lt;!-- Default slot content --&gt;
+  &lt;p&gt;Borrower: John Smith&lt;/p&gt;
+  &lt;p&gt;Amount: $250,000&lt;/p&gt;
+
+  &lt;div slot="footer"&gt;  &lt;!-- fills footer slot --&gt;
+    &lt;lightning-button label="Approve" onclick={handleApprove}&gt;&lt;/lightning-button&gt;
+    &lt;lightning-button label="Decline" variant="destructive" onclick={handleDecline}&gt;&lt;/lightning-button&gt;
+  &lt;/div&gt;
+&lt;/c-card-container&gt;</pre>
+  <div class="tip-box"><div class="tip-label">When to use slots</div><p>Slots are for layout/container components where the parent provides content. Examples: modal dialogs, card containers, tab panels, wizard steps. The container handles layout; the parent provides the specific content.</p></div>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you implement a wizard / multi-step form in LWC?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// loanApplicationWizard.js
+import { LightningElement, track } from 'lwc';
+
+export default class LoanApplicationWizard extends LightningElement {
+  @track currentStep = 1;
+  @track loanData = { borrowerInfo: {}, loanDetails: {}, documents: [] };
+  totalSteps = 4;
+  steps = ['Borrower Info','Loan Details','Documents','Review &amp; Submit'];
+
+  get progressPercent() { return Math.round((this.currentStep / this.totalSteps) * 100); }
+  get isFirstStep() { return this.currentStep === 1; }
+  get isLastStep() { return this.currentStep === this.totalSteps; }
+  get currentStepLabel() { return this.steps[this.currentStep - 1]; }
+
+  // Each step fires an event with its data when valid
+  handleStepComplete(event) {
+    const stepData = event.detail;
+    if (this.currentStep === 1) this.loanData.borrowerInfo = stepData;
+    if (this.currentStep === 2) this.loanData.loanDetails = stepData;
+    if (this.currentStep === 3) this.loanData.documents = stepData.fileIds;
+    if (this.currentStep &lt; this.totalSteps) this.currentStep++;
+  }
+
+  handleBack() { if (this.currentStep &gt; 1) this.currentStep--; }
+
+  async handleSubmit() {
+    try {
+      await submitLoanApplication({ loanData: JSON.stringify(this.loanData) });
+      this.dispatchEvent(new ShowToastEvent({ title:'Application Submitted', variant:'success' }));
+    } catch(e) { this.showError(e); }
+  }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you use dynamic components in LWC — lwc:component and lazy loading?</span><span class="qa-q-label lbl-lwc">ADV LWC</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Dynamic component — component type determined at runtime
+// loanActionPanel.html
+&lt;template&gt;
+  &lt;lwc:component lwc:is={dynamicComponent} loan-id={recordId} onactioncomplete={handleComplete}&gt;&lt;/lwc:component&gt;
+&lt;/template&gt;
+
+// loanActionPanel.js
+import { LightningElement, api } from 'lwc';
+
+export default class LoanActionPanel extends LightningElement {
+  @api recordId;
+  @api actionType; // 'approve', 'decline', 'request-docs'
+
+  // Lazy load the component based on actionType
+  get dynamicComponent() {
+    switch(this.actionType) {
+      case 'approve':       return import('c/loanApprovalForm');
+      case 'decline':       return import('c/loanDeclineForm');
+      case 'request-docs':  return import('c/documentRequestForm');
+      default: return null;
+    }
+  }
+  handleComplete(event) {
+    this.dispatchEvent(new CustomEvent('actioncomplete', { detail: event.detail }));
+  }
+}</pre>
+  <div class="tip-box"><div class="tip-label">Dynamic import benefit</div><p>The component bundle is only downloaded from Salesforce servers when needed. This reduces initial page load time — a loan officer who never declines loans never downloads the decline form code.</p></div>
+
+  </div></div>

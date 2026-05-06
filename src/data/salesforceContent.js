@@ -172,6 +172,78 @@
     }];
   }));
 
+  function buildNavigationFallbackSection(item, group) {
+    const title = item.label || item.id;
+    const tags = item.tags?.length ? item.tags : [title];
+    const count = item.questionCount || (item.section === 'Scenario' ? 8 : 6);
+    const difficulty = item.section === 'Scenario' ? 'advanced' : 'intermediate';
+    const prompts = item.section === 'Scenario'
+      ? [
+          `How would you approach a real project scenario involving ${title}?`,
+          `What clarifying questions would you ask before implementing ${title}?`,
+          `What architecture, security, and data risks matter most for ${title}?`,
+          `How would you explain the tradeoffs for ${title} to a business stakeholder?`
+        ]
+      : [
+          `What are the core concepts an interviewer expects for ${title}?`,
+          `How would you explain ${title} with a production Salesforce example?`,
+          `What implementation pattern keeps ${title} maintainable and testable?`,
+          `What common mistakes should you avoid when working with ${title}?`
+        ];
+
+    const questions = Array.from({ length: count }, (_, index) => {
+      const prompt = prompts[index % prompts.length];
+      return {
+        id: `${item.id}-nav-q${String(index + 1).padStart(2, '0')}`,
+        sectionId: item.id,
+        question: prompt,
+        shortAnswer: `Anchor the answer in the business requirement, Salesforce security model, platform limits, and a maintainable implementation approach for ${title}.`,
+        detailedAnswer: `For ${title}, a strong answer should cover why the feature exists, which Salesforce capability is the best fit, how access and data ownership are enforced, how the design behaves in bulk or high-volume conditions, and how it will be tested. When the interviewer pushes deeper, compare the simple declarative option with the Apex, LWC, integration, or architecture option and explain the tradeoff in operational terms.`,
+        scenario: `You are asked to design, debug, or explain ${title} in a Salesforce interview for the ${group.label} area.`,
+        followUps: [
+          'What can fail in production?',
+          'How would you test this end to end?',
+          'What would you monitor after release?'
+        ],
+        commonMistakes: [
+          'Giving only a definition without a project example.',
+          'Skipping CRUD/FLS, sharing, limits, or failure handling.',
+          'Choosing a complex custom solution before checking standard Salesforce capability.'
+        ],
+        interviewTip: `Use a practical answer flow: requirement, platform choice, security, scale, testing, and support handoff.`,
+        codeExample: '',
+        relatedTopics: tags,
+        difficulty,
+        tags
+      };
+    });
+
+    return {
+      id: item.id,
+      title,
+      description: `${title} ${item.section || 'Core'} preparation for ${group.label}.`,
+      difficulty,
+      roleLevel: '2-5 years',
+      tags,
+      questionCount: count,
+      estimatedMinutes: Math.max(24, count * 4),
+      learningObjectives: [
+        `Explain ${title} confidently with project context.`,
+        'Connect the answer to Salesforce security, limits, testing, and maintainability.',
+        'Handle scenario follow-ups without losing structure.'
+      ],
+      questions
+    };
+  }
+
+  (window.SFJR_NAVIGATION || []).forEach(group => {
+    (group.items || []).forEach(item => {
+      if (!byId[item.id] && item.id !== 'bookmarks_page') {
+        byId[item.id] = buildNavigationFallbackSection(item, group);
+      }
+    });
+  });
+
   function asKnowledgeTopic(section) {
     return {
       title: section.title,

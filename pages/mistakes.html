@@ -1,0 +1,100 @@
+<div class="page-header">
+  <div class="page-title">Common Communication Mistakes — Fix These</div>
+  <div class="page-sub">These are the exact patterns a senior technical interviewer notices. Identify which ones you do and practice eliminating them one by one.</div>
+</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 1: Starting every answer with "So..." or "Basically..."</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> "So basically" signals an unconfident, casual answer coming. It also wastes 2 seconds before you have said anything meaningful. Senior developers are expected to answer directly and precisely.</p>
+      <p class="ans-p"><b>What you say now:</b> "So basically, governor limits are like... limits that Salesforce puts on your code so it doesn't use too many resources."</p>
+      <p class="ans-p"><b>What to say instead:</b> "Governor limits are runtime restrictions that Salesforce enforces on every Apex transaction. They exist because Salesforce is a multitenant platform and resources are shared across customers. The most critical limits are..."</p>
+      <div class="tip-box"><div class="tip-label">Practice fix</div><p>Every time you catch yourself starting with "so" or "basically" today — stop, pause 1 second, and restart the sentence. Do this drill for 3 days straight. It disappears faster than you expect with deliberate practice.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 2: Answering without giving a concrete example from your work</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> Textbook answers without examples sound like you memorised a definition but may never have actually used the concept. Senior developers are hired for real experience, not theoretical knowledge.</p>
+      <p class="ans-p"><b>What you say now:</b> "Bulkification is when you write code that processes multiple records at once instead of one at a time, to avoid hitting governor limits."</p>
+      <p class="ans-p"><b>What to say instead:</b> "Bulkification means writing Apex that handles batches of records safely within governor limits. In practice, the rule is: never put SOQL or DML inside a for loop. In my Mortgage Platform, when the Contact trigger needed to sync phone numbers to Account, I collected all Account IDs into a Set first, ran one SOQL query outside the loop, stored results in a Map, and then processed everything from that Map. One SOQL call handled 200 records safely."</p>
+      <div class="tip-box"><div class="tip-label">The rule</div><p>Every technical answer must end with "...and I used this in my [project name] when [specific scenario]." No exceptions. You have 4 years of real experience — use it in every answer.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 3: Speaking too fast when nervous</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> Fast speech in an interview signals nervousness to the interviewer. It also makes you harder to understand, especially on a video call where audio quality may not be perfect. And it causes you to skip important details and make your answers shallower than they should be.</p>
+      <p class="ans-p"><b>Signs you are speaking too fast:</b> You finish a 2-minute answer in 45 seconds. You cannot hear yourself think during the answer. You say "um" frequently (filling the spaces your brain needs to process at speed). You forget key points you wanted to make.</p>
+      <p class="ans-p"><b>The fix — 3-step technique:</b></p>
+      <ul class="ans-list">
+        <li><b>Before you answer:</b> Take one slow breath. This physically slows your heart rate and resets your pace.</li>
+        <li><b>After every major point:</b> Pause for 1 full second. This is not awkward silence — it is the natural rhythm of thoughtful speech.</li>
+        <li><b>Read your answer aloud at 70% of your normal speaking speed.</b> What feels too slow to you sounds exactly right to a listener.</li>
+      </ul>
+      <div class="tip-box"><div class="tip-label">Daily drill</div><p>Read one paragraph of any article at what feels like uncomfortably slow speed. Record it. Play it back. You will be surprised how natural it sounds even though it felt slow. Do this for 5 minutes every morning during communication block 1.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 4: Saying "we did this" instead of "I did this"</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> Interviewers cannot hire a team — they are hiring you. When you say "we built this" for everything, the interviewer wonders what YOUR specific contribution actually was. This is especially critical for your solo project — the Loan Officer Campaign Platform — where you did everything yourself.</p>
+      <p class="ans-p"><b>Weak (hides your contribution):</b> "We integrated Experian into the platform. We used Named Credentials and Queueable Apex for the callout."</p>
+      <p class="ans-p"><b>Strong (clear ownership):</b> "I designed and built the Experian credit bureau integration end-to-end. I chose Named Credentials for authentication to avoid hardcoding credentials, and I implemented it using Queueable Apex because we needed callout capability after trigger DML. I also wrote the HttpCalloutMock test class achieving 95% coverage."</p>
+      <div class="tip-box"><div class="tip-label">The rule</div><p>Use "I" when describing your decisions, your code, your architecture. Use "we" only for team-level outcomes: "We delivered the project on time" or "Our team adopted LWC after I demonstrated the performance benefits." Own your individual contribution clearly.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 5: Ending answers with "...yeah" or letting the answer trail off</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> When your answer trails off with "...yeah" or "...so that's basically it" or "...yeah that's all," it signals you are not sure you said enough. It invites the interviewer to judge whether your answer was complete. A strong, decisive close signals confidence.</p>
+      <p class="ans-p"><b>Weak endings:</b> "...and that's how you do bulkification, yeah." / "...so that's kind of how the trigger works, I think." / "...yeah so basically that's what SOQL injection is."</p>
+      <p class="ans-p"><b>Strong endings — choose one per answer:</b></p>
+      <ul class="ans-list">
+        <li>"...That is the core principle — and it is something I apply to every trigger I write."</li>
+        <li>"...The result was [outcome]. That approach has served me well across multiple projects."</li>
+        <li>"...Does that answer your question, or would you like me to go deeper on any part of that?"</li>
+        <li>"...That is how I approach it in production code." (then stop — do not add "yeah" or "so.")</li>
+      </ul>
+      <div class="tip-box"><div class="tip-label">Practice</div><p>Record 5 of your answers. Listen only to the last 10 seconds of each one. Fix every weak ending. The close of your answer is the last thing the interviewer hears before forming their judgment — make it count.</p></div>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">Mistake 6: Not asking clarifying questions on design/scenario questions</span>
+      <span class="qa-q-label lbl-comm">COMM</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <p class="ans-p"><b>Why it hurts you:</b> When an interviewer asks "Design a loan notification system," jumping straight into one design without asking clarifying questions shows junior thinking. Senior developers always clarify requirements before designing.</p>
+      <p class="ans-p"><b>What junior devs do:</b> Immediately start describing a solution based on assumptions.</p>
+      <p class="ans-p"><b>What senior devs do:</b> Ask 3–4 clarifying questions first:</p>
+      <ul class="ans-list">
+        <li>"What notification channels are needed — email only, or also SMS and push?"</li>
+        <li>"What is the expected volume — hundreds of loans per day or thousands?"</li>
+        <li>"Does this need real-time delivery or is a few-minute delay acceptable?"</li>
+        <li>"Are there existing external systems we need to integrate with, or is this Salesforce-native?"</li>
+      </ul>
+      <p class="ans-p">After getting answers: "Based on what you have described, I would architect this as follows..." THEN give your design.</p>
+      <div class="tip-box"><div class="tip-label">What this signals</div><p>Clarifying questions signal that you think before you build — exactly what a senior developer should do. Interviewers often intentionally leave design questions vague to see if candidates make assumptions or gather requirements first.</p></div>
+    </div>
+  </div>

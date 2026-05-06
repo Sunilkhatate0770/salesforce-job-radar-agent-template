@@ -1,0 +1,437 @@
+<div class="page-header">
+  <div class="page-title">Advanced Integration — Senior Level Questions</div>
+  <div class="page-sub">12 deeper questions on real enterprise integration patterns</div>
+</div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How do you implement retry logic for a failed API callout in Apex?</span>
+      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <pre class="code"><span class="kw">public class</span> <span class="cls">RetryableCalloutService</span> {
+
+    <span class="kw">private static final Integer</span> MAX_RETRIES = <span class="num">3</span>;
+    <span class="kw">private static final Integer</span> RETRY_DELAY_MS = <span class="num">2000</span>; <span class="cmt">// 2 seconds</span>
+
+    <span class="kw">public static</span> <span class="cls">HttpResponse</span> callWithRetry(<span class="cls">HttpRequest</span> req) {
+        <span class="cls">Http</span> http = <span class="kw">new</span> <span class="cls">Http</span>();
+        <span class="cls">HttpResponse</span> res;
+        <span class="cls">Exception</span> lastError;
+
+        <span class="kw">for</span>(<span class="cls">Integer</span> attempt = <span class="num">1</span>; attempt &lt;= MAX_RETRIES; attempt++) {
+            <span class="kw">try</span> {
+                res = http.send(req);
+
+                <span class="cmt">// Retry on 429 (rate limit) or 503 (service unavailable)</span>
+                <span class="kw">if</span>(res.getStatusCode() == <span class="num">429</span> || res.getStatusCode() == <span class="num">503</span>) {
+                    System.debug(<span class="str">'Attempt '</span> + attempt + <span class="str">' got '</span> + res.getStatusCode() + <span class="str">'. Retrying...'</span>);
+                    <span class="kw">if</span>(attempt &lt; MAX_RETRIES) {
+                        <span class="cmt">// Wait before retry (exponential backoff)</span>
+                        Long waitTime = RETRY_DELAY_MS * attempt;
+                        Long endTime = System.currentTimeMillis() + waitTime;
+                        <span class="kw">while</span>(System.currentTimeMillis() &lt; endTime) {} <span class="cmt">// busy wait (limited use)</span>
+                        <span class="kw">continue</span>;
+                    }
+                }
+
+                <span class="cmt">// Success or non-retryable error</span>
+                <span class="kw">return</span> res;
+
+            } <span class="kw">catch</span>(<span class="cls">CalloutException</span> e) {
+                lastError = e;
+                System.debug(<span class="str">'Attempt '</span> + attempt + <span class="str">' callout exception: '</span> + e.getMessage());
+                <span class="kw">if</span>(attempt == MAX_RETRIES) <span class="kw">throw</span> e;
+            }
+        }
+        <span class="kw">return</span> res;
+    }
+}
+
+<span class="cmt">// Better pattern for production: use a custom object to track retry attempts</span>
+<span class="cmt">// and a scheduled job to re-process failed callouts</span>
+<span class="kw">public class</span> <span class="cls">CalloutRetryQueue</span> {
+    <span class="cmt">// 1. On first failure, insert a Callout_Retry__c record with the payload</span>
+    <span class="cmt">// 2. Scheduled job runs every 15 min, finds pending retries</span>
+    <span class="cmt">// 3. Retries up to max_attempts, marks success or permanent_failure</span>
+    <span class="cmt">// This is more scalable than busy-waiting in a synchronous transaction</span>
+}</pre>
+    </div>
+  </div>
+
+  <div class="qa-block">
+    <div class="qa-question" onclick="toggleQA(this)">
+      <span class="qa-q-text">How do you expose an Apex class as a REST API endpoint — complete code</span>
+      <span class="qa-q-label lbl-intg">ADVANCED INTG</span><span class="qa-chevron">▼</span>
+    </div>
+    <div class="qa-answer">
+      <pre class="code"><span class="cmt">// URL: https://[instance]/services/apexrest/v1/loans/</span>
+<span class="ann">@RestResource</span>(urlMapping=<span class="str">'/v1/loans/*'</span>)
+<span class="kw">global with sharing class</span> <span class="cls">LoanRestService</span> {
+
+    <span class="ann">@HttpGet</span>
+    <span class="kw">global static</span> <span class="cls">LoanResponse</span> getLoan() {
+        <span class="cls">RestRequest</span> req = RestContext.request;
+        <span class="cls">String</span> loanId = req.requestURI.substring(req.requestURI.lastIndexOf(<span class="str">'/'</span>)+<span class="num">1</span>);
+
+        <span class="kw">try</span> {
+            <span class="cls">Loan__c</span> loan = [<span class="kw">SELECT</span> Id, LoanAmount__c, Status__c, BorrowerName__c
+                            <span class="kw">FROM</span> Loan__c <span class="kw">WHERE</span> Id = :loanId <span class="kw">WITH USER_MODE</span>];
+            <span class="kw">return new</span> <span class="cls">LoanResponse</span>(<span class="kw">true</span>, loan, <span class="kw">null</span>);
+        } <span class="kw">catch</span>(<span class="cls">QueryException</span> e) {
+            RestContext.response.statusCode = <span class="num">404</span>;
+            <span class="kw">return new</span> <span class="cls">LoanResponse</span>(<span class="kw">false</span>, <span class="kw">null</span>, <span class="str">'Loan not found: '</span> + loanId);
+        }
+    }
+
+    <span class="ann">@HttpPost</span>
+    <span class="kw">global static</span> <span class="cls">LoanResponse</span> createLoan() {
+        <span class="kw">try</span> {
+            <span class="cls">String</span> body = RestContext.request.requestBody.toString();
+            <span class="cls">LoanRequest</span> loanReq = (<span class="cls">LoanRequest</span>) JSON.deserialize(body, <span class="cls">LoanRequest</span>.<span class="kw">class</span>);
+
+            <span class="cls">Loan__c</span> newLoan = <span class="kw">new</span> <span class="cls">Loan__c</span>(
+                LoanAmount__c = loanReq.loanAmount,
+                BorrowerName__c = loanReq.borrowerName,
+                LoanType__c = loanReq.loanType,
+                Status__c = <span class="str">'Application'</span>
+            );
+            insert newLoan;
+
+            RestContext.response.statusCode = <span class="num">201</span>; <span class="cmt">// Created</span>
+            <span class="kw">return new</span> <span class="cls">LoanResponse</span>(<span class="kw">true</span>, newLoan, <span class="kw">null</span>);
+        } <span class="kw">catch</span>(<span class="cls">Exception</span> e) {
+            RestContext.response.statusCode = <span class="num">400</span>; <span class="cmt">// Bad Request</span>
+            <span class="kw">return new</span> <span class="cls">LoanResponse</span>(<span class="kw">false</span>, <span class="kw">null</span>, e.getMessage());
+        }
+    }
+
+    <span class="ann">@HttpDelete</span>
+    <span class="kw">global static</span> <span class="cls">LoanResponse</span> deleteLoan() {
+        <span class="cls">String</span> loanId = RestContext.request.requestURI.substringAfterLast(<span class="str">'/'</span>);
+        delete [<span class="kw">SELECT</span> Id <span class="kw">FROM</span> Loan__c <span class="kw">WHERE</span> Id = :loanId];
+        RestContext.response.statusCode = <span class="num">204</span>; <span class="cmt">// No Content</span>
+        <span class="kw">return null</span>;
+    }
+
+    <span class="kw">global class</span> <span class="cls">LoanRequest</span> {
+        <span class="kw">global</span> <span class="cls">Decimal</span> loanAmount;
+        <span class="kw">global</span> <span class="cls">String</span> borrowerName;
+        <span class="kw">global</span> <span class="cls">String</span> loanType;
+    }
+
+    <span class="kw">global class</span> <span class="cls">LoanResponse</span> {
+        <span class="kw">global</span> <span class="cls">Boolean</span> success;
+        <span class="kw">global</span> <span class="cls">Object</span> data;
+        <span class="kw">global</span> <span class="cls">String</span> error;
+        <span class="kw">global</span> <span class="cls">LoanResponse</span>(<span class="cls">Boolean</span> s, <span class="cls">Object</span> d, <span class="cls">String</span> e) { success=s; data=d; error=e; }
+    }
+}</pre>
+    </div>
+  </div>
+
+
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you implement OAuth 2.0 JWT Bearer Flow for server-to-server integrations?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">JWT Bearer Flow allows system-to-system authentication without any user interaction — the app proves its identity with a signed certificate.</p>
+  <pre class="code">// Setup: Connected App → Use Digital Signature → upload certificate
+// Pre-authorize integration user: Connected App → Manage → Add Profile/User
+
+// Generate JWT and exchange for access token
+public class JWTBearerAuth {
+  public static String getAccessToken() {
+    // Build JWT header
+    String header = EncodingUtil.base64Encode(Blob.valueOf('{"alg":"RS256","typ":"JWT"}'));
+
+    // Build JWT claims
+    Long now = DateTime.now().getTime() / 1000;
+    String claims = JSON.serialize(new Map&lt;String,Object&gt;{
+      'iss' =&gt; 'YOUR_CONNECTED_APP_CLIENT_ID',
+      'sub' =&gt; '<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4a23243e2f2d382b3e232524643f392f380a2925273a2b243364292527">[email&#160;protected]</a>', // pre-authorized user
+      'aud' =&gt; 'https://login.salesforce.com',
+      'exp' =&gt; now + 300 // expires in 5 minutes
+    });
+    String claimsEncoded = EncodingUtil.base64Encode(Blob.valueOf(claims));
+
+    // Sign with private key from Certificate and Key Store
+    String signingInput = header + '.' + claimsEncoded;
+    Blob signature = Crypto.sign('RSA-SHA256', Blob.valueOf(signingInput),
+      EncodingUtil.base64Decode(getCertificatePrivateKey()));
+    String jwt = signingInput + '.' + EncodingUtil.base64Encode(signature);
+
+    // Exchange JWT for access token
+    HttpRequest req = new HttpRequest();
+    req.setEndpoint('https://login.salesforce.com/services/oauth2/token');
+    req.setMethod('POST');
+    req.setBody('grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt);
+    HttpResponse res = new Http().send(req);
+    Map&lt;String,Object&gt; result = (Map&lt;String,Object&gt;) JSON.deserializeUntyped(res.getBody());
+    return (String) result.get('access_token');
+  }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you handle API versioning and backward compatibility in @RestResource endpoints?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Version in URL path — cleanest approach
+@RestResource(urlMapping='/v1/loans/*')
+global class LoanResourceV1 {
+  @HttpGet global static LoanResponseV1 doGet() { /* v1 response shape */ }
+}
+
+@RestResource(urlMapping='/v2/loans/*')
+global class LoanResourceV2 {
+  @HttpGet global static LoanResponseV2 doGet() { /* v2 adds new fields, never removes */ }
+}
+
+// Version in Accept header — single endpoint, versioned response
+@RestResource(urlMapping='/loans/*')
+global class LoanResource {
+  @HttpGet global static Object doGet() {
+    String version = RestContext.request.headers.get('API-Version') ?? 'v1';
+    if (version == 'v2') return buildV2Response();
+    return buildV1Response(); // default to v1
+  }
+}
+// Rules for backward compatibility:
+// NEVER remove a field from response — add deprecation notice in docs, set to null
+// NEVER change a field's type — add a new field with the new type
+// ALWAYS version breaking changes — new path or Accept header version</pre>
+  <div class="tip-box"><div class="tip-label">API contract</div><p>External systems depend on your response shape. Breaking changes without versioning = production incidents for your API consumers. Treat your API like a public interface — additive only.</p></div>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is idempotency in API design — how do you implement it in Salesforce?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">Idempotency means calling the same API multiple times produces the same result as calling it once. Critical for retry safety.</p>
+  <pre class="code">// Idempotency key pattern — client sends unique key per logical operation
+@RestResource(urlMapping='/v1/loans')
+global class LoanCreateResource {
+  @HttpPost
+  global static LoanCreateResponse doPost() {
+    String idempKey = RestContext.request.headers.get('Idempotency-Key');
+    if (String.isBlank(idempKey)) {
+      RestContext.response.statusCode = 400;
+      return new LoanCreateResponse(null, 'Idempotency-Key header required');
+    }
+
+    // Check if we already processed this key
+    List&lt;Idempotency_Record__c&gt; existing = [
+      SELECT Response_Body__c FROM Idempotency_Record__c WHERE Key__c=:idempKey LIMIT 1
+    ];
+    if (!existing.isEmpty()) {
+      // Return cached response — safe to call multiple times
+      return (LoanCreateResponse) JSON.deserialize(existing[0].Response_Body__c, LoanCreateResponse.class);
+    }
+
+    // Process the request
+    Loan__c newLoan = createLoan(RestContext.request.requestBody.toString());
+    LoanCreateResponse response = new LoanCreateResponse(newLoan.Id, 'Created');
+
+    // Store the idempotency record with TTL (clean up after 24 hours via scheduled job)
+    insert new Idempotency_Record__c(Key__c=idempKey, Response_Body__c=JSON.serialize(response),
+      Expires_At__c=DateTime.now().addHours(24));
+    RestContext.response.statusCode = 201;
+    return response;
+  }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is HMAC signature validation — how do you secure inbound webhooks?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">Webhooks from external systems (DocuSign, Twilio, Stripe) can be spoofed. HMAC-SHA256 signature validation proves the request genuinely came from the expected sender.</p>
+  <pre class="code">@RestResource(urlMapping='/v1/docusignWebhook')
+global class DocuSignWebhookResource {
+  @HttpPost
+  global static void doPost() {
+    String payload = RestContext.request.requestBody.toString();
+    String receivedSig = RestContext.request.headers.get('X-DocuSign-Signature-1');
+    String sharedSecret = 'YOUR_HMAC_SECRET'; // stored in Custom Setting or Named Credential
+
+    // Compute expected HMAC-SHA256
+    Blob hmac = Crypto.generateMac('HmacSHA256', Blob.valueOf(payload), Blob.valueOf(sharedSecret));
+    String expectedSig = EncodingUtil.base64Encode(hmac);
+
+    // Compare — timing-safe comparison (avoid timing attacks)
+    if (receivedSig != expectedSig) {
+      RestContext.response.statusCode = 401;
+      return;
+    }
+
+    // Signature valid — process the webhook
+    Map&lt;String,Object&gt; body = (Map&lt;String,Object&gt;) JSON.deserializeUntyped(payload);
+    String envelopeId = (String) body.get('envelopeId');
+    String status = (String) body.get('status');
+
+    if (status == 'completed') System.enqueueJob(new DocuSignCompletedQueueable(envelopeId));
+  }
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you implement request/response logging for all outbound callouts?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// Callout logger — wraps every outbound request
+public class CalloutLogger {
+  public static HttpResponse send(HttpRequest req, String integrationName) {
+    DateTime startTime = DateTime.now();
+    HttpResponse res;
+    String error = null;
+
+    try {
+      res = new Http().send(req);
+      return res;
+    } catch (CalloutException e) {
+      error = e.getMessage();
+      throw e; // re-throw after logging
+    } finally {
+      // Always log — success or failure
+      Callout_Log__c log = new Callout_Log__c(
+        Integration__c = integrationName,
+        Endpoint__c    = req.getEndpoint(),
+        Method__c      = req.getMethod(),
+        Request_Body__c = req.getBody()?.abbreviate(32768), // field length limit
+        Status_Code__c  = res != null ? res.getStatusCode() : null,
+        Response_Body__c = res != null ? res.getBody()?.abbreviate(32768) : null,
+        Error__c        = error,
+        Duration_Ms__c  = DateTime.now().getTime() - startTime.getTime()
+      );
+      // Use Database.insert to avoid rollback cancelling the log
+      Database.insert(log, false);
+    }
+  }
+}
+// Usage:
+HttpResponse res = CalloutLogger.send(req, 'Experian_Credit');</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the outbox pattern — how do you guarantee exactly-once delivery?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">The Outbox pattern ensures an event/message is never lost: write to an outbox table in the same transaction as your data change, then a separate process reliably delivers from the outbox.</p>
+  <pre class="code">// Step 1: Write loan update AND outbox record in same transaction (atomic)
+trigger LoanTrigger on Loan__c (after update) {
+  List&lt;Integration_Outbox__c&gt; outbox = new List&lt;Integration_Outbox__c&gt;();
+  for (Loan__c l : Trigger.new) {
+    if (l.Status__c != Trigger.oldMap.get(l.Id).Status__c) {
+      outbox.add(new Integration_Outbox__c(
+        Loan__c=l.Id, Event_Type__c='STATUS_CHANGE',
+        Payload__c=JSON.serialize(new Map&lt;String,Object&gt;{'loanId'=&gt;l.Id,'status'=&gt;l.Status__c}),
+        Status__c='Pending', Created_At__c=DateTime.now()
+      ));
+    }
+  }
+  if (!outbox.isEmpty()) insert outbox;
+}
+
+// Step 2: Scheduled job reliably delivers from outbox (runs every 5 min)
+public class OutboxDeliveryJob implements Schedulable {
+  public void execute(SchedulableContext ctx) {
+    Database.executeBatch(new OutboxDeliveryBatch(), 10); // small scope for callout limit
+  }
+}
+public class OutboxDeliveryBatch implements Database.Batchable&lt;SObject&gt;, Database.AllowsCallouts {
+  public Database.QueryLocator start(Database.BatchableContext bc) {
+    return Database.getQueryLocator([SELECT Id, Payload__c, Retry_Count__c FROM Integration_Outbox__c
+      WHERE Status__c='Pending' AND Retry_Count__c &lt; 3 ORDER BY Created_At__c ASC]);
+  }
+  public void execute(Database.BatchableContext bc, List&lt;SObject&gt; scope) {
+    for (Integration_Outbox__c rec : (List&lt;Integration_Outbox__c&gt;)scope) {
+      try { deliverToLOS(rec.Payload__c); rec.Status__c='Delivered'; }
+      catch(Exception e) { rec.Retry_Count__c++; rec.Last_Error__c=e.getMessage(); }
+    }
+    update scope;
+  }
+  public void finish(Database.BatchableContext bc) {}
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do Named Credentials work — what authentication types do they support?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Auth Type</th><th>How it works</th><th>Use for</th></tr><tr><td>No Authentication</td><td>URL stored only — no credentials</td><td>Public APIs, webhook endpoints</td></tr><tr><td>Password (Basic Auth)</td><td>Username+password stored — sent as Authorization: Basic header</td><td>Legacy APIs requiring Basic Auth</td></tr><tr><td>OAuth 2.0 (Web Server)</td><td>Salesforce handles token refresh automatically</td><td>Modern OAuth APIs — Slack, Salesforce to Salesforce</td></tr><tr><td>OAuth 2.0 (JWT)</td><td>Certificate-based, no user interaction</td><td>Server-to-server integrations</td></tr><tr><td>AWS Signature V4</td><td>Signed AWS request headers</td><td>AWS services (S3, Lambda, API Gateway)</td></tr><tr><td>Certificate</td><td>Client certificate for mutual TLS</td><td>High-security APIs requiring client cert</td></tr></table>
+  <pre class="code">// Named Credential in code — always use callout: prefix
+req.setEndpoint('callout:LOS_Named_Cred/api/v2/loans'); // NO credentials in code ever
+// Salesforce automatically adds auth headers based on NC configuration
+
+// External Credential (newer approach — per-org or per-user auth)
+// Setup: External Credentials → Named Credentials reference External Credential
+// Allows per-user OAuth tokens — each user has their own OAuth connection</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you test callouts in Apex — complete mock pattern?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <pre class="code">// HttpCalloutMock interface
+@isTest
+global class MultiRequestMock implements HttpCalloutMock {
+  Map&lt;String, HttpCalloutMock&gt; mocks = new Map&lt;String, HttpCalloutMock&gt;();
+
+  global MultiRequestMock(Map&lt;String, HttpCalloutMock&gt; mocks) { this.mocks = mocks; }
+
+  global HttpResponse respond(HttpRequest req) {
+    String endpoint = req.getEndpoint();
+    for (String key : mocks.keySet()) {
+      if (endpoint.contains(key)) return mocks.get(key).respond(req);
+    }
+    throw new CalloutException('No mock for endpoint: ' + endpoint);
+  }
+}
+
+// Single mock
+@isTest
+global class CreditBureauMock implements HttpCalloutMock {
+  Integer score; Boolean shouldFail;
+  global CreditBureauMock(Integer score, Boolean shouldFail) { this.score=score; this.shouldFail=shouldFail; }
+  global HttpResponse respond(HttpRequest req) {
+    HttpResponse res = new HttpResponse();
+    if (shouldFail) { res.setStatusCode(503); res.setBody('Service Unavailable'); return res; }
+    res.setStatusCode(200);
+    res.setBody(JSON.serialize(new Map&lt;String,Object&gt;{'creditScore'=&gt;score,'riskTier'=&gt;'A'}));
+    return res;
+  }
+}
+
+// Test using mock
+@isTest static void testCreditCheck_success() {
+  Test.setMock(HttpCalloutMock.class, new CreditBureauMock(750, false));
+  Test.startTest();
+  CreditCheckService.run(loan.Id);
+  Test.stopTest();
+  System.assertEquals(750, [SELECT Credit_Score__c FROM Loan__c WHERE Id=:loan.Id].Credit_Score__c);
+}</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is mutual TLS (mTLS) and when is it required in financial services integrations?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">Mutual TLS requires BOTH sides to authenticate with certificates — server proves identity to client AND client proves identity to server. Standard TLS only authenticates the server.</p>
+  <ul class="ans-list">
+    <li><b>When required</b> — Banking regulators (OCC, FFIEC), PCI-DSS high-security APIs, Federal agency integrations, some credit bureau APIs</li>
+    <li><b>Setup in Salesforce</b> — Generate a certificate in Setup → Certificate and Key Management. Configure Named Credential to use that certificate as client certificate.</li>
+    <li><b>Server certificate pinning</b> — Some APIs also require pinning the server's exact certificate. Salesforce Named Credentials don't support pinning natively — requires a middleware proxy.</li>
+    <li><b>Certificate rotation</b> — mTLS certificates expire. Build rotation reminders into your monitoring — typically 1 year. Expiry = instant outage for all callouts using that cert.</li>
+    <li><b>Testing</b> — Use Salesforce Sandbox + named credential pointing to vendor's test environment with test certificates. Never test mTLS in production.</li>
+  </ul>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">How do you design a reliable file transfer integration — large files to/from Salesforce?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <p class="ans-p">Direct callouts have a 12MB response/request limit. For large files (loan documents, credit reports, closing packages), you need a multi-step approach.</p>
+  <pre class="code">// Pattern: Salesforce → S3 (or Azure Blob) for large files
+// Step 1: Get pre-signed URL from AWS (short-lived, secure)
+public class S3UploadService {
+  public static String getPresignedUploadUrl(String fileName, String contentType) {
+    HttpRequest req = new HttpRequest();
+    req.setEndpoint('callout:AWS_API_GW/presigned-url');
+    req.setMethod('POST');
+    req.setBody(JSON.serialize(new Map&lt;String,Object&gt;{'fileName'=&gt;fileName,'contentType'=&gt;contentType}));
+    HttpResponse res = new Http().send(req);
+    Map&lt;String,Object&gt; result = (Map&lt;String,Object&gt;) JSON.deserializeUntyped(res.getBody());
+    return (String) result.get('uploadUrl');
+  }
+
+  // Step 2: Upload file directly to S3 using the pre-signed URL
+  public static void uploadFile(String presignedUrl, Blob fileContent, String contentType) {
+    HttpRequest req = new HttpRequest();
+    req.setEndpoint(presignedUrl);
+    req.setMethod('PUT');
+    req.setHeader('Content-Type', contentType);
+    req.setBodyAsBlob(fileContent); // up to 12MB per callout
+    req.setTimeout(120000); // 2 minutes for large files
+    HttpResponse res = new Http().send(req);
+    if (res.getStatusCode() != 200) throw new IntegrationException('S3 upload failed: '+res.getStatusCode());
+  }
+}
+// For files &gt;12MB: chunk the file into parts, upload each chunk, then send complete signal</pre>
+
+  </div></div>
+  <div class="qa-block"><div class="qa-question" onclick="toggleQA(this)"><span class="qa-q-text">What is the Bulk API 2.0 — when do you use it instead of REST API?</span><span class="qa-q-label lbl-intg">ADV INTEGRATION</span><span class="qa-chevron">▼</span></div><div class="qa-answer">
+  <table class="comparison-table"><tr><th>Feature</th><th>REST API</th><th>Bulk API 2.0</th></tr><tr><td>Max records per call</td><td>200 (composite) / 2000 (collection)</td><td>Millions — async batch processing</td></tr><tr><td>Response time</td><td>Synchronous — immediate</td><td>Async — poll for job completion</td></tr><tr><td>Throttling</td><td>Counts against API limits</td><td>Separate Bulk API limits</td></tr><tr><td>Use for</td><td>Real-time single/small batch operations</td><td>Mass data loads, migrations, nightly syncs</td></tr><tr><td>Format</td><td>JSON</td><td>CSV (more efficient for tabular data)</td></tr><tr><td>Salesforce tools</td><td>Named Credentials + HTTP callout</td><td>Data Loader, MuleSoft, custom job polling</td></tr></table>
+  <div class="tip-box"><div class="tip-label">When to use Bulk API</div><p>Loading 100,000+ records? Use Bulk API 2.0. Creating a Connected App integration that needs real-time response for individual records? Use REST. Rule: &gt;1,000 records or batch nightly jobs → Bulk API. &lt;1,000 records or user-triggered → REST.</p></div>
+
+  </div></div>

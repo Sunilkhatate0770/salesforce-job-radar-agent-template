@@ -57,3 +57,32 @@ test('salesforce content bank satisfies minimum interview question counts', () =
     assert.ok(section.questions.every(question => question.detailedAnswer.length > 100));
   });
 });
+
+test('navigation items are grouped by core/scenario and resolve to content', () => {
+  const { SFJR_NAVIGATION, SFJR_SALESFORCE_CONTENT } = (() => {
+    const context = { window: {} };
+    vm.createContext(context);
+    vm.runInContext(fs.readFileSync('src/data/navigation.js', 'utf8'), context, { filename: 'src/data/navigation.js' });
+    vm.runInContext(fs.readFileSync('src/data/salesforceContent.js', 'utf8'), context, { filename: 'src/data/salesforceContent.js' });
+    return context.window;
+  })();
+
+  const indexHtml = fs.readFileSync('index.html', 'utf8');
+  const pageFiles = new Set(fs.readdirSync('pages').filter(file => file.endsWith('.html')).map(file => file.replace(/\.html$/, '')));
+
+  SFJR_NAVIGATION.forEach(group => {
+    const sectionNames = new Set(group.items.map(item => item.section));
+    assert.ok(sectionNames.has('Core'), `${group.label} has Core subsection`);
+    assert.ok(sectionNames.has('Scenario'), `${group.label} has Scenario subsection`);
+
+    group.items.forEach(item => {
+      const hasIndexContainer = indexHtml.includes(`id="${item.id}"`);
+      const hasPageFile = pageFiles.has(item.id);
+      const hasContentSection = Boolean(SFJR_SALESFORCE_CONTENT.getSection(item.id));
+      assert.ok(
+        hasIndexContainer || hasPageFile || hasContentSection || item.id === 'bookmarks_page',
+        `${group.label} / ${item.label} resolves to a page or content section`
+      );
+    });
+  });
+});
