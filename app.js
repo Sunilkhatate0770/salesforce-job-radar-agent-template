@@ -34,7 +34,7 @@ let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
 let lastSidebarTrigger = null;
-const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-split';
+const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-ui-layer';
 
 const featureStylesheetPromises = new Map();
 
@@ -3863,6 +3863,8 @@ window.addEventListener('DOMContentLoaded', () => {
   ensureNavigationTopicConfig();
   refreshSearchIndex();
   renderRecentTopicsPanel();
+  syncSidebarStickyOffset();
+  window.addEventListener('resize', syncSidebarStickyOffset);
   const overlay = document.getElementById('sidebarOverlay');
   if (overlay) overlay.addEventListener('click', () => toggleMobileSidebar(false));
   
@@ -4697,7 +4699,18 @@ function setBookmarksPage(delta) {
 // =============================================
 // MOBILE SIDEBAR TOGGLE (v1340)
 // =============================================
+function syncSidebarStickyOffset() {
+  const sidebar = document.getElementById('sidebar');
+  const header = sidebar?.querySelector('.sidebar-header');
+  if (!sidebar || !header) return;
+  const headerHeight = Math.ceil(header.getBoundingClientRect().height);
+  if (headerHeight > 0) {
+    sidebar.style.setProperty('--sidebar-sticky-header-h', `${headerHeight}px`);
+  }
+}
+
 function toggleMobileSidebar(forceOpen) {
+  syncSidebarStickyOffset();
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
   const toggle = document.getElementById('mobileToggle');

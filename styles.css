@@ -4826,3 +4826,48 @@ body.ui-classic .premium-mini-panel {
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: var(--radius, 16px);
 }
+
+/* Navigation and slide-over hardening.
+   The sidebar brand height changes with content, so app.js writes the measured
+   value into --sidebar-sticky-header-h. This prevents the search field from
+   sliding under the sticky brand/close area while the menu scrolls. */
+#sidebar {
+  --sidebar-sticky-header-h: 118px;
+  isolation: isolate;
+}
+
+#sidebar .sidebar-header {
+  background: #111d35 !important;
+  z-index: 130 !important;
+}
+
+#sidebar .search-wrap {
+  top: var(--sidebar-sticky-header-h) !important;
+  z-index: 129 !important;
+  background: #111d35 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
+  box-shadow: 0 14px 22px rgba(0, 0, 0, 0.34) !important;
+}
+
+#sidebar #searchInput {
+  background: #0d1526 !important;
+  border-color: rgba(96, 165, 250, 0.2) !important;
+}
+
+.activity-log-panel {
+  background: #0d1526 !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.activity-log-panel .log-panel-header,
+.activity-log-panel .log-panel-footer {
+  background: #111d35 !important;
+}
+
+@media (max-width: 900px) {
+  #sidebar {
+    --sidebar-sticky-header-h: 124px;
+  }
+}
