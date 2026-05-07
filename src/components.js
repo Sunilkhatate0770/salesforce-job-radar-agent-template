@@ -896,8 +896,95 @@ function renderBoard() {
     }
   });
 
+  // Handle List View (v1415)
+  const viewPref = localStorage.getItem('job_radar_view') || 'kanban';
+  const listViewContainer = document.getElementById('radar-list-view');
+  const kanbanContainer = document.querySelector('.kanban-board-v3');
+  
+  if (listViewContainer && kanbanContainer) {
+    if (viewPref === 'list') {
+      kanbanContainer.style.display = 'none';
+      listViewContainer.style.display = 'block';
+      renderBoardListView(searchTerm, filter);
+    } else {
+      kanbanContainer.style.display = 'flex';
+      listViewContainer.style.display = 'none';
+    }
+  }
+
   syncMobileBoardStageNav(cols);
   renderJobRadarCockpit();
+}
+
+function renderBoardListView(searchTerm, filter) {
+  const tableBody = document.getElementById('list-table-body');
+  const pagerTable = document.getElementById('pager-table');
+  if (!tableBody) return;
+
+  const pageSize = Math.max(1, Number(window.JOB_BOARD_PAGE_SIZE || 6)) * 2; // Double density for list
+  
+  const allFiltered = (window.pipelineJobs || [])
+    .filter(j => filter === 'all' || componentProbability(j.prob || j.probability, j.score) === filter)
+    .filter(j => {
+      if (!searchTerm) return true;
+      const haystack = [
+        j.company,
+        j.role || j.title,
+        j.loc || j.location,
+        j.company_type,
+        j.why_apply,
+        ...componentList(j.matched_skills || j.skills),
+        ...componentList(j.missing_skills)
+      ].join(' ').toLowerCase();
+      return haystack.includes(searchTerm);
+    })
+    .sort((a, b) => jobRadarDate(b) - jobRadarDate(a));
+
+  const pages = window.radarBoardPages || {};
+  const maxPage = Math.max(0, Math.ceil(allFiltered.length / pageSize) - 1);
+  const page = Math.max(0, Math.min(maxPage, pages['list'] || 0));
+  pages['list'] = page;
+  window.radarBoardPages = pages;
+  
+  const start = page * pageSize;
+  const displayJobs = allFiltered.slice(start, start + pageSize);
+
+  if (window.jobRadarLoading) {
+    tableBody.innerHTML = renderSkeletonList(5);
+  } else if (displayJobs.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);">${window.jobRadarEmptyMessage || 'No matching roles found.'}</td></tr>`;
+  } else {
+    tableBody.innerHTML = displayJobs.map(job => renderJobTableRow(job)).join('');
+  }
+
+  if (pagerTable) {
+    pagerTable.innerHTML = renderPager(allFiltered.length, page, pageSize, `setBoardPage('list', -1)`, `setBoardPage('list', 1)`, true);
+  }
+}
+
+function renderJobTableRow(job) {
+  const status = componentText(job.status, 'todo');
+  const statusLabels = {
+    todo: '<span style="color:var(--muted)">Backlog</span>',
+    applied: '<span style="color:var(--blue)">Applied</span>',
+    interview: '<span style="color:var(--amber)">Interview</span>',
+    offer: '<span style="color:var(--green)">Offer</span>',
+    rejected: '<span style="color:var(--red)">Rejected</span>'
+  };
+  
+  return `
+    <tr class="radar-tr" onclick="openJobDetails('${job.id}')" style="cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05); transition: background 0.2s;">
+      <td style="padding:12px 16px; font-weight:600; color:var(--text);">${componentEscapeHtml(job.company)}</td>
+      <td style="padding:12px 16px; color:var(--text);">${componentEscapeHtml(job.role || job.title || 'Role Unspecified')}</td>
+      <td style="padding:12px 16px; color:var(--muted); font-size:0.85rem;">${componentEscapeHtml(job.loc || job.location || '--')}</td>
+      <td style="padding:12px 16px; color:var(--muted); font-size:0.85rem; font-family:'IBM Plex Mono', monospace;">${componentEscapeHtml(job.sal || job.salary || '--')}</td>
+      <td style="padding:12px 16px; font-weight:600; font-size:0.85rem;">${statusLabels[status] || status}</td>
+      <td style="padding:12px 16px; color:var(--muted); font-size:0.8rem; font-family:'IBM Plex Mono', monospace;">${timeAgo(new Date(jobRadarDate(job)))}</td>
+      <td style="padding:12px 16px; text-align:right;">
+        <button class="radar-quiet-btn" onclick="event.stopPropagation(); openJobDetails('${job.id}')" style="padding:4px 8px; font-size:0.75rem;">View</button>
+      </td>
+    </tr>
+  `;
 }
 
 function getFollowUpStatus(job) {

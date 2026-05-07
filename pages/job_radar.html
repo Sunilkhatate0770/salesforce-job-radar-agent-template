@@ -98,6 +98,10 @@
       <input type="text" id="boardSearch" placeholder="Company, role, skill..." oninput="doBoardSearch()">
     </div>
     <div class="filter-actions">
+      <div class="view-toggles" style="display:flex; background:rgba(255,255,255,0.05); border-radius:8px; padding:2px; margin-right:8px;">
+        <button id="viewToggleKanban" class="radar-inline-btn active" onclick="toggleRadarView('kanban')" style="padding:4px 8px; border-radius:6px; min-width:auto;" title="Kanban View"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><rect x="3" y="3" width="7" height="18" rx="1"></rect><rect x="14" y="3" width="7" height="13" rx="1"></rect></svg></button>
+        <button id="viewToggleList" class="radar-inline-btn" onclick="toggleRadarView('list')" style="padding:4px 8px; border-radius:6px; min-width:auto; opacity:0.5;" title="Table View"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></button>
+      </div>
       <button class="radar-inline-btn" onclick="requestNotifications()">Reminders</button>
       <button class="radar-inline-btn primary" onclick="openAddJobModal()">Add Custom Role</button>
     </div>
@@ -148,6 +152,26 @@
       <div class="kanban-body" id="list-rejected" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event, 'rejected')"></div>
       <div id="pager-rejected" class="kanban-pager"></div>
     </div>
+  </div>
+
+  <div id="radar-list-view" class="radar-list-view" style="display:none; margin-top:20px; width:100%; overflow-x:auto;">
+    <table class="radar-table" style="width:100%; border-collapse:collapse; text-align:left;">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Salary</th>
+          <th>Status</th>
+          <th>Last Update</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="list-table-body">
+        <!-- Rows injected by JS -->
+      </tbody>
+    </table>
+    <div id="pager-table" class="kanban-pager" style="margin-top:16px;"></div>
   </div>
 </div>
 

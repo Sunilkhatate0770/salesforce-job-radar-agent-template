@@ -2864,6 +2864,30 @@ function buildPipelineJobFromRecord(record, existingJob) {
   };
 }
 
+window.toggleRadarView = function(view) {
+  localStorage.setItem('job_radar_view', view);
+  
+  // Update toggle buttons visually
+  const kanbanBtn = document.getElementById('viewToggleKanban');
+  const listBtn = document.getElementById('viewToggleList');
+  if (kanbanBtn && listBtn) {
+    if (view === 'kanban') {
+      kanbanBtn.classList.add('active');
+      kanbanBtn.style.opacity = '1';
+      listBtn.classList.remove('active');
+      listBtn.style.opacity = '0.5';
+    } else {
+      listBtn.classList.add('active');
+      listBtn.style.opacity = '1';
+      kanbanBtn.classList.remove('active');
+      kanbanBtn.style.opacity = '0.5';
+    }
+  }
+  
+  // Re-render board with new view preference
+  if (typeof renderBoard === 'function') renderBoard();
+};
+
 function getBoardSearchTerm() {
   return currentBoardSearch.trim().toLowerCase();
 }

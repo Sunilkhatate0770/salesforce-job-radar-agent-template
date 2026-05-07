@@ -3597,3 +3597,51 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
     top: auto !important;
   }
 }
+
+/* --- JOB TABLE LIST VIEW (v1415) --- */
+.radar-list-view {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow-x: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.radar-list-view::-webkit-scrollbar {
+  height: 8px;
+}
+
+.radar-list-view::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
+}
+
+.radar-table {
+  min-width: 900px;
+}
+
+.radar-table th {
+  background: rgba(255,255,255,0.02);
+  padding: 16px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.radar-tr:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.radar-tr td {
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.radar-tr:last-child td {
+  border-bottom: none;
+}
