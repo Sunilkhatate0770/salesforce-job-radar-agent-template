@@ -31,6 +31,7 @@ svg {
   --surface-l: 12%;
   --surface: hsla(var(--surface-h), var(--surface-s), var(--surface-l), 0.85);
   --surface-opaque: hsl(var(--surface-h), var(--surface-s), var(--surface-l));
+  --surface-hover: #111d35;
   
   --border-alpha: 0.08;
   --border: hsla(var(--surface-h), var(--surface-s), 35%, var(--border-alpha));
