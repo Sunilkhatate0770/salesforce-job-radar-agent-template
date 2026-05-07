@@ -755,10 +755,10 @@ body:not(:has(#job_radar.active)) .activity-log-panel {
 .score-ring { width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; background: conic-gradient(var(--blue) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); padding: 3px; }
 .score-ring.h { background: conic-gradient(var(--green) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); }
 .score-ring.m { background: conic-gradient(var(--amber) calc(var(--p) * 1%), rgba(255,255,255,0.05) 0); }
-.score-inner { width: 100%; height: 100%; background: #1e293b; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: white; }
+.score-inner { width: 100%; height: 100%; background: var(--surface); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: white; }
 
 /* --- FINAL PREMIUM FIX (v1403) --- */
-.jcard { background: #1e293b !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 16px !important; padding: 20px !important; margin-bottom: 20px !important; display: block !important; height: auto !important; min-height: 200px !important; }
+.jcard { background: var(--surface) !important; border: 1px solid rgba(255,255,255,0.15) !important; border-radius: 16px !important; padding: 20px !important; margin-bottom: 20px !important; display: block !important; height: auto !important; min-height: 200px !important; }
 .co-info { display: flex !important; align-items: center !important; gap: 15px !important; margin-bottom: 10px !important; }
 .co-logo { width: 45px !important; height: 45px !important; background: #3b82f6 !important; border-radius: 10px !important; display: flex !important; align-items: center !important; justify-content: center !important; font-weight: 900 !important; font-size: 1.4rem !important; color: white !important; flex-shrink: 0 !important; }
 .co-name { font-weight: 800 !important; font-size: 1.1rem !important; color: #ffffff !important; display: block !important; }
@@ -2087,8 +2087,8 @@ body:not(:has(#job_radar.active)) .activity-log-panel {
 
 #job_radar {
   --jr-bg: var(--bg);
-  --jr-bg2: #0d1526;
-  --jr-surface: #111d35;
+  --jr-bg2: var(--bg-soft);
+  --jr-surface: var(--surface-hover);
   --jr-surface2: #162240;
   --jr-border: #1e3055;
   --jr-border2: #243a60;
@@ -2419,7 +2419,7 @@ body:has(#job_radar.active) #headerTitle {
   align-items: center;
   gap: 8px;
   padding: 0 20px !important;
-  background: #0d1526;
+  background: var(--bg-soft);
   border-bottom: 1px solid var(--jr-border);
   position: sticky;
   top: calc(var(--header-h, 48px) + var(--jr-header-h) + var(--jr-analytics-h)) !important;
@@ -3483,7 +3483,7 @@ body:has(#job_radar.active) #headerTitle {
 /* Final Job Radar layering guard: keep the slide-over opaque and keep sticky
    tabs above the filter toolbar at every scroll position. */
 body:has(#job_radar.active) .activity-log-panel {
-  background: #08111f !important;
+  background: var(--bg) !important;
   color: var(--jr-text, #e2e8f0) !important;
   opacity: 1 !important;
   backdrop-filter: none !important;
@@ -3495,11 +3495,11 @@ body:has(#job_radar.active) .activity-log-panel {
 
 body:has(#job_radar.active) .activity-log-panel .log-panel-header,
 body:has(#job_radar.active) .activity-log-panel .log-panel-footer {
-  background: #0d1526 !important;
+  background: var(--bg-soft) !important;
 }
 
 body:has(#job_radar.active) .activity-log-panel .log-entry {
-  background: #111d35 !important;
+  background: var(--surface-hover) !important;
   border-color: rgba(96, 165, 250, 0.18) !important;
 }
 
@@ -3547,7 +3547,7 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
   bottom: 0 !important;
   height: 100dvh !important;
   width: min(360px, 100vw) !important;
-  background: #0d1526 !important;
+  background: var(--bg-soft) !important;
   color: var(--jr-text, #e2e8f0) !important;
   border-left: 1px solid var(--jr-border, #1e3055) !important;
   box-shadow: -28px 0 70px rgba(0, 0, 0, 0.72) !important;
@@ -3563,21 +3563,21 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: #0d1526;
+  background: var(--bg-soft);
 }
 
 .activity-log-panel .log-panel-header,
 .activity-log-panel .log-panel-footer {
-  background: #111d35 !important;
+  background: var(--surface-hover) !important;
   border-color: var(--jr-border, #1e3055) !important;
 }
 
 .activity-log-panel .log-panel-body {
-  background: #0d1526 !important;
+  background: var(--bg-soft) !important;
 }
 
 .activity-log-panel .log-entry {
-  background: #111d35 !important;
+  background: var(--surface-hover) !important;
   border: 1px solid var(--jr-border, #1e3055) !important;
   border-radius: 10px !important;
 }
