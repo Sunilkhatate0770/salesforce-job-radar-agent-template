@@ -38,21 +38,30 @@
 <div id="sidebarOverlay" aria-hidden="true"></div>
 
 <!-- LOGIN OVERLAY -->
-<div id="loginOverlay" class="premium-home-overlay">
-  <div class="premium-home-shell">
-    <section class="premium-home-hero" aria-labelledby="premiumHomeTitle">
-      <div class="premium-home-brand">
-        <span class="premium-home-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M13 3 4 14h7l-1 7 10-12h-7l0-6Z" fill="currentColor"/></svg>
+<div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle at 0% 0%, hsla(222, 100%, 15%, 1) 0%, hsla(222, 55%, 6%, 1) 50%, hsla(280, 100%, 10%, 1) 100%); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; backdrop-filter: blur(20px);">
+  <div style="background: hsla(222, 47%, 12%, 0.6); backdrop-filter: blur(30px); padding: 3rem 2rem; border-radius: 40px; border: 1px solid hsla(222, 100%, 50%, 0.15); text-align: center; max-width: 440px; width: 92%; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(59, 130, 246, 0.1); position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, hsla(222, 100%, 50%, 0.1), transparent 70%); filter: blur(20px);"></div>
+    <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 20px; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4); animation: float 6s ease-in-out infinite;">
+      <svg viewBox="0 0 24 24" fill="white" style="width: 36px; height: 36px;"><path d="M13 10V3L4 14H11V21L20 10H13Z"/></svg>
+    </div>
+    <h1 style="font-size: 2.25rem; font-weight: 800; margin-bottom: 0.75rem; font-family: 'Syne', sans-serif; letter-spacing: -1px; background: linear-gradient(135deg, #fff 0%, #94a3b8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Job Radar AI</h1>
+    <p style="margin-bottom: 2rem; color: rgba(255,255,255,0.6); font-size: 0.95rem; line-height: 1.5; font-family: 'Outfit', sans-serif;">Industrial Salesforce Career Hub.<br>High-fidelity tracking & intelligence.</p>
+
+    <div class="login-mode-panel">
+      <div class="login-mode-heading">Choose Login Experience</div>
+      <label class="login-mode-toggle" for="loginPremiumMode">
+        <input id="loginPremiumMode" type="checkbox" checked onchange="setLoginUiModeFromCheckbox(this)">
+        <span class="login-mode-switch"></span>
+        <span class="login-mode-copy">
+          <strong id="loginModeTitle">New Premium UI</strong>
+          <small id="loginModeDescription">Personalized roadmap & market intelligence.</small>
         </span>
-        <span>Salesforce Job Radar Agent</span>
+      </label>
+      <div class="login-mode-footnote">
+        Toggle to switch between Premium and Legacy views.
       </div>
-      <div class="premium-home-kicker">Career intelligence workspace</div>
-      <h1 id="premiumHomeTitle">One premium cockpit for jobs, prep, and your next Salesforce move.</h1>
-      <p class="premium-home-copy">Track fresh roles, understand skill gaps, practice code, and keep your roadmap aligned with real market signals.</p>
-      <div class="premium-home-actions">
-        <div class="google-auth-card" aria-label="Sign in with Google">
-          <span class="premium-home-action-label">Secure cloud profile</span>
+    </div>
+	    
     <div id="g_id_onload"
          data-client_id="991931034479-q2jgdjf3r2fo8j95mnacmgp19t2mnrge.apps.googleusercontent.com"
          data-context="signin"
@@ -62,7 +71,7 @@
          data-itp_support="true"
          data-use_fedcm_for_prompt="true">
     </div>
-          <div class="google-signin-wrap">
+    <div style="display:flex; justify-content:center; margin: 1.5rem 0;">
       <div class="g_id_signin"
            data-type="standard"
            data-shape="pill"
@@ -72,56 +81,10 @@
            data-logo_alignment="left">
       </div>
     </div>
-        </div>
-        <button type="button" class="guest-preview-btn" onclick="enterGuestPreview()">
-          <span>Continue as Guest Preview</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>
-        </button>
-      </div>
-      <div class="premium-home-trust">
-        <span>Private sync for Google users</span>
-        <span>Local-only guest preview</span>
-        <span>Responsive app shell</span>
-      </div>
-    </section>
-
-    <section class="premium-home-preview" aria-label="Product preview">
-      <div class="intel-visual" aria-hidden="true">
-        <div class="intel-visual-header">
-          <span></span><span></span><span></span>
-        </div>
-        <div class="intel-scan"></div>
-        <div class="intel-row strong"><b></b><i></i></div>
-        <div class="intel-row"><b></b><i></i></div>
-        <div class="intel-row short"><b></b><i></i></div>
-        <div class="intel-metrics">
-          <span>92</span>
-          <span>18</span>
-          <span>04</span>
-        </div>
-      </div>
-      <div class="premium-preview-grid">
-        <div class="premium-preview-card">
-          <span>01</span>
-          <strong>Agent Dashboard</strong>
-          <small>Profile roadmap, releases, and market intelligence.</small>
-        </div>
-        <div class="premium-preview-card">
-          <span>02</span>
-          <strong>Job Radar</strong>
-          <small>Newest roles, pipeline stages, and fit signals.</small>
-        </div>
-        <div class="premium-preview-card">
-          <span>03</span>
-          <strong>Code Practice</strong>
-          <small>Interview coding workspace with review flow.</small>
-        </div>
-        <div class="premium-preview-card">
-          <span>04</span>
-          <strong>Study Plan</strong>
-          <small>Daily learning rhythm and progress tracking.</small>
-        </div>
-      </div>
+    
+    <div style="margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span>
     </div>
   </div>
 </div>
@@ -308,6 +271,9 @@
     </div>
 
     <div class="header-zone-right">
+      <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
+        <span id="uiModeToggleLabel">Modern</span>
+      </button>
       <div class="floating-profile" onclick="toggleFloatingDropdown(event)">
         <div id="floatingProfileContainer" style="display:none;">
           <div class="profile-pill">
