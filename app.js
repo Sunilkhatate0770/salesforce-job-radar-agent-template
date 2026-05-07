@@ -3256,7 +3256,35 @@ function getProbabilityMeta(probability) {
   return { label: 'Medium fit', cls: 'medium' };
 }
 
+function getJobBoardSortTime(job) {
+  const candidates = [
+    job.first_seen_at,
+    job.firstSeenAt,
+    job.date_added,
+    job.dateAdded,
+    job.createdAt,
+    job.created_at,
+    job.posted_at,
+    job.postedAt,
+    job.statusUpdatedAt,
+    job.last_seen_at,
+    job.lastSeenAt,
+    job.updatedAt,
+    job.updated_at,
+    job.appliedAt,
+    job.dateApplied
+  ];
+  for (const value of candidates) {
+    const parsed = new Date(value || 0).getTime();
+    if (!Number.isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+}
+
 function sortBoardJobs(a, b) {
+  const dateDelta = getJobBoardSortTime(b) - getJobBoardSortTime(a);
+  if (dateDelta !== 0) return dateDelta;
+
   const followA = getFollowUpStatus(a);
   const followB = getFollowUpStatus(b);
   const followWeight = { ghost: 3, urgent: 2, warn: 1 };
@@ -3266,9 +3294,7 @@ function sortBoardJobs(a, b) {
   const scoreDelta = Number(b.score || 0) - Number(a.score || 0);
   if (scoreDelta !== 0) return scoreDelta;
 
-  const dateA = new Date(a.first_seen_at || a.createdAt || a.created_at || a.date_added || a.posted_at || a.last_seen_at || a.updatedAt || a.updated_at || 0);
-  const dateB = new Date(b.first_seen_at || b.createdAt || b.created_at || b.date_added || b.posted_at || b.last_seen_at || b.updatedAt || b.updated_at || 0);
-  return dateB - dateA;
+  return String(b.id || b.job_hash || '').localeCompare(String(a.id || a.job_hash || ''));
 }
 
 function getBoardColumnJobs(col) {
@@ -5616,12 +5642,17 @@ function submitCustomJob() {
   const company = document.getElementById('aj-company').value;
   const role = document.getElementById('aj-role').value;
   if (!company || !role) return showToast('Fill required fields');
+  const createdAt = new Date().toISOString();
   const newJob = {
     id: 'custom_' + Date.now(), company, role,
     loc: document.getElementById('aj-loc').value || 'Remote',
     sal: document.getElementById('aj-sal').value || ' - ',
     prob: document.getElementById('aj-prob').value,
     score: document.getElementById('aj-score').value || 75,
+    createdAt,
+    created_at: createdAt,
+    date_added: createdAt,
+    first_seen_at: createdAt,
     status: 'todo'
   };
   pipelineJobs.unshift(newJob);

@@ -1023,7 +1023,7 @@ function getFollowUpStatus(job) {
 }
 
 function jobRadarDate(job) {
-  const value = job.last_seen_at || job.posted_at || job.postedAt || job.updatedAt || job.updated_at || job.createdAt || job.dateAdded || job.created_at || job.date_added || job.appliedAt || job.dateApplied;
+  const value = job.first_seen_at || job.firstSeenAt || job.date_added || job.dateAdded || job.createdAt || job.created_at || job.posted_at || job.postedAt || job.statusUpdatedAt || job.last_seen_at || job.lastSeenAt || job.updatedAt || job.updated_at || job.appliedAt || job.dateApplied;
   const parsed = new Date(value || 0);
   return Number.isNaN(parsed.getTime()) ? new Date(0) : parsed;
 }
