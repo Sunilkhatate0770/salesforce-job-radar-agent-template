@@ -960,6 +960,16 @@ function renderNavIcon(iconKey, className = 'nav-item-icon') {
   return `<span class="${className}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
 }
 
+function renderNavGroupChevron() {
+  return `
+    <span class="nav-group-chevron" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m6 9 6 6 6-6"></path>
+      </svg>
+    </span>
+  `;
+}
+
 function renderSidebarNavItem(item) {
   const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
   return `
@@ -1025,13 +1035,14 @@ function renderSidebarNavigation(options = {}) {
     ${recentHtml}
     ${groups.map((group, groupIndex) => {
       const sectionId = `nav-group-${group.id}`;
+      const groupIconKey = getNavGroupIconKey(group);
       const isOpen = groupIndex < 2 || group.items.some(item => item.id === getScopedItem('last_active_tab', 'profile_match'));
       return `
-        <section class="nav-parent-section nav-config-section" data-nav-group="${escapeHtml(group.id)}">
+        <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
           <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
-            ${renderNavIcon(getNavGroupIconKey(group), 'nav-group-icon')}
+            ${renderNavIcon(groupIconKey, `nav-group-icon nav-group-icon-${groupIconKey}`)}
             <span class="nav-group-label">${escapeHtml(group.label)}</span>
-            <span class="nav-group-chevron" aria-hidden="true">⌄</span>
+            ${renderNavGroupChevron()}
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
             ${renderSidebarNavSections(group.items)}
@@ -1089,8 +1100,11 @@ window.toggleNavGroup = function(groupId) {
   const button = section.querySelector('.nav-group-toggle');
   const panel = section.querySelector('.nav-group-items');
   const isOpen = button?.getAttribute('aria-expanded') === 'true';
-  if (button) button.setAttribute('aria-expanded', String(!isOpen));
-  if (panel) panel.hidden = isOpen;
+  const nextOpen = !isOpen;
+  if (button) button.setAttribute('aria-expanded', String(nextOpen));
+  if (panel) panel.hidden = !nextOpen;
+  section.classList.toggle('is-open', nextOpen);
+  section.classList.toggle('is-closed', !nextOpen);
 };
 
 function updateSidebarActiveState(id, options = {}) {
@@ -1104,6 +1118,8 @@ function updateSidebarActiveState(id, options = {}) {
       if (panel) panel.hidden = false;
       const toggle = section?.querySelector('.nav-group-toggle');
       if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      section?.classList.add('is-open');
+      section?.classList.remove('is-closed');
       if (shouldScrollIntoView) {
         setTimeout(() => n.scrollIntoView({ block: 'nearest' }), 0);
       }
