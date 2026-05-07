@@ -2537,7 +2537,64 @@ function renderAnalyticsView(container, dates, histories) {
   });
 
   const sortedTopics = Object.keys(topicStats).sort((a,b) => topicStats[b] - topicStats[a]);
-  let html = '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px; margin-top:1rem;">';
+  const totalTime = sortedTopics.reduce((sum, t) => sum + topicStats[t], 0);
+
+  // SVG Donut Chart (Tier 2C)
+  let svgHtml = '';
+  if (totalTime > 0) {
+    let currentAngle = 0;
+    const cx = 100, cy = 100, r = 80;
+    const colors = ['#4f8ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#3dd68c', '#fb923c'];
+    
+    let paths = '';
+    let legend = '<div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:20px;">';
+
+    sortedTopics.forEach((t, idx) => {
+      const spent = topicStats[t];
+      if (spent === 0) return;
+      
+      const angle = (spent / totalTime) * 360;
+      const color = colors[idx % colors.length];
+      
+      // Calculate SVG path
+      const startAngle = (currentAngle - 90) * Math.PI / 180;
+      const endAngle = (currentAngle + angle - 90) * Math.PI / 180;
+      
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle);
+      const y2 = cy + r * Math.sin(endAngle);
+      
+      const largeArcFlag = angle > 180 ? 1 : 0;
+      
+      // Only draw path if angle < 360, else draw circle
+      if (angle >= 359.9) {
+        paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="25" />`;
+      } else {
+        paths += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="25" stroke-linecap="butt" style="transition:all 0.3s; cursor:pointer;" onmouseover="this.setAttribute('stroke-width', '30')" onmouseout="this.setAttribute('stroke-width', '25')"/>`;
+      }
+      
+      legend += `<div style="display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text);"><span style="width:10px;height:10px;border-radius:50%;background:${color};"></span>${t} (${Math.round((spent/totalTime)*100)}%)</div>`;
+      
+      currentAngle += angle;
+    });
+    
+    legend += '</div>';
+
+    svgHtml = `
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; margin-top:1rem; display:flex; flex-direction:column; align-items:center;">
+        <h3 style="font-size:1.1rem; margin-bottom:20px; color:var(--text);">Time Distribution</h3>
+        <svg viewBox="0 0 200 200" style="width:200px; height:200px; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.3));">
+          ${paths}
+          <text x="100" y="105" text-anchor="middle" fill="var(--text)" font-size="24" font-weight="800" font-family="'IBM Plex Mono', monospace">${formatTime(totalTime)}</text>
+          <text x="100" y="125" text-anchor="middle" fill="var(--muted)" font-size="10" text-transform="uppercase" letter-spacing="1">Total Tracked</text>
+        </svg>
+        ${legend}
+      </div>
+    `;
+  }
+
+  let html = svgHtml + '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px; margin-top:20px;">';
   
   sortedTopics.forEach((t, idx) => {
     let cfg = null;
