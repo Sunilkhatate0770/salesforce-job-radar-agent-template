@@ -442,6 +442,8 @@ function renderJobIntelligence(data) {
   const totalJobs = Number(data.totalJobs || data.total_jobs || data.jobs?.length || 0);
   const sourceLabel = data.source === 'cloud'
     ? 'Cloud job radar'
+    : data.source === 'job-radar'
+      ? 'Job Radar pipeline'
     : data.source === 'local-cache'
       ? 'Local job radar cache'
       : 'Curated job radar';

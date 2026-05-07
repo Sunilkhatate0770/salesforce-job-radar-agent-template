@@ -1682,15 +1682,12 @@ function sortJobIntelSkillCounts(map) {
     .map(([skill, count]) => ({ _id: skill, count }));
 }
 
-function buildLocalJobMarketIntelligence(reason = 'local') {
-  const localJobs = Array.isArray(window.pipelineJobs) && window.pipelineJobs.length
-    ? window.pipelineJobs
-    : readScopedJson('pipelineJobs', [], 'sfpipe2026v3');
+function buildJobMarketIntelligenceFromJobs(jobs, reason = 'local') {
   const matchedMap = {};
   const missingMap = {};
-  const jobs = Array.isArray(localJobs) ? localJobs : [];
+  const safeJobs = Array.isArray(jobs) ? jobs : [];
 
-  jobs
+  safeJobs
     .filter(job => Number(job.score || job.match_score || 0) >= 60 || job.status)
     .forEach(job => {
       addJobIntelSkillCounts(matchedMap, job.matched_skills?.length ? job.matched_skills : job.skills);
@@ -1701,10 +1698,61 @@ function buildLocalJobMarketIntelligence(reason = 'local') {
     success: true,
     previewMode: reason !== 'cloud',
     source: reason,
-    totalJobs: jobs.length,
+    totalJobs: safeJobs.length,
     matched_skills: sortJobIntelSkillCounts(matchedMap),
     missing_skills: sortJobIntelSkillCounts(missingMap)
   };
+}
+
+function buildLocalJobMarketIntelligence(reason = 'local') {
+  return buildJobMarketIntelligenceFromJobs(readAllLocalJobRadarJobs(), reason);
+}
+
+function readAllLocalJobRadarJobs() {
+  const jobsByKey = new Map();
+  const addJobs = jobs => {
+    if (!Array.isArray(jobs)) return;
+    jobs.forEach((job, index) => {
+      if (!job || typeof job !== 'object') return;
+      const key = String(job.job_hash || job.id || `${job.company || ''}|${job.role || job.title || ''}|${job.loc || job.location || ''}|${index}`);
+      if (!jobsByKey.has(key)) jobsByKey.set(key, job);
+    });
+  };
+
+  addJobs(window.pipelineJobs);
+  addJobs(readScopedJson('pipelineJobs', [], 'sfpipe2026v3'));
+
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (key === 'sfpipe2026v3' || /^sfjr:[^:]+:pipelineJobs$/.test(key)) {
+        addJobs(readJsonStorage(key, []));
+      }
+    });
+  } catch (err) {
+    // Best effort local fallback.
+  }
+
+  return Array.from(jobsByKey.values());
+}
+
+async function loadJobRadarMarketIntelligence() {
+  const response = await apiFetch('/api/jobs');
+  const data = await getApiErrorPayload(response);
+  if (!response.ok) throw new Error(data.error || 'Job Radar jobs unavailable');
+  const records = Array.isArray(data.records)
+    ? data.records
+    : Array.isArray(data.jobs)
+      ? data.jobs
+      : [];
+  if (records.length) {
+    const existingByHash = new Map((window.pipelineJobs || []).map(job => [job.job_hash || job.id, job]));
+    window.pipelineJobs = records.map(record => {
+      const key = record.job_hash || record.id || record._id;
+      return buildPipelineJobFromRecord(record, existingByHash.get(key));
+    });
+    savePipeline();
+  }
+  return buildJobMarketIntelligenceFromJobs(window.pipelineJobs || records, 'job-radar');
 }
 
 async function loadJobIntelligence() {
@@ -1719,7 +1767,8 @@ async function loadJobIntelligence() {
     const res = await apiFetch('/api/profile/match?cb=' + Date.now());
     if (!res.ok) {
       console.log('[JOB-INTEL] API responded with:', res.status);
-      content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache'));
+      const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
+      content.innerHTML = renderJobIntelligence(radarIntel);
       return;
     }
     const data = await res.json();
@@ -1729,7 +1778,9 @@ async function loadJobIntelligence() {
     const missingSkills = data.missing_skills || [];
 
     if (matchedSkills.length === 0 && missingSkills.length === 0) {
-      // No job data available yet
+      const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
+      content.innerHTML = renderJobIntelligence(radarIntel);
+      return;
     }
     content.innerHTML = renderJobIntelligence({
       ...buildLocalJobMarketIntelligence('cloud-fallback'),
