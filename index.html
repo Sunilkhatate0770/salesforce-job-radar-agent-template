@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=20260506-pager-controls">
 <link rel="stylesheet" href="responsive.css?v=20260506-recent-pager-v2">
-<link rel="stylesheet" href="src/styles/navigation.css?v=20260507-sidebar-polish">
+<link rel="stylesheet" href="src/styles/navigation.css?v=20260507-sidebar-single-control">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     window.handleCredentialResponse = function(response) {
@@ -94,9 +94,6 @@
 <aside id="sidebar" role="dialog" aria-modal="true" aria-label="Salesforce preparation navigation">
   <!-- AGENT DASHBOARD BRANDING (v1378) -->
   <div class="sidebar-header" style="position:relative;">
-    <button onclick="toggleTheme()" class="theme-toggle-btn" aria-label="Toggle Theme" title="Toggle Light/Dark Mode" style="position:absolute; right:45px; top:20px; background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px; border-radius:6px; transition:0.2s;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-    </button>
     <button onclick="toggleDesktopSidebar()" class="desktop-sidebar-toggle" aria-label="Toggle Sidebar Collapse" title="Collapse Sidebar" style="position:absolute; right:16px; top:20px; background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px; border-radius:6px; transition:0.2s;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M15 18l-6-6 6-6"/></svg>
     </button>

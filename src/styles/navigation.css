@@ -16,10 +16,9 @@
 }
 
 #sidebar .sidebar-header {
-  padding-right: 92px !important;
+  padding-right: 58px !important;
 }
 
-#sidebar .theme-toggle-btn,
 #sidebar .desktop-sidebar-toggle {
   width: 38px !important;
   height: 38px !important;
@@ -33,19 +32,12 @@
   color: #8fb2dc !important;
 }
 
-#sidebar .theme-toggle-btn {
-  right: 58px !important;
-  top: 15px !important;
-}
-
 #sidebar .desktop-sidebar-toggle {
   right: 14px !important;
   top: 15px !important;
 }
 
-#sidebar .theme-toggle-btn:hover,
 #sidebar .desktop-sidebar-toggle:hover,
-#sidebar .theme-toggle-btn:focus-visible,
 #sidebar .desktop-sidebar-toggle:focus-visible {
   border-color: rgba(96, 165, 250, 0.48) !important;
   background: rgba(37, 99, 235, 0.18) !important;
@@ -305,16 +297,6 @@
     justify-content: center;
   }
 
-  #sidebar .theme-toggle-btn {
-    right: 64px !important;
-    top: 12px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
   .mobile-toggle {
     min-width: 44px;
     min-height: 44px;
@@ -337,6 +319,35 @@
 }
 
 @media (min-width: 1101px) {
+  body:not(.sidebar-collapsed) #sidebar {
+    width: 280px !important;
+    min-width: 280px !important;
+    transition: none !important;
+  }
+
+  body:not(.sidebar-collapsed) #sidebar .nav-group-toggle,
+  body:not(.sidebar-collapsed) #sidebar .nav-item {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    transition: none !important;
+  }
+
+  body:not(.sidebar-collapsed) #sidebar .nav-group-toggle {
+    justify-content: space-between !important;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  body:not(.sidebar-collapsed) #sidebar .nav-item {
+    justify-content: flex-start !important;
+    padding: 0.5rem 0.75rem !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 8px !important;
+  }
+
   body.sidebar-collapsed #sidebar {
     overflow-x: hidden;
   }
@@ -344,10 +355,6 @@
   body.sidebar-collapsed #sidebar .sidebar-header {
     min-height: 62px;
     padding: 10px 8px !important;
-  }
-
-  body.sidebar-collapsed #sidebar .theme-toggle-btn {
-    display: none !important;
   }
 
   body.sidebar-collapsed #sidebar .desktop-sidebar-toggle {
