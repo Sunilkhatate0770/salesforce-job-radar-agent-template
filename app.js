@@ -454,20 +454,34 @@ window.toggleUiMode = function() {
 };
 
 function hydratePremiumSetupForm(profile = {}) {
+  const hydratedProfile = mergePremiumDraftProfile(profile);
   const expEl = document.getElementById('premiumExperienceYears');
   const targetEl = document.getElementById('premiumTargetDesignation');
   const currentEl = document.getElementById('premiumCurrentDesignation');
   const skillsEl = document.getElementById('premiumSkills');
   
   // Use both experienceYears and yearsOfExperience for maximum compatibility
-  const expValue = profile.experienceYears ?? profile.yearsOfExperience ?? 1;
+  const expValue = hydratedProfile.experienceYears ?? hydratedProfile.yearsOfExperience ?? 1;
   if (expEl) expEl.value = String(clampPremiumExperience(expValue));
   
-  if (targetEl && (profile.targetDesignation || profile.targetRole)) {
-    targetEl.value = profile.targetDesignation || profile.targetRole;
+  if (targetEl && (hydratedProfile.targetDesignation || hydratedProfile.targetRole)) {
+    const targetValue = hydratedProfile.targetDesignation || hydratedProfile.targetRole;
+    ensurePremiumTargetOption(targetEl, targetValue);
+    targetEl.value = targetValue;
   }
-  if (currentEl) currentEl.value = profile.currentDesignation || profile.currentRole || '';
-  if (skillsEl) skillsEl.value = Array.isArray(profile.skills) ? profile.skills.join(', ') : '';
+  if (currentEl) currentEl.value = hydratedProfile.currentDesignation || hydratedProfile.currentRole || '';
+  if (skillsEl) skillsEl.value = Array.isArray(hydratedProfile.skills) ? hydratedProfile.skills.join(', ') : '';
+}
+
+function ensurePremiumTargetOption(selectEl, value) {
+  const label = String(value || '').trim();
+  if (!selectEl || !label) return;
+  const hasOption = Array.from(selectEl.options || []).some(option => option.value === label || option.textContent.trim() === label);
+  if (hasOption) return;
+  const option = document.createElement('option');
+  option.value = label;
+  option.textContent = label;
+  selectEl.appendChild(option);
 }
 
 function readPremiumFormProfile(base = {}) {
@@ -486,6 +500,64 @@ function readPremiumFormProfile(base = {}) {
     currentRole: currentDesignation,
     skills: skillsEl ? normalizeCsvInput(skillsEl.value) : normalizeCsvInput(Array.isArray(base.skills) ? base.skills.join(', ') : ''),
     uiMode: currentUiMode
+  };
+}
+
+function getPremiumDraftStorageKey() {
+  return scopedStorageKey('premium_profile_draft:v1');
+}
+
+function readPremiumProfileDraft() {
+  try {
+    const raw = localStorage.getItem(getPremiumDraftStorageKey());
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    return draft && typeof draft === 'object' ? draft : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function writePremiumProfileDraft(profile) {
+  const normalized = {
+    experienceYears: clampPremiumExperience(profile?.experienceYears || profile?.yearsOfExperience || 1),
+    targetDesignation: profile?.targetDesignation || profile?.targetRole || 'Salesforce Developer',
+    targetRole: profile?.targetDesignation || profile?.targetRole || 'Salesforce Developer',
+    currentDesignation: profile?.currentDesignation || profile?.currentRole || '',
+    currentRole: profile?.currentDesignation || profile?.currentRole || '',
+    skills: normalizeCsvInput(Array.isArray(profile?.skills) ? profile.skills.join(', ') : (profile?.skills || '')),
+    uiMode: currentUiMode,
+    updatedAt: new Date().toISOString()
+  };
+  try {
+    localStorage.setItem(getPremiumDraftStorageKey(), JSON.stringify(normalized));
+  } catch (err) {
+    console.warn('[PREMIUM] Could not persist local dashboard draft:', err.message);
+  }
+  return normalized;
+}
+
+function clearPremiumProfileDraft() {
+  try {
+    localStorage.removeItem(getPremiumDraftStorageKey());
+  } catch (err) {
+    // Best effort only.
+  }
+}
+
+function mergePremiumDraftProfile(profile = {}) {
+  const draft = readPremiumProfileDraft();
+  if (!draft) return profile || {};
+  const targetDesignation = draft.targetDesignation || draft.targetRole;
+  const currentDesignation = draft.currentDesignation || draft.currentRole;
+  return {
+    ...(profile || {}),
+    ...draft,
+    targetDesignation,
+    targetRole: targetDesignation,
+    currentDesignation,
+    currentRole: currentDesignation,
+    skills: Array.isArray(draft.skills) ? draft.skills : normalizeCsvInput(draft.skills || '')
   };
 }
 
@@ -607,9 +679,17 @@ async function refreshPremiumRoadmapMount() {
   premiumRoadmapCache = null;
   premiumReleaseCache = null;
   try {
-    const data = await buildStaticPremiumRoadmap(readPremiumFormProfile(cachedUserProfile || {}));
+    const currentDraft = readPremiumFormProfile(cachedUserProfile || {});
+    writePremiumProfileDraft(currentDraft);
+    cachedUserProfile = cachedUserProfile ? { ...cachedUserProfile, ...currentDraft } : { ...currentDraft, isPreviewProfile: true };
+    const data = await buildStaticPremiumRoadmap(currentDraft);
     premiumRoadmapCache = data;
     if (mount) mount.innerHTML = renderPremiumRoadmapSection(data) + renderPremiumReleaseFocusSection(data);
+    const profilePage = document.getElementById('profile_match');
+    if (profilePage && profilePage.classList.contains('active')) {
+      updateSidebarProfileStatus(currentDraft);
+      updateSyncModalUI(currentDraft);
+    }
   } catch (err) {
     console.warn('[PREMIUM] Preview refresh failed:', err.message);
     if (mount) mount.innerHTML = '<div class="premium-empty">Roadmap preview is unavailable right now.</div>';
@@ -624,6 +704,7 @@ function bindPremiumPreviewControls() {
     if (!el) return;
     const eventName = el.tagName === 'INPUT' ? 'input' : 'change';
     el.addEventListener(eventName, () => {
+      writePremiumProfileDraft(readPremiumFormProfile(cachedUserProfile || {}));
       clearTimeout(premiumPreviewTimer);
       premiumPreviewTimer = setTimeout(refreshPremiumRoadmapMount, 180);
     });
@@ -654,6 +735,7 @@ window.savePremiumProfileSetup = async function() {
     });
     if (!res.ok) throw new Error('Profile save failed');
     cachedUserProfile = payload;
+    clearPremiumProfileDraft();
     premiumRoadmapCache = null;
     premiumReleaseCache = null;
     showToast('Premium roadmap generated for your experience level.', 'green');
@@ -664,6 +746,7 @@ window.savePremiumProfileSetup = async function() {
   } catch (e) {
     console.error('[PREMIUM] Setup save failed:', e);
     cachedUserProfile = { ...payload, isPreviewProfile: true };
+    writePremiumProfileDraft(payload);
     premiumRoadmapCache = null;
     premiumReleaseCache = null;
     renderProfileMatchPage(cachedUserProfile);

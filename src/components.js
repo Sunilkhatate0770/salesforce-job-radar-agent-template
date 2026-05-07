@@ -148,6 +148,10 @@ function renderProfileMatchPage(profile) {
   const loadingEl = document.getElementById('profileMatchLoading');
   if (!contentDiv) return;
 
+  profile = typeof mergePremiumDraftProfile === 'function'
+    ? mergePremiumDraftProfile(profile || {})
+    : (profile || {});
+
   if (loadingEl) loadingEl.style.display = 'none';
   updateSidebarProfileStatus(profile);
   updateSyncModalUI(profile);
