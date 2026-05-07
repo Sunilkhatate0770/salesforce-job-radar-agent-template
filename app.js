@@ -4960,14 +4960,27 @@ document.addEventListener('DOMContentLoaded', () => {
 function toggleDesktopSidebar() {
   const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
   localStorage.setItem('job_radar_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+  syncDesktopSidebarToggle(isCollapsed);
   // Dispatch a resize event to ensure any charts or Kanban boards adjust to the new width
   setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+}
+
+function syncDesktopSidebarToggle(forceCollapsed) {
+  const button = document.querySelector('.desktop-sidebar-toggle');
+  if (!button) return;
+  const isCollapsed = typeof forceCollapsed === 'boolean'
+    ? forceCollapsed
+    : document.body.classList.contains('sidebar-collapsed');
+  const label = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+  button.setAttribute('aria-label', label);
+  button.setAttribute('title', label);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('job_radar_sidebar_collapsed') === 'true') {
     document.body.classList.add('sidebar-collapsed');
   }
+  syncDesktopSidebarToggle();
 });
 
 function toggleMobileSidebar(forceOpen) {
