@@ -1,10 +1,77 @@
 /**
- * 🧱 INDUSTRIAL COMPONENT REGISTRY (v1412)
+ * 🧱 INDUSTRIAL COMPONENT REGISTRY (v1414)
  * ---------------------------------------
  * This file contains all UI template logic. 
  * Decoupling presentation from logic allows for better performance 
  * and a modular "Generic Solution" architecture.
  */
+
+// --- SKELETON LOADER GENERATORS (v1414) ---
+function renderSkeletonCards(count = 3) {
+  return Array.from({ length: count }, () => `
+    <div class="skeleton-card skeleton" style="min-height:120px;border-radius:16px;margin-bottom:12px;"></div>
+  `).join('');
+}
+
+function renderSkeletonList(rows = 4) {
+  return `<div class="skeleton-row" style="gap:12px;">
+    ${Array.from({ length: rows }, (_, i) => `
+      <div class="skeleton-text skeleton ${i === 0 ? 'short' : i === rows-1 ? 'medium' : 'long'}" style="height:14px;border-radius:6px;"></div>
+    `).join('')}
+  </div>`;
+}
+
+function renderSkeletonProfile() {
+  return `<div style="display:flex;align-items:center;gap:16px;padding:20px;">
+    <div class="skeleton-avatar skeleton" style="width:56px;height:56px;border-radius:50%;flex-shrink:0;"></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+      <div class="skeleton-heading skeleton" style="height:18px;width:60%;border-radius:6px;"></div>
+      <div class="skeleton-text skeleton medium" style="height:12px;border-radius:6px;"></div>
+      <div class="skeleton-badge skeleton" style="height:24px;width:90px;border-radius:12px;"></div>
+    </div>
+  </div>`;
+}
+
+function renderSkeletonDashboard() {
+  return `<div style="display:grid;gap:16px;padding:4px 0;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+      ${Array.from({ length: 3 }, () => `<div class="skeleton-card skeleton" style="height:80px;border-radius:14px;"></div>`).join('')}
+    </div>
+    ${renderSkeletonCards(2)}
+  </div>`;
+}
+
+// --- EMPTY STATE COMPONENT (v1414) ---
+function renderEmptyState(options = {}) {
+  const {
+    icon = 'inbox',
+    title = 'Nothing here yet',
+    description = '',
+    actionLabel = '',
+    actionFn = ''
+  } = options;
+
+  const icons = {
+    inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>',
+    bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+    briefcase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px;color:var(--muted);opacity:0.5;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>'
+  };
+
+  const actionHtml = actionLabel && actionFn
+    ? `<button class="btn-ghost-sm" onclick="${actionFn}" style="margin-top:8px;">${actionLabel}</button>`
+    : '';
+
+  return `<div class="empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1.5rem;text-align:center;gap:12px;min-height:200px;">
+    ${icons[icon] || icons.inbox}
+    <div style="font-size:0.95rem;font-weight:600;color:var(--text);opacity:0.7;">${title}</div>
+    ${description ? `<div style="font-size:0.75rem;color:var(--muted);max-width:320px;line-height:1.5;">${description}</div>` : ''}
+    ${actionHtml}
+  </div>`;
+}
 
 // --- PRESENTATION HELPERS ---
 function timeAgo(date) {
@@ -815,9 +882,13 @@ function renderBoard() {
       ? window.getRadarColumnEmptyMessage(col)
       : (window.jobRadarEmptyMessage || 'No matching roles in this stage.');
 
-    list.innerHTML = displayJobs.length === 0 ? 
-      `<div class="radar-empty-state">${componentEscapeHtml(emptyMessage)}</div>` :
-      displayJobs.map(job => renderJobCard(job)).join('');
+    if (window.jobRadarLoading) {
+      list.innerHTML = renderSkeletonCards(Math.floor(Math.random() * 2) + 2); // 2-3 skeleton cards per column
+    } else {
+      list.innerHTML = displayJobs.length === 0 ? 
+        `<div class="radar-empty-state">${componentEscapeHtml(emptyMessage)}</div>` :
+        displayJobs.map(job => renderJobCard(job)).join('');
+    }
       
     const pager = document.getElementById(`pager-${col}`);
     if (pager) {

@@ -2955,6 +2955,7 @@ async function fetchJobsList() {
   window.jobRadarEmptyMessage = 'Syncing cloud job sources...';
   setJobRadarNotice('loading', 'Syncing Job Radar', 'Reading private pipeline data from the configured cloud stores.');
   setJobRadarBadge('Syncing', 'neutral', 'Job Radar is loading.');
+  window.jobRadarLoading = true;
   if (typeof renderBoard === 'function') renderBoard();
 
   try {
@@ -2966,6 +2967,7 @@ async function fetchJobsList() {
       setJobRadarNotice(classification.status, classification.message, classification.detail);
       setJobRadarBadge(classification.status === 'locked' ? 'Sign-in Required' : 'Sync Failed', classification.status === 'locked' ? 'locked' : 'error', classification.detail);
       clampBoardPages();
+      window.jobRadarLoading = false;
       renderBoard();
       updateJobRadarSummary();
       return data;
@@ -3019,6 +3021,7 @@ async function fetchJobsList() {
 
     clampBoardPages();
     savePipeline();
+    window.jobRadarLoading = false;
     renderBoard();
     updateJobRadarSummary();
     fetchJobAnalytics();
@@ -3037,6 +3040,7 @@ async function fetchJobsList() {
     window.jobRadarEmptyMessage = 'Could not reach the Job Radar API. Existing local cards are still available.';
     setJobRadarNotice('error', 'Job Radar sync failed', e.message || 'Could not reach the cloud API.');
     setJobRadarBadge('Sync Failed', 'error', e.message || 'Job Radar sync failed.');
+    window.jobRadarLoading = false;
     if (typeof renderBoard === 'function') renderBoard();
     showToast('Job Radar sync failed. Existing local cards are still available.');
     return { success: false, error: e.message };
@@ -3607,7 +3611,7 @@ function switchTrackerTab(tabId) {
 async function fetchLeaderboard() {
   const container = document.getElementById('leaderboardList');
   if (!container) return;
-  container.innerHTML = '<span style="color:var(--muted); font-size:0.8rem;">Loading your study summary...</span>';
+  container.innerHTML = renderSkeletonList(3);
   
   try {
     const response = await apiFetch('/api/study/leaderboard');
@@ -3615,7 +3619,7 @@ async function fetchLeaderboard() {
     const data = await response.json();
     
     if (!data.leaderboard || data.leaderboard.length === 0) {
-      container.innerHTML = '<span style="color:var(--muted); font-size:0.8rem;">No scholars found yet. Be the first!</span>';
+      container.innerHTML = renderEmptyState({ icon: 'chart', title: 'No study sessions yet', description: 'Start studying a topic to see your progress summary here.' });
       return;
     }
     
@@ -3823,7 +3827,10 @@ async function showPage(id) {
 	          renderProfileMatchPage(cachedUserProfile);
 	          loadJobIntelligence();
 	        } else {
-	          if (loadingEl) loadingEl.style.display = 'block';
+	          if (loadingEl) {
+	            loadingEl.style.display = 'block';
+	            loadingEl.innerHTML = renderSkeletonProfile() + renderSkeletonCards(2);
+	          }
 	          loadUserProfile().then(() => {
 	            if (cachedUserProfile) {
 	              hydratePremiumSetupForm(cachedUserProfile);
@@ -4712,23 +4719,16 @@ function showBookmarks() {
 
   // If we haven't loaded profile yet, show loading state
   if (!cachedUserProfile && userBookmarks.length === 0) {
-    container.innerHTML = `
-      <div style="text-align:center; padding:60px 20px; color:var(--muted);">
-        <div class="spin" style="width:32px; height:32px; border:2px solid var(--blue); border-top-color:transparent; border-radius:50%; margin:0 auto 16px;"></div>
-        <div>Loading your cloud bookmarks...</div>
-      </div>`;
+    container.innerHTML = renderSkeletonList(4);
     return;
   }
   
   if (userBookmarks.length === 0) {
-    container.innerHTML = `
-      <div style="text-align:center; padding:60px 20px;">
-        <div style="width:64px; height:64px; margin:0 auto 20px; opacity:0.1; color:var(--text);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-        </div>
-        <div style="font-weight:700; color:var(--text); margin-bottom:8px;">No Bookmarks Yet</div>
-        <p style="font-size:0.82rem; color:var(--muted); max-width:400px; margin:0 auto;">Click the star icon on any question to bookmark it for quick revision. Your bookmarks are saved in the cloud.</p>
-      </div>`;
+    container.innerHTML = renderEmptyState({
+      icon: 'bookmark',
+      title: 'No Bookmarks Yet',
+      description: 'Click the star icon on any question to bookmark it for quick revision. Your bookmarks are saved in the cloud.'
+    });
     return;
   }
   
@@ -4781,6 +4781,20 @@ function syncSidebarStickyOffset() {
     sidebar.style.setProperty('--sidebar-sticky-header-h', `${headerHeight}px`);
   }
 }
+
+// --- DESKTOP SIDEBAR COLLAPSE (v1414) ---
+function toggleDesktopSidebar() {
+  const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+  localStorage.setItem('job_radar_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+  // Dispatch a resize event to ensure any charts or Kanban boards adjust to the new width
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('job_radar_sidebar_collapsed') === 'true') {
+    document.body.classList.add('sidebar-collapsed');
+  }
+});
 
 function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
