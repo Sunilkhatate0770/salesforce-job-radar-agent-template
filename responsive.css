@@ -11,17 +11,102 @@ body {
   box-sizing: border-box;
 }
 
-#loginOverlay > div {
-  max-width: min(440px, calc(100vw - 28px)) !important;
-  width: min(92vw, 440px) !important;
+#loginOverlay > .premium-home-shell {
+  max-width: min(1120px, calc(100vw - 28px)) !important;
+  width: min(100%, 1120px) !important;
 }
 
 #loginOverlay h1 {
   max-width: 100% !important;
-  overflow-wrap: anywhere !important;
-  font-size: clamp(1.6rem, 9vw, 2.25rem) !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  font-size: clamp(2.2rem, 3.2vw, 2.65rem) !important;
   line-height: 1.05 !important;
   letter-spacing: 0 !important;
+}
+
+.premium-home-overlay {
+  align-items: center;
+}
+
+.premium-home-shell,
+.premium-home-hero,
+.premium-home-preview,
+.premium-preview-card,
+.intel-visual {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 920px) {
+  .premium-home-overlay {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .premium-home-shell {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    border-radius: 22px;
+  }
+
+  .premium-home-hero {
+    padding: 8px;
+  }
+
+  .premium-home-preview {
+    align-content: stretch;
+  }
+
+  .intel-visual {
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 560px) {
+  .premium-home-overlay {
+    padding: 10px;
+  }
+
+  .premium-home-shell {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .premium-home-brand {
+    margin-bottom: 24px;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+  }
+
+  #loginOverlay .premium-home-hero h1 {
+    font-size: clamp(2rem, 10vw, 2.8rem) !important;
+    line-height: 1;
+    overflow-wrap: anywhere !important;
+  }
+
+  .premium-home-actions,
+  .google-auth-card,
+  .guest-preview-btn {
+    width: 100%;
+  }
+
+  .guest-preview-btn {
+    min-height: 54px;
+  }
+
+  .premium-home-trust {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .premium-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-preview-card {
+    min-height: 112px;
+  }
 }
 
 #main,
@@ -319,18 +404,14 @@ table {
 }
 
 @media (max-width: 640px) {
-  #loginOverlay > div {
-    padding: 2.4rem 1.45rem !important;
-    border-radius: 28px !important;
+  #loginOverlay > .premium-home-shell {
+    padding: 14px !important;
+    border-radius: 18px !important;
   }
 
   #loginOverlay h1 {
-    font-size: 1.55rem !important;
+    font-size: clamp(2.1rem, 13vw, 3.4rem) !important;
     white-space: normal !important;
-  }
-
-  #loginOverlay .login-mode-panel {
-    padding: 12px !important;
   }
 
   #job_radar {
@@ -562,17 +643,14 @@ table {
   pointer-events: none;
 }
 
-#loginOverlay > div {
+#loginOverlay > .premium-home-shell {
   box-sizing: border-box !important;
-  max-width: min(440px, calc(100vw - 24px)) !important;
-  overflow: clip !important;
+  max-width: min(1120px, calc(100vw - 24px)) !important;
+  overflow: hidden !important;
 }
 
-#loginOverlay > div > div:first-child {
-  right: 8px !important;
-  top: 8px !important;
-  width: 96px !important;
-  height: 96px !important;
+#loginOverlay > .premium-home-shell > div:first-child {
+  max-width: 100% !important;
 }
 
 @media (max-width: 1100px) {
@@ -693,9 +771,9 @@ table {
 }
 
 @media (max-width: 420px) {
-  #loginOverlay > div {
-    padding: 2rem 1rem !important;
-    border-radius: 24px !important;
+  #loginOverlay > .premium-home-shell {
+    padding: 12px !important;
+    border-radius: 16px !important;
   }
 }
 

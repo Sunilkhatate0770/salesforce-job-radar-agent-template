@@ -32,9 +32,10 @@ let premiumReleaseCache = null;
 let premiumStaticDataCache = null;
 let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
-let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
+let currentUiMode = 'modern';
 let lastSidebarTrigger = null;
 const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-core-scenario-layering';
+const GUEST_PREVIEW_FLAG = 'sf_guest_preview';
 
 const featureStylesheetPromises = new Map();
 
@@ -231,9 +232,8 @@ window.handleCredentialResponse = function(response) {
 
 window.processGAuth = async function(response) {
   const token = response.credential;
-  const loginMode = getLoginUiModeIntent() || currentUiMode || 'modern';
-  sessionStorage.setItem('sf_login_ui_mode_intent', loginMode);
-  applyUiMode(loginMode);
+  sessionStorage.removeItem(GUEST_PREVIEW_FLAG);
+  applyUiMode('modern');
   localStorage.setItem('google_auth_token', token);
   GSI_TOKEN = token;
   
@@ -249,10 +249,12 @@ window.processGAuth = async function(response) {
       loadUserScopedClientState();
       const overlay = document.getElementById('loginOverlay');
       if (overlay) overlay.style.display = 'none';
+      document.body.classList.add('app-shell-ready');
+      document.body.classList.remove('guest-preview-active');
       
       renderUserProfile(currentUser);
       syncDashboard();
-      showPage(loginMode === 'classic' ? 'schedule' : 'profile_match');
+      showPage('profile_match');
     } else {
       showToast('Authentication failed: ' + (data.error || 'Check Google Client ID'), true);
     }
@@ -317,6 +319,7 @@ function signOut() {
   // Clear all user state before reload (v1413)
   localStorage.removeItem('google_auth_token');
   sessionStorage.removeItem('sf_login_ui_mode_intent');
+  sessionStorage.removeItem(GUEST_PREVIEW_FLAG);
   currentUser = null;
   cachedUserProfile = null;
   GSI_TOKEN = null;
@@ -387,35 +390,20 @@ function normalizeUiMode(mode) {
 }
 
 function getLoginUiModeIntent() {
-  const mode = sessionStorage.getItem('sf_login_ui_mode_intent');
-  return mode === 'classic' || mode === 'modern' ? mode : null;
+  return 'modern';
 }
 
 function syncLoginUiModeControls(mode = currentUiMode) {
-  const normalized = normalizeUiMode(mode);
-  const checkbox = document.getElementById('loginPremiumMode');
-  const title = document.getElementById('loginModeTitle');
-  const desc = document.getElementById('loginModeDescription');
-  if (checkbox) checkbox.checked = normalized !== 'classic';
-  if (title) title.textContent = normalized === 'classic' ? 'Legacy / Classic UI' : '✅ New Premium UI';
-  if (desc) {
-    desc.textContent = normalized === 'classic'
-      ? 'Use the familiar study sections and old navigation rhythm.'
-      : 'Personalized roadmap & market intelligence.';
-  }
+  return normalizeUiMode(mode);
 }
 
 function applyUiMode(mode) {
-  currentUiMode = normalizeUiMode(mode);
+  currentUiMode = 'modern';
   if (document.body) {
-    document.body.classList.toggle('ui-classic', currentUiMode === 'classic');
-    document.body.classList.toggle('ui-modern', currentUiMode !== 'classic');
+    document.body.classList.remove('ui-classic');
+    document.body.classList.add('ui-modern');
   }
   localStorage.setItem('sf_premium_ui_mode', currentUiMode);
-  const label = document.getElementById('uiModeToggleLabel');
-  const btn = document.getElementById('uiModeToggle');
-  if (label) label.textContent = currentUiMode === 'classic' ? 'Classic' : 'Modern';
-  if (btn) btn.setAttribute('aria-pressed', currentUiMode === 'classic' ? 'true' : 'false');
   syncLoginUiModeControls(currentUiMode);
 }
 
@@ -450,7 +438,7 @@ async function persistUiMode(mode) {
 }
 
 window.toggleUiMode = function() {
-  persistUiMode(currentUiMode === 'classic' ? 'modern' : 'classic');
+  persistUiMode('modern');
 };
 
 function hydratePremiumSetupForm(profile = {}) {
@@ -1058,7 +1046,16 @@ function setSidebarGroupOpen(section, isOpen) {
   const button = section.querySelector('.nav-group-toggle');
   const panel = section.querySelector('.nav-group-items');
   if (button) button.setAttribute('aria-expanded', String(isOpen));
-  if (panel) panel.hidden = !isOpen;
+  if (panel) {
+    clearTimeout(panel._navCloseTimer);
+    if (isOpen) {
+      panel.hidden = false;
+    } else {
+      panel._navCloseTimer = setTimeout(() => {
+        if (button?.getAttribute('aria-expanded') !== 'true') panel.hidden = true;
+      }, 180);
+    }
+  }
   section.classList.toggle('is-open', isOpen);
   section.classList.toggle('is-closed', !isOpen);
 }
@@ -1876,9 +1873,48 @@ async function renderTopicContent(topicId) {
 }
 
 
+function getGuestPreviewUser() {
+  return {
+    id: 'guest',
+    googleId: 'guest',
+    name: 'Guest Preview',
+    email: 'Local preview only',
+    picture: ''
+  };
+}
+
+function isGuestPreviewActive() {
+  return sessionStorage.getItem(GUEST_PREVIEW_FLAG) === 'true' && !localStorage.getItem('google_auth_token');
+}
+
+window.enterGuestPreview = function() {
+  sessionStorage.setItem(GUEST_PREVIEW_FLAG, 'true');
+  sessionStorage.removeItem('sf_login_ui_mode_intent');
+  localStorage.removeItem('google_auth_token');
+  GSI_TOKEN = null;
+  currentUser = getGuestPreviewUser();
+  cachedUserProfile = { ...(cachedUserProfile || {}), name: currentUser.name, isPreviewProfile: true };
+  applyUiMode('modern');
+  loadUserScopedClientState();
+  renderUserProfile(currentUser);
+  document.body.classList.add('app-shell-ready', 'guest-preview-active');
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.style.display = 'none';
+  showPage('profile_match');
+};
+
 async function checkAuth() {
   const token = localStorage.getItem('google_auth_token');
   if (!token) {
+    if (isGuestPreviewActive()) {
+      currentUser = getGuestPreviewUser();
+      loadUserScopedClientState();
+      renderUserProfile(currentUser);
+      document.body.classList.add('app-shell-ready', 'guest-preview-active');
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) overlay.style.display = 'none';
+      return true;
+    }
     syncLoginUiModeControls(currentUiMode);
     document.getElementById('loginOverlay').style.display = 'flex';
     return false;
@@ -1905,9 +1941,12 @@ async function checkAuth() {
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
+      sessionStorage.removeItem(GUEST_PREVIEW_FLAG);
+      document.body.classList.remove('guest-preview-active');
       loadUserScopedClientState();
       renderUserProfile(currentUser);
       document.getElementById('loginOverlay').style.display = 'none';
+      document.body.classList.add('app-shell-ready');
       return true;
     }
   } catch (e) {
@@ -4688,11 +4727,13 @@ document.addEventListener('visibilitychange', function() {
 
 // Boot
 (async () => {
-  applyUiMode(currentUiMode);
+  applyUiMode('modern');
   const isAuthed = await checkAuth();
   if (!isAuthed) return;
 
-  const lastTab = getScopedItem('last_active_tab', 'schedule', 'last_active_tab');
+  const lastTab = isGuestPreviewActive()
+    ? 'profile_match'
+    : getScopedItem('last_active_tab', 'profile_match', 'last_active_tab');
   showPage(lastTab);
   
   // Full dashboard sync on page reload — ensures timetable, daily summary,
