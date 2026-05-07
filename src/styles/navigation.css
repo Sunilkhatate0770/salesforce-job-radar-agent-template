@@ -186,6 +186,10 @@
   padding: 0 6px 8px;
 }
 
+.nav-group-items[hidden] {
+  display: none !important;
+}
+
 .nav-subsection {
   display: grid;
   gap: 3px;

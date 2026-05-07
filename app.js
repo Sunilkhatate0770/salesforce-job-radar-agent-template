@@ -970,6 +970,22 @@ function renderNavGroupChevron() {
   `;
 }
 
+function setSidebarGroupOpen(section, isOpen) {
+  if (!section) return;
+  const button = section.querySelector('.nav-group-toggle');
+  const panel = section.querySelector('.nav-group-items');
+  if (button) button.setAttribute('aria-expanded', String(isOpen));
+  if (panel) panel.hidden = !isOpen;
+  section.classList.toggle('is-open', isOpen);
+  section.classList.toggle('is-closed', !isOpen);
+}
+
+function setOnlySidebarGroupOpen(activeSection) {
+  document.querySelectorAll('#sidebar .nav-config-section').forEach(section => {
+    setSidebarGroupOpen(section, section === activeSection);
+  });
+}
+
 function renderSidebarNavItem(item) {
   const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
   return `
@@ -1006,6 +1022,9 @@ function renderSidebarNavigation(options = {}) {
   if (!host) return;
   const shouldScrollActive = options.scrollActive === true;
   const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+  const activeNavId = getScopedItem('last_active_tab', 'profile_match');
+  const activeGroupIndex = groups.findIndex(group => (group.items || []).some(item => item.id === activeNavId));
+  const openGroupIndex = activeGroupIndex >= 0 ? activeGroupIndex : 0;
   const recentItems = getRecentTopicItems();
   const recentHtml = recentItems.length ? `
     <section class="nav-recent-panel" aria-label="Recently used study topics">
@@ -1036,7 +1055,7 @@ function renderSidebarNavigation(options = {}) {
     ${groups.map((group, groupIndex) => {
       const sectionId = `nav-group-${group.id}`;
       const groupIconKey = getNavGroupIconKey(group);
-      const isOpen = groupIndex < 2 || group.items.some(item => item.id === getScopedItem('last_active_tab', 'profile_match'));
+      const isOpen = groupIndex === openGroupIndex;
       return `
         <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
           <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
@@ -1051,7 +1070,7 @@ function renderSidebarNavigation(options = {}) {
       `;
     }).join('')}
   `;
-  updateSidebarActiveState(getScopedItem('last_active_tab', 'profile_match'), { scrollIntoView: shouldScrollActive });
+  updateSidebarActiveState(activeNavId, { scrollIntoView: shouldScrollActive });
 }
 
 function renderRecentTopicsPanel() {
@@ -1098,33 +1117,31 @@ window.toggleNavGroup = function(groupId) {
   const section = document.querySelector(`[data-nav-group="${CSS.escape(String(groupId))}"]`);
   if (!section) return;
   const button = section.querySelector('.nav-group-toggle');
-  const panel = section.querySelector('.nav-group-items');
   const isOpen = button?.getAttribute('aria-expanded') === 'true';
   const nextOpen = !isOpen;
-  if (button) button.setAttribute('aria-expanded', String(nextOpen));
-  if (panel) panel.hidden = !nextOpen;
-  section.classList.toggle('is-open', nextOpen);
-  section.classList.toggle('is-closed', !nextOpen);
+  if (nextOpen) {
+    setOnlySidebarGroupOpen(section);
+  } else {
+    setSidebarGroupOpen(section, false);
+  }
 };
 
 function updateSidebarActiveState(id, options = {}) {
   const shouldScrollIntoView = options.scrollIntoView !== false;
+  let activeSection = null;
+  let activeItem = null;
   document.querySelectorAll('#sidebar .nav-item').forEach(function(n) {
     const isActive = n.getAttribute('data-page-id') === id;
     n.classList.toggle('active', isActive);
     if (isActive) {
-      const panel = n.closest('.nav-group-items');
-      const section = n.closest('.nav-parent-section');
-      if (panel) panel.hidden = false;
-      const toggle = section?.querySelector('.nav-group-toggle');
-      if (toggle) toggle.setAttribute('aria-expanded', 'true');
-      section?.classList.add('is-open');
-      section?.classList.remove('is-closed');
-      if (shouldScrollIntoView) {
-        setTimeout(() => n.scrollIntoView({ block: 'nearest' }), 0);
-      }
+      activeItem = n;
+      activeSection = n.closest('.nav-parent-section');
     }
   });
+  if (activeSection) setOnlySidebarGroupOpen(activeSection);
+  if (activeItem && shouldScrollIntoView) {
+    setTimeout(() => activeItem.scrollIntoView({ block: 'nearest' }), 0);
+  }
 }
 
 function ensureNavigationTopicConfig() {
