@@ -1666,15 +1666,60 @@ function priorityClass(priority) {
 // JOB INTELLIGENCE (v1412 - Profile Match Integration)
 // Calls /api/profile/match to aggregate skill analysis from real job data
 // =============================================
+function addJobIntelSkillCounts(map, values) {
+  const list = Array.isArray(values)
+    ? values
+    : String(values || '').split(/[,;\n]/);
+  list.map(value => String(value || '').trim()).filter(Boolean).forEach(skill => {
+    map[skill] = (map[skill] || 0) + 1;
+  });
+}
+
+function sortJobIntelSkillCounts(map) {
+  return Object.entries(map)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([skill, count]) => ({ _id: skill, count }));
+}
+
+function buildLocalJobMarketIntelligence(reason = 'local') {
+  const localJobs = Array.isArray(window.pipelineJobs) && window.pipelineJobs.length
+    ? window.pipelineJobs
+    : readScopedJson('pipelineJobs', [], 'sfpipe2026v3');
+  const matchedMap = {};
+  const missingMap = {};
+  const jobs = Array.isArray(localJobs) ? localJobs : [];
+
+  jobs
+    .filter(job => Number(job.score || job.match_score || 0) >= 60 || job.status)
+    .forEach(job => {
+      addJobIntelSkillCounts(matchedMap, job.matched_skills?.length ? job.matched_skills : job.skills);
+      addJobIntelSkillCounts(missingMap, job.missing_skills);
+    });
+
+  return {
+    success: true,
+    previewMode: reason !== 'cloud',
+    source: reason,
+    totalJobs: jobs.length,
+    matched_skills: sortJobIntelSkillCounts(matchedMap),
+    missing_skills: sortJobIntelSkillCounts(missingMap)
+  };
+}
+
 async function loadJobIntelligence() {
   const section = document.getElementById('jobIntelligenceSection');
   const content = document.getElementById('jobIntelligenceContent');
   if (!section || !content) return;
 
+  section.style.display = 'block';
+  content.innerHTML = '<div class="premium-loading">Loading job market intelligence...</div>';
+
   try {
     const res = await apiFetch('/api/profile/match?cb=' + Date.now());
     if (!res.ok) {
       console.log('[JOB-INTEL] API responded with:', res.status);
+      content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache'));
       return;
     }
     const data = await res.json();
@@ -1686,10 +1731,14 @@ async function loadJobIntelligence() {
     if (matchedSkills.length === 0 && missingSkills.length === 0) {
       // No job data available yet
     }
-    content.innerHTML = renderJobIntelligence(data);
-    section.style.display = 'block';
+    content.innerHTML = renderJobIntelligence({
+      ...buildLocalJobMarketIntelligence('cloud-fallback'),
+      ...data,
+      source: 'cloud'
+    });
   } catch (e) {
     console.warn('[JOB-INTEL] Failed to load job intelligence:', e.message);
+    content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache'));
   }
 }
 
@@ -4106,9 +4155,11 @@ async function showPage(id) {
 	              return;
 	            }
 	            renderProfileMatchPage(readPremiumFormProfile());
+	            loadJobIntelligence();
 	          }).catch(err => {
 	            console.warn('[PROFILE] Rendering local profile preview:', err.message);
 	            renderProfileMatchPage(readPremiumFormProfile());
+	            loadJobIntelligence();
 	          }).finally(() => {
 	            if (loadingEl) loadingEl.style.display = 'none';
 	          });

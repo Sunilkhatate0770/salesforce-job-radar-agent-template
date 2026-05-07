@@ -430,8 +430,21 @@ function renderReleaseCard(item, personalized) {
 }
 
 function renderJobIntelligence(data) {
-  const matchedSkills = data.matched_skills || [];
-  const missingSkills = data.missing_skills || [];
+  const normalizeSkill = item => {
+    if (!item) return null;
+    if (typeof item === 'string') return { _id: item, count: 1 };
+    const name = item._id || item.skill || item.name || item.label;
+    if (!name) return null;
+    return { _id: String(name), count: Number(item.count || item.total || 1) || 1 };
+  };
+  const matchedSkills = (data.matched_skills || data.topMatched || []).map(normalizeSkill).filter(Boolean);
+  const missingSkills = (data.missing_skills || data.topMissing || []).map(normalizeSkill).filter(Boolean);
+  const totalJobs = Number(data.totalJobs || data.total_jobs || data.jobs?.length || 0);
+  const sourceLabel = data.source === 'cloud'
+    ? 'Cloud job radar'
+    : data.source === 'local-cache'
+      ? 'Local job radar cache'
+      : 'Curated job radar';
 
   if (matchedSkills.length === 0 && missingSkills.length === 0) {
     return `
@@ -440,11 +453,15 @@ function renderJobIntelligence(data) {
           <circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
         </svg>
         <div>No job scan data available yet. Run a Global Job Scan to see market intelligence.</div>
+        <button type="button" class="premium-secondary-btn" style="margin-top:14px;" onclick="showPage('job_radar')">Open Job Radar</button>
       </div>`;
   }
 
   let html = '<div style="margin-bottom:20px;">';
-  html += '<div style="font-size:0.75rem; color:var(--muted); margin-bottom:12px; text-transform:uppercase; letter-spacing:1px; font-weight:700;">Market Alignment Heatmap</div>';
+  html += `<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+    <div style="font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; font-weight:700;">Market Alignment Heatmap</div>
+    <span class="premium-badge">${componentEscapeHtml(sourceLabel)}${totalJobs ? ` · ${totalJobs} jobs` : ''}</span>
+  </div>`;
   
   const topSkills = [...matchedSkills.slice(0,4).map(s => ({...s, type: 'match'})), ...missingSkills.slice(0,4).map(s => ({...s, type: 'gap'}))]
     .sort((a, b) => b.count - a.count);
@@ -465,7 +482,7 @@ function renderJobIntelligence(data) {
     html += `
       <div style="margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:4px; font-weight:600;">
-          <span style="color:${textColor}; display:flex; align-items:center; gap:6px;">${icon} ${name}</span>
+          <span style="color:${textColor}; display:flex; align-items:center; gap:6px;">${icon} ${componentEscapeHtml(name)}</span>
           <span style="color:var(--muted); font-family:'IBM Plex Mono'; font-size:0.7rem;">${count} Jobs</span>
         </div>
         <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden;">
@@ -480,8 +497,8 @@ function renderJobIntelligence(data) {
   const topGap = missingSkills[0]?._id || 'specialized skills';
   const topMatch = matchedSkills[0]?._id || 'core competencies';
   html += `<div style="margin-top:16px; padding:12px 16px; background:rgba(59,130,246,0.06); border:1px solid rgba(59,130,246,0.12); border-radius:10px; font-size:0.78rem; color:rgba(255,255,255,0.7); line-height:1.6;">
-    <strong style="color:var(--text);">AI Insight:</strong> Your strongest market match is <strong style="color:#10b981;">${topMatch}</strong>.
-    The highest-impact skill to develop is <strong style="color:#fbbf24;">${topGap}</strong> — it appears in ${missingSkills[0]?.count || 'multiple'} job listings you're being matched against.
+    <strong style="color:var(--text);">AI Insight:</strong> Your strongest market match is <strong style="color:#10b981;">${componentEscapeHtml(topMatch)}</strong>.
+    The highest-impact skill to develop is <strong style="color:#fbbf24;">${componentEscapeHtml(topGap)}</strong> — it appears in ${missingSkills[0]?.count || 'multiple'} job listings you're being matched against.
   </div>`;
 
   return html;
