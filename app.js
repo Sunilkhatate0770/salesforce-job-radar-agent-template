@@ -891,10 +891,80 @@ function getNavigationQuestionCount(item) {
   return count ? `${count} Q` : '';
 }
 
+const NAV_ICON_PATHS = Object.freeze({
+  dashboard: '<path d="M4 13h6V4H4v9Z"></path><path d="M14 20h6V4h-6v16Z"></path><path d="M4 20h6v-3H4v3Z"></path>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path>',
+  chart: '<path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 15v-4M12 15V8M16 15v-7"></path>',
+  clock: '<circle cx="12" cy="12" r="8"></circle><path d="M12 8v5l3 2"></path>',
+  bookmark: '<path d="M7 4h10v16l-5-3-5 3V4Z"></path>',
+  release: '<path d="M5 19h14"></path><path d="M12 4v11"></path><path d="M8 11l4 4 4-4"></path>',
+  radar: '<circle cx="12" cy="12" r="3"></circle><path d="M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"></path><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7"></path>',
+  code: '<path d="M8 9l-4 3 4 3"></path><path d="M16 9l4 3-4 3"></path><path d="M14 5l-4 14"></path>',
+  apex: '<path d="M12 4l8 15H4L12 4Z"></path><path d="M9.5 14h5"></path><path d="M11 11h2l1 6"></path>',
+  database: '<ellipse cx="12" cy="6" rx="7" ry="3"></ellipse><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"></path><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path>',
+  trigger: '<path d="M5 4h14l-5 7v7l-4 2v-9L5 4Z"></path>',
+  async: '<path d="M4 12a8 8 0 0 1 13.7-5.7"></path><path d="M17 3v4h-4"></path><path d="M20 12a8 8 0 0 1-13.7 5.7"></path><path d="M7 21v-4h4"></path>',
+  ui: '<rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M4 9h16"></path><path d="M8 13h3M8 16h7"></path>',
+  security: '<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6l7-3Z"></path><path d="M9 12l2 2 4-5"></path>',
+  integration: '<path d="M8 7H6a4 4 0 0 0 0 8h2"></path><path d="M16 7h2a4 4 0 0 1 0 8h-2"></path><path d="M8 12h8"></path>',
+  flow: '<path d="M6 6h4v4H6V6Z"></path><path d="M14 14h4v4h-4v-4Z"></path><path d="M10 8h3a3 3 0 0 1 3 3v3"></path>',
+  agent: '<path d="M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3 3-6Z"></path>',
+  fde: '<path d="M4 18l6-12 4 8 2-4 4 8"></path><path d="M4 18h16"></path>',
+  company: '<path d="M5 20V6l7-3 7 3v14"></path><path d="M9 20v-6h6v6"></path><path d="M9 8h.01M12 8h.01M15 8h.01M9 11h.01M12 11h.01M15 11h.01"></path>',
+  mock: '<path d="M5 6h14v9H8l-3 3V6Z"></path><path d="M9 10h6M9 13h4"></path>',
+  book: '<path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 0-4-4V4Z"></path><path d="M5 4v12"></path>'
+});
+
+function getNavIconKey(item = {}) {
+  const text = `${item.id || ''} ${item.label || ''} ${(item.tags || []).join(' ')}`.toLowerCase();
+  if (/profile_match|dashboard|home|agent dashboard/.test(text)) return 'dashboard';
+  if (/schedule|daily|study plan/.test(text)) return 'calendar';
+  if (/tracker|progress|reports|dashboard|analytics/.test(text)) return 'chart';
+  if (/history|streak/.test(text)) return 'clock';
+  if (/bookmark|saved/.test(text)) return 'bookmark';
+  if (/release/.test(text)) return 'release';
+  if (/job|radar|pipeline|application/.test(text)) return 'radar';
+  if (/code|html|javascript|js/.test(text)) return 'code';
+  if (/apex|class|test|exception|governor/.test(text)) return 'apex';
+  if (/soql|sosl|data cloud|database|object|field|relationship|duplicate|identity|dlo|dmo|stream|segment|activation|calculated/.test(text)) return 'database';
+  if (/trigger|order of execution/.test(text)) return 'trigger';
+  if (/async|future|queueable|batch|scheduled/.test(text)) return 'async';
+  if (/lwc|aura|lightning|wire|lds|navigation|ui|accessibility|record page/.test(text)) return 'ui';
+  if (/security|sharing|profile|permission|crud|fls|owd|role|trust/.test(text)) return 'security';
+  if (/integration|api|rest|soap|oauth|credential|middleware|cdc|platform event|external/.test(text)) return 'integration';
+  if (/flow|admin|approval|declarative|screen/.test(text)) return 'flow';
+  if (/agentforce|agent|prompt|rag|atlas/.test(text)) return 'agent';
+  if (/fde|discovery|requirement|solution|whiteboard|stakeholder|tradeoff|demo|production/.test(text)) return 'fde';
+  if (/salesforce official|deloitte|accenture|infosys|tcs|capgemini|cognizant|persistent|epam|company|pwc|mobigic|morgan|arago|product/.test(text)) return 'company';
+  if (/mock|communication|speaking|behavioral|manager|salary|intro|vocab|english|project|question/.test(text)) return 'mock';
+  return 'book';
+}
+
+function getNavGroupIconKey(group = {}) {
+  const text = `${group.id || ''} ${group.label || ''}`.toLowerCase();
+  if (/home|dashboard/.test(text)) return 'dashboard';
+  if (/core developer/.test(text)) return 'apex';
+  if (/lightning|ui/.test(text)) return 'ui';
+  if (/security|data model/.test(text)) return 'security';
+  if (/integration|architecture/.test(text)) return 'integration';
+  if (/flow|admin|declarative/.test(text)) return 'flow';
+  if (/agentforce|data cloud/.test(text)) return 'agent';
+  if (/fde/.test(text)) return 'fde';
+  if (/company/.test(text)) return 'company';
+  if (/mock|communication/.test(text)) return 'mock';
+  return 'book';
+}
+
+function renderNavIcon(iconKey, className = 'nav-item-icon') {
+  const path = NAV_ICON_PATHS[iconKey] || NAV_ICON_PATHS.book;
+  return `<span class="${className}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+}
+
 function renderSidebarNavItem(item) {
   const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
   return `
-    <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}">
+    <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}" title="${escapeHtml(item.label)}" aria-label="${escapeHtml(item.label)}">
+      ${renderNavIcon(getNavIconKey(item))}
       <span class="nav-item-label">${escapeHtml(item.label)}</span>
       ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
     </button>
@@ -958,8 +1028,9 @@ function renderSidebarNavigation(options = {}) {
       const isOpen = groupIndex < 2 || group.items.some(item => item.id === getScopedItem('last_active_tab', 'profile_match'));
       return `
         <section class="nav-parent-section nav-config-section" data-nav-group="${escapeHtml(group.id)}">
-          <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')">
-            <span>${escapeHtml(group.label)}</span>
+          <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
+            ${renderNavIcon(getNavGroupIconKey(group), 'nav-group-icon')}
+            <span class="nav-group-label">${escapeHtml(group.label)}</span>
             <span class="nav-group-chevron" aria-hidden="true">⌄</span>
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
