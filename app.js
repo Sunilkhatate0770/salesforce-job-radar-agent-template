@@ -5431,12 +5431,120 @@ if (typeof updateSyncModalUI !== 'function') { window.updateSyncModalUI = functi
 if (typeof updateSidebarProfileStatus !== 'function') { window.updateSidebarProfileStatus = function() {}; }
 
 // =============================================
+// KEYBOARD SHORTCUTS (v1415)
+// =============================================
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ignore if typing in input/textarea, except for ESC
+    const targetTag = e.target.tagName.toLowerCase();
+    const isTyping = targetTag === 'input' || targetTag === 'textarea';
+
+    // Ctrl+K or Cmd+K: Focus Search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) searchInput.focus();
+    }
+
+    // ESC: Close overlays/sidebar/search
+    if (e.key === 'Escape') {
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput && document.activeElement === searchInput) {
+        searchInput.blur();
+      }
+      toggleMobileSidebar(false);
+      const overlay = document.getElementById('shortcutOverlay');
+      if (overlay) overlay.style.display = 'none';
+      if (window.closeAllModals) window.closeAllModals();
+    }
+
+    if (isTyping) return;
+
+    // Shift + ?: Show shortcuts
+    if (e.key === '?' && e.shiftKey) {
+      e.preventDefault();
+      toggleShortcutOverlay();
+    }
+
+    // 1-4: Quick Nav
+    if (e.key >= '1' && e.key <= '4') {
+      const routes = {
+        '1': 'job_radar',
+        '2': 'profile_match',
+        '3': 'study_history',
+        '4': 'salesforce_releases'
+      };
+      if (routes[e.key]) {
+        e.preventDefault();
+        showPage(routes[e.key]);
+      }
+    }
+  });
+}
+
+window.toggleShortcutOverlay = function() {
+  let overlay = document.getElementById('shortcutOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'shortcutOverlay';
+    overlay.innerHTML = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;" onclick="this.style.opacity='0';setTimeout(()=>this.style.display='none',200)">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:90%;max-width:400px;box-shadow:0 24px 48px rgba(0,0,0,0.4);transform:translateY(20px);transition:transform 0.2s;" onclick="e.stopPropagation()">
+          <h3 style="margin-bottom:24px;font-size:1.2rem;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
+            Keyboard Shortcuts
+          </h3>
+          <div style="display:grid;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted)">Search</span>
+              <span style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:6px;font-family:monospace;font-size:0.8rem">⌘ K</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted)">Job Radar</span>
+              <span style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:6px;font-family:monospace;font-size:0.8rem">1</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted)">Profile Match</span>
+              <span style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:6px;font-family:monospace;font-size:0.8rem">2</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted)">Study History</span>
+              <span style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:6px;font-family:monospace;font-size:0.8rem">3</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="color:var(--muted)">Close / Blur</span>
+              <span style="background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:6px;font-family:monospace;font-size:0.8rem">ESC</span>
+            </div>
+          </div>
+          <button onclick="document.getElementById('shortcutOverlay').style.opacity='0';setTimeout(()=>document.getElementById('shortcutOverlay').style.display='none',200)" class="btn-primary" style="width:100%;margin-top:24px;">Got it</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+  
+  if (overlay.style.display === 'none' || !overlay.style.display) {
+    overlay.style.display = 'flex';
+    // Small delay to allow display:flex to apply before changing opacity for transition
+    setTimeout(() => {
+      overlay.style.opacity = '1';
+      overlay.querySelector('div > div').style.transform = 'translateY(0)';
+    }, 10);
+  } else {
+    overlay.style.opacity = '0';
+    overlay.querySelector('div > div').style.transform = 'translateY(20px)';
+    setTimeout(() => overlay.style.display = 'none', 200);
+  }
+};
+
+// =============================================
 // INIT: Render streaks + bookmarks on load
 // =============================================
 window.addEventListener('DOMContentLoaded', function() {
   renderStreakBadge();
   setTimeout(renderBookmarkButtons, 500);
   renderRevisionAlerts(); // v1342
+  initKeyboardShortcuts(); // v1415
 });
 
 // =============================================

@@ -2164,35 +2164,89 @@ select,
   }
 }
 
-/* Print styles */
+/* --- PRINT-FRIENDLY STUDY NOTES (v1415) --- */
 @media print {
-  #sidebar,
-  #sidebarOverlay,
-  #loginOverlay,
-  #floatingTimer,
-  .mobile-toggle,
-  .floating-profile,
-  .floating-dropdown,
-  .sync-btn-premium,
-  .sidebar-action-btn,
-  #btnScanJobs {
+  /* Hide all interactive UI and Chrome */
+  #sidebar, #sidebarOverlay, #loginOverlay, #floatingTimer, .mobile-toggle, 
+  .floating-profile, .floating-dropdown, .sync-btn-premium, .sidebar-action-btn, 
+  #btnScanJobs, .bookmark-btn, .page-header-actions, .premium-setup-panel,
+  .activity-log-panel, .site-header, .radar-controls {
     display: none !important;
   }
 
-  #main {
-    overflow: visible !important;
+  /* Reset layout for paper */
+  body, html, #main {
     height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force variables to light mode for printing */
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-hover: #f8fafc;
+    --border: #e2e8f0;
+    --border2: #cbd5e1;
+    --text: #000000;
+    --text-dim: #334155;
+    --muted: #475569;
+    --blue: #2563eb;
+    --amber: #d97706;
   }
 
   .page {
     display: block !important;
-    padding: 1rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
     max-width: 100% !important;
+    page-break-after: avoid;
   }
 
-  body {
-    display: block !important;
+  /* Expand all Q&A blocks */
+  .qa-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #ccc !important;
     background: #fff !important;
     color: #000 !important;
+    margin-bottom: 20px !important;
+    box-shadow: none !important;
+  }
+  
+  .qa-block .answer {
+    display: block !important; /* Force open */
+    color: #333 !important;
+    max-height: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Clean up typography */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    color: #000 !important;
+  }
+  
+  pre, code {
+    white-space: pre-wrap !important;
+    word-break: break-all;
+    border: 1px solid #ddd;
+    background: #f8f9fa !important;
+    color: #000 !important;
+  }
+  
+  .page-title {
+    font-size: 24px !important;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+  }
+  
+  /* Link URLs */
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
   }
 }
