@@ -9,6 +9,8 @@
     "web": "node src/webServer.js",
     "doctor": "node src/tools/doctor.js",
     "doctor:cloud": "node src/tools/cloudDoctor.js",
+    "check:syntax": "node src/tools/checkSyntax.js",
+    "quality": "npm run check:syntax && npm test",
     "coverage:report": "node src/tools/coverageReport.js",
     "ats:report": "node src/tools/atsBoardReport.js",
     "ats:live": "powershell -ExecutionPolicy Bypass -File scripts/check-ats-board-health.ps1",

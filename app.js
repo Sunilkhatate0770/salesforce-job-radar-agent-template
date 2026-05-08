@@ -4347,6 +4347,7 @@ function filterSidebar(val) {
     items.forEach(el => el.style.display = 'flex');
     document.querySelectorAll('#sidebar .nav-subsection').forEach(el => el.style.display = 'grid');
     sections.forEach(el => el.style.display = 'block');
+    updateSidebarActiveState(getScopedItem('last_active_tab', 'profile_match'), { scrollIntoView: false });
     const recentPanel = document.querySelector('.nav-recent-panel');
     if (recentPanel) recentPanel.style.display = 'grid';
     return;
@@ -4380,8 +4381,12 @@ function filterSidebar(val) {
       const toggle = section.querySelector('.nav-group-toggle');
       if (panel) panel.hidden = false;
       if (toggle) toggle.setAttribute('aria-expanded', 'true');
+      section.classList.add('is-open');
+      section.classList.remove('is-closed');
     } else {
       section.style.display = 'none';
+      section.classList.remove('is-open');
+      section.classList.add('is-closed');
     }
   });
 

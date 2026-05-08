@@ -3,6 +3,14 @@
 **Generated:** 2026-05-06  
 **Codebase Version:** v1412 → v1413 (post-audit + big upgrade)
 
+## 2026-05-08 Best-Practices Addendum
+
+- Removed stale desktop sidebar collapse overrides from `styles.css` and consolidated active sidebar/collapsed-menu ownership into `src/styles/navigation.css`.
+- Added `npm run check:syntax` and `npm run quality` so the repo has a repeatable JavaScript syntax gate in addition to the Node test suite.
+- Added `BUG_AUDIT.md` with current large-file risks, user-data isolation notes, verification steps, and remaining production risks.
+- Current large-file reality: `app.js`, `styles.css`, `src/styles/job-radar.css`, `src/run.js`, `api/router.js`, and `code-practice.js` are still legacy monoliths. Further splitting should happen by feature boundary with tests and browser verification, not by moving arbitrary blocks.
+- Next safe split candidates: job radar CSS into board/cards/activity-log/responsive files, `app.js` navigation shell into a standalone module, and API route handlers into auth/profile/jobs/releases/study services.
+
 ## 2026-05-06 Production Fix Addendum
 
 ### Fixes Completed In This Pass

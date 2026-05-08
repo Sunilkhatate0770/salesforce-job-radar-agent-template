@@ -108,8 +108,8 @@ See `.env.example` for the complete list. Critical variables:
 
 ```
 ├── index.html           # Main SPA entry point
-├── app.js               # Frontend application logic (222KB)
-├── styles.css           # Design system and component styles
+├── app.js               # Frontend application logic (large legacy SPA controller)
+├── styles.css           # Global design system and shared component styles
 ├── responsive.css       # Responsive breakpoints and accessibility
 ├── api/
 │   └── router.js        # Vercel serverless API (all routes)
@@ -132,6 +132,12 @@ See `.env.example` for the complete list. Critical variables:
 # Run all tests
 npm test
 
+# Check syntax for all JavaScript files
+npm run check:syntax
+
+# Run syntax checks and tests together
+npm run quality
+
 # Run specific test suites
 npm run test:failover
 npm run test:opportunities
@@ -141,9 +147,10 @@ npm run test:opportunities
 
 - No TypeScript — the codebase is vanilla JavaScript (ESM)
 - No bundler/build step — files are served directly
-- `app.js` is a large monolith (5000+ lines) — modularization planned
+- `app.js`, `styles.css`, `src/styles/job-radar.css`, and `api/router.js` are still large legacy files — modularization must be feature-by-feature with regression checks
 - Google Client ID is currently hardcoded in `index.html` — should use env injection
 - Service worker caches aggressively — may need manual cache clear after deploys
+- No lint script yet — use `npm run check:syntax` and `npm test` until ESLint is introduced in a staged pass
 
 ## Full Setup Guide
 
@@ -152,3 +159,7 @@ See [SETUP_FROM_SCRATCH.md](./SETUP_FROM_SCRATCH.md) for detailed platform-speci
 ## Upgrade Plan
 
 See [UPGRADE_PLAN.md](./UPGRADE_PLAN.md) for the roadmap of planned improvements.
+
+## Bug And Best-Practices Audit
+
+See [BUG_AUDIT.md](./BUG_AUDIT.md) for the latest file-size, sidebar, user-data, and production-readiness audit.

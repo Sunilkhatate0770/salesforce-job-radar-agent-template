@@ -386,6 +386,18 @@
 }
 
 @media (min-width: 1101px) {
+  body.sidebar-collapsed {
+    --sidebar-w: 80px;
+  }
+
+  #sidebar {
+    transition:
+      transform 0.5s var(--ease-out-expo),
+      opacity 0.5s var(--ease-out-expo),
+      width 0.3s var(--ease-out-expo),
+      min-width 0.3s var(--ease-out-expo) !important;
+  }
+
   body:not(.sidebar-collapsed) #sidebar {
     width: 280px !important;
     min-width: 280px !important;

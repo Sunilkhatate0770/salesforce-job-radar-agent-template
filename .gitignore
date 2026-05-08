@@ -10,6 +10,7 @@ package.json.save
 
 # Temp files created during automation
 test-create.txt
+.codex-web*.log
 
 .codex
 .vscode/
