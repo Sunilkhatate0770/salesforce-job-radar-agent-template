@@ -767,6 +767,23 @@ if (!window.__jobCardDetailsClickBound) {
   });
 }
 
+function getStoredMobileBoardStage(cols, rows = []) {
+  const inMemory = cols.includes(window.currentMobileBoardStage) ? window.currentMobileBoardStage : '';
+  const stored = typeof window.getScopedItem === 'function'
+    ? window.getScopedItem('jobRadarMobileStage', '')
+    : '';
+  if (inMemory) return inMemory;
+  if (cols.includes(stored)) return stored;
+  return rows.find(row => Number(row.count) > 0)?.col || 'todo';
+}
+
+function setStoredMobileBoardStage(col) {
+  window.currentMobileBoardStage = col;
+  if (typeof window.setScopedItem === 'function') {
+    window.setScopedItem('jobRadarMobileStage', col);
+  }
+}
+
 function syncMobileBoardStageNav(cols) {
   const board = document.querySelector('#job_radar .kanban-board-v3');
   if (!board) return;
@@ -788,15 +805,14 @@ function syncMobileBoardStageNav(cols) {
     offer: 'Offer',
     rejected: 'Rejected'
   };
-  const current = cols.includes(window.currentMobileBoardStage) ? window.currentMobileBoardStage : 'todo';
-  window.currentMobileBoardStage = current;
-
   const rows = cols.map(col => {
     const count = typeof window.getBoardColumnJobs === 'function'
       ? window.getBoardColumnJobs(col).length
       : (document.getElementById(`count-${col}`)?.textContent || '0');
     return { col, label: labels[col] || col, count };
   });
+  const current = getStoredMobileBoardStage(cols, rows);
+  setStoredMobileBoardStage(current);
   const selected = rows.find(row => row.col === current) || rows[0];
 
   nav.innerHTML = `
@@ -809,7 +825,7 @@ function syncMobileBoardStageNav(cols) {
           </option>
         `).join('')}
       </select>
-      <span class="mobile-stage-selected-count">${componentEscapeHtml(selected?.count || 0)}</span>
+      <span class="mobile-stage-selected-count" aria-live="polite">${componentEscapeHtml(selected?.count || 0)}</span>
     </div>
   `;
 
@@ -857,7 +873,8 @@ window.runMobileRadarAction = function(action) {
 };
 
 window.setMobileBoardStage = function(col) {
-  window.currentMobileBoardStage = col || 'todo';
+  const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
+  setStoredMobileBoardStage(cols.includes(col) ? col : 'todo');
   syncMobileBoardStageNav(['todo', 'applied', 'interview', 'offer', 'rejected']);
   document.querySelector('#job_radar .kanban-board-v3')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
 };

@@ -7,6 +7,7 @@
 
 - Removed stale desktop sidebar collapse overrides from `styles.css` and consolidated active sidebar/collapsed-menu ownership into `src/styles/navigation.css`.
 - Added `npm run check:syntax` and `npm run quality` so the repo has a repeatable JavaScript syntax gate in addition to the Node test suite.
+- Added `npm run responsive:verify` for Puppeteer-based mobile/tablet/desktop checks covering horizontal overflow, mobile drawer behavior, desktop sidebar collapse, and the Job Radar mobile status selector.
 - Added `BUG_AUDIT.md` with current large-file risks, user-data isolation notes, verification steps, and remaining production risks.
 - Current large-file reality: `app.js`, `styles.css`, `src/styles/job-radar.css`, `src/run.js`, `api/router.js`, and `code-practice.js` are still legacy monoliths. Further splitting should happen by feature boundary with tests and browser verification, not by moving arbitrary blocks.
 - Next safe split candidates: job radar CSS into board/cards/activity-log/responsive files, `app.js` navigation shell into a standalone module, and API route handlers into auth/profile/jobs/releases/study services.

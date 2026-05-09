@@ -34,7 +34,7 @@ let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
 let lastSidebarTrigger = null;
-const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260506-core-scenario-layering';
+const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260509-responsive-verify';
 
 const featureStylesheetPromises = new Map();
 

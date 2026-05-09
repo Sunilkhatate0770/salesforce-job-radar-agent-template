@@ -3620,6 +3620,97 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
   min-width: 900px;
 }
 
+/* Responsive verifier guardrails.
+   job-radar.css is loaded after responsive.css, so these final rules preserve
+   the intended tablet grid and compact mobile stage behavior in the active
+   cascade instead of relying on earlier global responsive rules. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  #job_radar,
+  #job_radar #radar-pipeline-view {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  #job_radar .filter-bar {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+    overflow: visible !important;
+    gap: 10px !important;
+  }
+
+  #job_radar .filter-controls,
+  #job_radar .filter-actions {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+  }
+
+  #job_radar .filter-search {
+    order: 4 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  #job_radar .kanban-board-v3 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 14px 14px 96px !important;
+    gap: 14px !important;
+    scroll-snap-type: none !important;
+  }
+
+  #job_radar .kanban-col-v3 {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+    flex-basis: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    scroll-snap-align: none !important;
+  }
+
+  #job_radar .kanban-body {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #job_radar .kanban-board-v3.mobile-stage-mode {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  #job_radar .kanban-board-v3.mobile-stage-mode .kanban-col-v3 {
+    display: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    flex-basis: auto !important;
+  }
+
+  #job_radar .kanban-board-v3.mobile-stage-mode .kanban-col-v3.mobile-stage-active {
+    display: grid !important;
+  }
+}
+
 .radar-table th {
   background: rgba(255,255,255,0.02);
   padding: 16px;
