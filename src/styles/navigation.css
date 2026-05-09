@@ -436,8 +436,12 @@
   }
 
   body.sidebar-collapsed #sidebar .sidebar-header {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
     min-height: 62px;
     padding: 10px 8px !important;
+    overflow: hidden !important;
   }
 
   body.sidebar-collapsed #sidebar .desktop-sidebar-toggle {
@@ -471,6 +475,9 @@
   }
 
   body.sidebar-collapsed #sidebar .search-wrap,
+  body.sidebar-collapsed #sidebar .sidebar-brand-title,
+  body.sidebar-collapsed #sidebar .sidebar-brand-subtitle,
+  body.sidebar-collapsed #sidebar .sync-status-indicator,
   body.sidebar-collapsed #sidebar .sidebar-header-row,
   body.sidebar-collapsed #sidebar #masterProfileStatus,
   body.sidebar-collapsed #sidebar #sidebarSignOutBtn,
