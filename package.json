@@ -12,6 +12,7 @@
     "check:syntax": "node src/tools/checkSyntax.js",
     "quality": "npm run check:syntax && npm test",
     "responsive:verify": "node src/tools/verifyResponsiveUi.js",
+    "api:verify": "node src/tools/verifyApiHealth.js",
     "coverage:report": "node src/tools/coverageReport.js",
     "ats:report": "node src/tools/atsBoardReport.js",
     "ats:live": "powershell -ExecutionPolicy Bypass -File scripts/check-ats-board-health.ps1",

@@ -75,10 +75,13 @@ npm test
 # 7. Run responsive browser verification while npm run web is running
 npm run responsive:verify
 
-# 8. Refresh Salesforce release intelligence locally
+# 8. Verify public/private API route behavior while npm run web is running
+npm run api:verify
+
+# 9. Refresh Salesforce release intelligence locally
 npm run release:pulse
 
-# 9. Or run the full agent
+# 10. Or run the full agent
 npm start
 ```
 
@@ -125,7 +128,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (55 tests)
+├── test/                # Node.js test suite (57 tests)
 └── vercel.json          # Vercel deployment config
 ```
 
@@ -143,6 +146,9 @@ npm run quality
 
 # Verify mobile/tablet/desktop layout against the local web server
 npm run responsive:verify
+
+# Verify public API health and unauthenticated private route protection
+npm run api:verify
 
 # Run specific test suites
 npm run test:failover

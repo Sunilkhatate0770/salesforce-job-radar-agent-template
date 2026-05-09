@@ -278,6 +278,7 @@ Gradually migrate to TypeScript:
 - [x] GitHub Actions CI pipeline
 - [x] Service worker auto-versioning
 - [x] Backend input validation helpers
+- [x] API health verification command for public routes and unauthenticated private-route protection
 - [x] PWA manifest upgrade
 - [ ] Add Content-Security-Policy header (test with Google Sign-In)
 
@@ -348,6 +349,6 @@ Since there is no automated E2E test suite, verify these flows before each deplo
 - [x] Touch targets are 44px minimum
 
 ### API Health
-- [ ] `GET /api/health` returns 200 with connectivity details
-- [ ] `GET /api/code-practice/challenges` works without auth
-- [ ] All other endpoints return 401 without auth token
+- [x] `GET /api/health` returns 200 with connectivity details
+- [x] `GET /api/code-practice/challenges` works without auth
+- [x] Critical private job/profile/study mutation and read endpoints return 401 without auth token
