@@ -108,7 +108,7 @@ See `.env.example` for the complete list. Critical variables:
 1. Connect your GitHub repo to Vercel
 2. Add all environment variables to Vercel project settings
 3. Deploy — Vercel auto-detects the static frontend + serverless API
-4. The `vercel.json` handles API routing and security headers
+4. The `vercel.json` handles API routing, security headers, and the compatibility Content Security Policy
 
 ## Project Structure
 
@@ -128,7 +128,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (57 tests)
+├── test/                # Node.js test suite (58 tests)
 └── vercel.json          # Vercel deployment config
 ```
 

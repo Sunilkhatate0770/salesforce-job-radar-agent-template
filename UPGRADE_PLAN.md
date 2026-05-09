@@ -144,7 +144,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Google Client ID in HTML is public | Low (OAuth client IDs are designed to be public, but better to use env injection for flexibility) | Move to build-time injection or serverless endpoint |
-| No CSP header | Medium (XSS protection) | Add Content-Security-Policy header in vercel.json — requires careful tuning for Google Sign-In, fonts, icons8 |
+| CSP still requires legacy allowances | Medium (XSS protection) | Compatibility CSP is now in `vercel.json`; remove inline handlers and code-practice eval later so `'unsafe-inline'` and `'unsafe-eval'` can be removed |
 | No rate limiting on API routes | Medium (abuse risk) | Add Vercel Edge Middleware or use Upstash rate limiter |
 | Service worker may cache stale versions | Low | Implement cache-busting with content hashing or use Vercel's automatic headers |
 | MongoDB connection timeout in serverless | Low (5s timeout configured) | Already handled with graceful fallback |
@@ -237,7 +237,7 @@ Gradually migrate to TypeScript:
 
 | Upgrade | Priority | Effort | Description |
 |---|---|---|---|
-| Content Security Policy | High | Medium | Add CSP header (requires testing with Google Sign-In) |
+| Content Security Policy | Done | Medium | Compatibility CSP added for Google Sign-In, Google Fonts, profile images, and current code-practice execution |
 | Rate limiting | High | Small | Prevent API abuse on public endpoints |
 | Input sanitization | Medium | Medium | Add systematic sanitization for all user inputs |
 | CSRF protection | Low | Medium | Not critical for API-token auth, but consider for form submissions |
@@ -280,7 +280,7 @@ Gradually migrate to TypeScript:
 - [x] Backend input validation helpers
 - [x] API health verification command for public routes and unauthenticated private-route protection
 - [x] PWA manifest upgrade
-- [ ] Add Content-Security-Policy header (test with Google Sign-In)
+- [x] Add compatibility Content-Security-Policy header for Google Sign-In, fonts, profile images, and current code-practice execution
 
 ### Short-term (1-2 Weeks)
 - [ ] Add rate limiting with Upstash or Vercel Edge Middleware

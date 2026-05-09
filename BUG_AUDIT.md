@@ -27,6 +27,7 @@
 | Cache-busted assets | Browser could keep using older sidebar CSS/JS after fixes. | Updated the navigation stylesheet and app script query versions. | `index.html` |
 | Quality checks | Syntax checks existed only as manual one-off commands. | Added `npm run check:syntax` and `npm run quality` so all JS files can be validated consistently. | `package.json`, `src/tools/checkSyntax.js` |
 | API health regression coverage | Public/private route behavior was manually checked but not repeatable. | Added `npm run api:verify` to confirm health/code-practice public access and 401 responses for critical private user routes without auth. | `package.json`, `src/tools/verifyApiHealth.js`, `test/apiHealthTool.test.js` |
+| Missing CSP header | Vercel had security headers but no Content Security Policy. | Added a compatibility CSP that supports Google Sign-In, Google Fonts, profile images, and the current code-practice runner while blocking object embeds and limiting base/frame behavior. | `vercel.json`, `test/vercelHeaders.test.js` |
 
 ## Large-File Review
 
@@ -57,10 +58,11 @@ The app still has several legacy monoliths. The safe split completed in this pas
 
 ## Verification Steps
 
-- `npm run check:syntax` — passed for 94 JavaScript files.
-- `npm test` — passed 57/57 tests.
+- `npm run check:syntax` — passed for 95 JavaScript files.
+- `npm test` — passed 58/58 tests.
 - `npm run responsive:verify` — passed mobile 320/390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid 320px login fit, valid mobile drawer open/Escape close, 44px mobile touch targets, Job Radar flyout/search/filter/pagination checks, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
 - `npm run api:verify` — verifies `GET /api/health`, `GET /api/code-practice/challenges`, and unauthenticated 401 protection for sampled private job, profile, study, scan, save, and status routes.
+- Vercel header tests — verify the global Content Security Policy includes required Google/auth/font/profile-image allowances and blocks object embeds.
 - `npm run release:pulse` — synced Summer '26 release center items with expected local Supabase fallback warning.
 - Browser check at `http://127.0.0.1:3000/?verify=sidebar-control` — verified desktop expanded sidebar, one-open accordion behavior, collapsed 80px icon-only sidebar, mobile drawer open/close, body scroll lock, overlay visibility, and no horizontal overflow at desktop/tablet/mobile widths.
 
