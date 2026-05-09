@@ -7,9 +7,11 @@ test('responsive verification tool is available and covers key breakpoints', () 
   assert.equal(pkg.scripts['responsive:verify'], 'node src/tools/verifyResponsiveUi.js');
 
   const script = fs.readFileSync('src/tools/verifyResponsiveUi.js', 'utf8');
-  ['mobile-390', 'mobile-430', 'tablet-768', 'tablet-1024', 'desktop-1365', 'desktop-1440'].forEach(name => {
+  ['mobile-320', 'mobile-390', 'mobile-430', 'tablet-768', 'tablet-1024', 'desktop-1365', 'desktop-1440'].forEach(name => {
     assert.match(script, new RegExp(name));
   });
   assert.match(script, /mobileBoardStageSelect/);
+  assert.match(script, /job card detail flyout did not open/);
+  assert.match(script, /touch targets below 44px/);
   assert.match(script, /horizontal overflow detected/);
 });

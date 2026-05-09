@@ -7,7 +7,7 @@
 
 - Removed stale desktop sidebar collapse overrides from `styles.css` and consolidated active sidebar/collapsed-menu ownership into `src/styles/navigation.css`.
 - Added `npm run check:syntax` and `npm run quality` so the repo has a repeatable JavaScript syntax gate in addition to the Node test suite.
-- Added `npm run responsive:verify` for Puppeteer-based mobile/tablet/desktop checks covering horizontal overflow, mobile drawer behavior, desktop sidebar collapse, and the Job Radar mobile status selector.
+- Added `npm run responsive:verify` for Puppeteer-based mobile/tablet/desktop checks covering 320px login fit, horizontal overflow, 44px mobile touch targets, mobile drawer behavior, desktop sidebar collapse, Job Radar flyout/search/filter/pagination, and the Job Radar mobile status selector.
 - Added `BUG_AUDIT.md` with current large-file risks, user-data isolation notes, verification steps, and remaining production risks.
 - Current large-file reality: `app.js`, `styles.css`, `src/styles/job-radar.css`, `src/run.js`, `api/router.js`, and `code-practice.js` are still legacy monoliths. Further splitting should happen by feature boundary with tests and browser verification, not by moving arbitrary blocks.
 - Next safe split candidates: job radar CSS into board/cards/activity-log/responsive files, `app.js` navigation shell into a standalone module, and API route handlers into auth/profile/jobs/releases/study services.
@@ -321,12 +321,12 @@ Since there is no automated E2E test suite, verify these flows before each deplo
 
 ### Job Radar Dashboard
 - [ ] Jobs load from hybrid storage (Mongo + Turso + Supabase)
-- [ ] Kanban board renders all 5 columns
-- [ ] Job card click opens detail flyout
+- [x] Kanban board renders all 5 columns
+- [x] Job card click opens detail flyout
 - [ ] Status change (move to applied/interview/offer/rejected) persists
-- [ ] Search and filter work correctly
-- [ ] Pagination works per column
-- [ ] Mobile stage selector works on phones
+- [x] Search and filter work correctly
+- [x] Pagination works per column
+- [x] Mobile stage selector works on phones
 
 ### Profile & Roadmap
 - [ ] Experience/designation dropdowns save and reload
@@ -341,11 +341,11 @@ Since there is no automated E2E test suite, verify these flows before each deplo
 - [ ] Leaderboard loads and displays
 
 ### Responsive Design
-- [ ] Login overlay fits on 320px width screens
-- [ ] Sidebar opens/closes cleanly on mobile
-- [ ] Kanban board is single-column on mobile, 2-column on tablet
-- [ ] All cards and forms are readable without horizontal scroll
-- [ ] Touch targets are 44px minimum
+- [x] Login overlay fits on 320px width screens
+- [x] Sidebar opens/closes cleanly on mobile
+- [x] Kanban board is single-column on mobile, 2-column on tablet
+- [x] All cards and forms are readable without horizontal scroll
+- [x] Touch targets are 44px minimum
 
 ### API Health
 - [ ] `GET /api/health` returns 200 with connectivity details

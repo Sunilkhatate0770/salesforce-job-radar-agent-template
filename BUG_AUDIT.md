@@ -58,7 +58,7 @@ The app still has several legacy monoliths. The safe split completed in this pas
 
 - `npm run check:syntax` — passed for 92 JavaScript files.
 - `npm test` — passed 55/55 tests.
-- `npm run responsive:verify` — passed mobile 390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid mobile drawer open/Escape close, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
+- `npm run responsive:verify` — passed mobile 320/390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid 320px login fit, valid mobile drawer open/Escape close, 44px mobile touch targets, Job Radar flyout/search/filter/pagination checks, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
 - `npm run release:pulse` — synced Summer '26 release center items with expected local Supabase fallback warning.
 - Browser check at `http://127.0.0.1:3000/?verify=sidebar-control` — verified desktop expanded sidebar, one-open accordion behavior, collapsed 80px icon-only sidebar, mobile drawer open/close, body scroll lock, overlay visibility, and no horizontal overflow at desktop/tablet/mobile widths.
 

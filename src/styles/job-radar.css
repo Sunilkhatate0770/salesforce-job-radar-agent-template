@@ -3690,6 +3690,10 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
 }
 
 @media (max-width: 640px) {
+  #job_radar .mobile-stage-select {
+    min-height: 44px !important;
+  }
+
   #job_radar .kanban-board-v3.mobile-stage-mode {
     display: block !important;
     height: auto !important;
@@ -3708,6 +3712,25 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
 
   #job_radar .kanban-board-v3.mobile-stage-mode .kanban-col-v3.mobile-stage-active {
     display: grid !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #job_radar .filter-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  #job_radar .filter-actions .radar-inline-btn {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+    white-space: normal !important;
   }
 }
 
