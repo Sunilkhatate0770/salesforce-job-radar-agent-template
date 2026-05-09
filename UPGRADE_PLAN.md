@@ -145,7 +145,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 |---|---|---|
 | Google Client ID in HTML is public | Low (OAuth client IDs are designed to be public, but better to use env injection for flexibility) | Move to build-time injection or serverless endpoint |
 | CSP still requires legacy allowances | Medium (XSS protection) | Compatibility CSP is now in `vercel.json`; remove inline handlers and code-practice eval later so `'unsafe-inline'` and `'unsafe-eval'` can be removed |
-| No rate limiting on API routes | Medium (abuse risk) | Add Vercel Edge Middleware or use Upstash rate limiter |
+| Rate limiting is per serverless instance | Medium (abuse risk) | Dependency-free API rate limiter is now active; move to Vercel Edge Middleware or Upstash for distributed limits |
 | Service worker may cache stale versions | Low | Implement cache-busting with content hashing or use Vercel's automatic headers |
 | MongoDB connection timeout in serverless | Low (5s timeout configured) | Already handled with graceful fallback |
 
@@ -194,7 +194,7 @@ Gradually migrate to TypeScript:
 
 | Upgrade | Priority | Effort | Description |
 |---|---|---|---|
-| Rate limiting | High | Small | Add Upstash Redis rate limiter middleware |
+| Rate limiting | Partial | Small | Best-effort serverless API limiter added; Upstash/Vercel Edge should replace it for distributed enforcement |
 | Input validation | Medium | Medium | Add Zod schema validation for all POST endpoints |
 | API versioning | Low | Medium | Prefix routes with `/api/v1/` for future compatibility |
 | Webhook support | Medium | Medium | Add webhook endpoint for GitHub/Supabase events |
@@ -238,7 +238,7 @@ Gradually migrate to TypeScript:
 | Upgrade | Priority | Effort | Description |
 |---|---|---|---|
 | Content Security Policy | Done | Medium | Compatibility CSP added for Google Sign-In, Google Fonts, profile images, and current code-practice execution |
-| Rate limiting | High | Small | Prevent API abuse on public endpoints |
+| Rate limiting | Partial | Small | API burst limiter added without new dependencies; future distributed limiter remains recommended |
 | Input sanitization | Medium | Medium | Add systematic sanitization for all user inputs |
 | CSRF protection | Low | Medium | Not critical for API-token auth, but consider for form submissions |
 | Dependency audit | Medium | Small | Run `npm audit fix` and update vulnerable packages |
@@ -281,9 +281,10 @@ Gradually migrate to TypeScript:
 - [x] API health verification command for public routes and unauthenticated private-route protection
 - [x] PWA manifest upgrade
 - [x] Add compatibility Content-Security-Policy header for Google Sign-In, fonts, profile images, and current code-practice execution
+- [x] Add dependency-free API burst limiter for public and private route protection
 
 ### Short-term (1-2 Weeks)
-- [ ] Add rate limiting with Upstash or Vercel Edge Middleware
+- [ ] Replace in-memory API limiter with distributed Upstash or Vercel Edge Middleware enforcement
 - [ ] Apply `sanitizeBody()` validation to all POST endpoints
 - [ ] Self-host PWA icons (remove img.icons8.com dependency)
 - [ ] Integrate loading skeletons into all async data sections

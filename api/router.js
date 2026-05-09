@@ -25,6 +25,7 @@ import {
   readReleaseCenterPayload,
   selectPersonalizedReleaseItems
 } from '../src/releases/releaseCenter.js';
+import { applyRateLimit } from '../src/api/rateLimit.js';
 
 /**
  * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
@@ -881,6 +882,8 @@ export default async function(req, res) {
     let path = '';
     if (slug && Array.isArray(slug)) { path = slug.join('/'); } 
     else { path = (req.url || '').replace('/api/', '').split('?')[0]; }
+
+    if (!applyRateLimit(req, res, path)) return;
 
     // Soft Connect to Legacy DB
     await connectDB();

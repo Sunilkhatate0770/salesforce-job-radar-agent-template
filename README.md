@@ -109,6 +109,7 @@ See `.env.example` for the complete list. Critical variables:
 2. Add all environment variables to Vercel project settings
 3. Deploy — Vercel auto-detects the static frontend + serverless API
 4. The `vercel.json` handles API routing, security headers, and the compatibility Content Security Policy
+5. Serverless API routes include a dependency-free burst limiter; use Upstash or Vercel Edge Middleware for distributed limits at higher traffic
 
 ## Project Structure
 
@@ -128,7 +129,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (58 tests)
+├── test/                # Node.js test suite (61 tests)
 └── vercel.json          # Vercel deployment config
 ```
 
