@@ -17,8 +17,9 @@
 - Extracted reusable study tracker math into `src/data/studyAnalytics.js` so totals, course targets, suggestion models, chart rows, tracker rows, and history analytics are tested outside the large SPA controller.
 - Wired `app.js` tracker/history rendering to the shared analytics module while keeping the existing DOM/UI structure stable.
 - Added `test/studyAnalytics.test.js` covering live session totals, interview-focused suggestions, and history chart aggregation.
-- Syntax coverage is now 101 JavaScript files, and the Node suite is now 69 tests.
+- Syntax coverage is now 102 JavaScript files, and the Node suite is now 70 tests.
 - Tightened the mobile header zone minimum width to remove the remaining 320px/390px responsive verifier warning.
+- Repaired the theme shell so the app defaults to the original dark UI, the old broken `theme=light` preference is migrated away, and the theme toggle is bound only once.
 
 ## 2026-05-06 Production Fix Addendum
 
@@ -306,7 +307,7 @@ Gradually migrate to TypeScript:
 - [ ] Add Chart.js for study analytics visualization
 - [ ] Implement real PDF resume parsing
 - [ ] Add drag-and-drop to Kanban board
-- [ ] Add dark/light theme toggle
+- [x] Repair dark/light theme toggle and preserve original dark default
 
 ### Long-term (3-6 Months)
 - [ ] Migrate API layer to TypeScript

@@ -131,7 +131,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (69 tests)
+├── test/                # Node.js test suite (70 tests)
 └── vercel.json          # Vercel deployment config
 ```
 

@@ -61,7 +61,7 @@
           throw new Error('Google Sign-In library did not load.');
         }
         window.google.accounts.id.initialize({
-          client_id: "991931034479-q2jgdjf3r2fo8j95mnacmgp19t2mnrge.apps.googleusercontent.com",
+          client_id: config.googleClientId,
           callback: window.handleCredentialResponse
         });
         if (target) {
@@ -1146,18 +1146,40 @@
 <script src="code-practice.js?v=20260506-builder-fix"></script>
 <script>
   (function(){
-    const t = document.querySelector('[data-theme-toggle]');
-    const r = document.documentElement;
-    let d = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
-    const sync = function() {
-      r.setAttribute('data-theme', d);
-      if (t) t.setAttribute('aria-pressed', d === 'dark' ? 'true' : 'false');
+    const btn = document.querySelector('[data-theme-toggle]');
+    const root = document.documentElement;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const preferenceKey = 'sfjr_theme_v2';
+    const normalize = function(value) {
+      return value === 'light' ? 'light' : 'dark';
     };
-    sync();
-    t && t.addEventListener('click', () => {
-      d = d === 'dark' ? 'light' : 'dark';
-      sync();
-    });
+    const stored = localStorage.getItem(preferenceKey);
+    let theme = normalize(stored || 'dark');
+    if (!stored) localStorage.setItem('theme', 'dark');
+
+    window.setSfjrTheme = function(nextTheme) {
+      theme = normalize(nextTheme);
+      root.setAttribute('data-theme', theme);
+      root.classList.toggle('theme-light', theme === 'light');
+      root.classList.toggle('theme-dark', theme === 'dark');
+      localStorage.setItem(preferenceKey, theme);
+      localStorage.setItem('theme', theme);
+      if (btn) {
+        btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+        btn.setAttribute('title', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      }
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0b0d12' : '#f7f5f1');
+    };
+
+    window.toggleSfjrTheme = function() {
+      window.setSfjrTheme(theme === 'light' ? 'dark' : 'light');
+    };
+
+    window.setSfjrTheme(theme);
+    if (btn && !btn.dataset.themeBound) {
+      btn.dataset.themeBound = 'true';
+      btn.addEventListener('click', window.toggleSfjrTheme);
+    }
   })();
 </script>
 </body>

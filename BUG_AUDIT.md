@@ -35,6 +35,7 @@
 | Loading states inconsistent | Some async sections still displayed plain loading text even though skeleton utilities existed. | Replaced key release, code-practice, leaderboard, and daily schedule placeholders with skeleton/spinner states. | `index.html`, `app.js` |
 | Study analytics coupled to SPA shell | Study totals, course targets, suggestions, tracker chart rows, and history analytics were embedded in `app.js`, making regression tests difficult. | Extracted the calculations into `src/data/studyAnalytics.js`, wired the tracker/history UI to the shared module, and added focused Node tests. | `src/data/studyAnalytics.js`, `app.js`, `index.html`, `test/studyAnalytics.test.js` |
 | Mobile header width warning | The responsive verifier reported a small 320px/390px header side-zone scroll-width mismatch. | Set mobile header side zones and the narrow header grid track to a real 44px minimum so layout width and touch target width agree. | `styles.css`, `responsive.css` |
+| Theme shell defaulted to broken light UI | The token layer made `:root` inherit light colors, and both `index.html` and `app.js` bound the same theme button, causing inconsistent/double toggles. | Restored dark as the default app theme, added a versioned `sfjr_theme_v2` preference, guarded the click binding, and kept light mode explicit. | `styles.css`, `index.html`, `app.js`, `test/themeShell.test.js` |
 
 ## Large-File Review
 
@@ -65,14 +66,15 @@ The app still has several legacy monoliths. Safe splits completed so far include
 
 ## Verification Steps
 
-- `npm run check:syntax` — passed for 101 JavaScript files.
-- `npm test` — passed 69/69 tests.
+- `npm run check:syntax` — passed for 102 JavaScript files.
+- `npm test` — passed 70/70 tests.
 - `npm run responsive:verify` — passed mobile 320/390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid 320px login fit, valid mobile drawer open/Escape close, 44px mobile touch targets, Job Radar flyout/search/filter/pagination checks, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
 - `npm run api:verify` — verifies `GET /api/health`, `GET /api/code-practice/challenges`, `GET /api/client-config`, and unauthenticated 401 protection for sampled private job, profile, study, scan, save, and status routes.
 - Vercel header tests — verify the global Content Security Policy includes required Google/auth/font/profile-image allowances and blocks object embeds.
 - Rate-limit tests — verify normal public traffic is allowed, bursts are blocked, and windows reset.
 - Request sanitizer tests — verify dangerous keys are dropped, code-shaped text is preserved, and extreme payloads are capped.
 - Study analytics tests — verify current-user totals, live session time, suggestion models, and history chart aggregation.
+- Theme shell tests — verify the app defaults to dark mode and binds the theme toggle only once.
 - `npm run release:pulse` — synced Summer '26 release center items with expected local Supabase fallback warning.
 - Browser check at `http://127.0.0.1:3000/?verify=sidebar-control` — verified desktop expanded sidebar, one-open accordion behavior, collapsed 80px icon-only sidebar, mobile drawer open/close, body scroll lock, overlay visibility, and no horizontal overflow at desktop/tablet/mobile widths.
 

@@ -467,13 +467,21 @@ document.addEventListener('DOMContentLoaded', () => {
     scanBtn.addEventListener('click', triggerJobScan);
   }
   const themeBtn = document.getElementById('themeToggleBtn');
-  if (themeBtn) {
+  if (themeBtn && !themeBtn.dataset.themeBound) {
+    themeBtn.dataset.themeBound = 'true';
     themeBtn.addEventListener('click', () => {
+      if (typeof window.toggleSfjrTheme === 'function') {
+        window.toggleSfjrTheme();
+        return;
+      }
       const isLight = document.documentElement.getAttribute('data-theme') === 'light';
       const newTheme = isLight ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', newTheme);
+      document.documentElement.classList.toggle('theme-light', newTheme === 'light');
+      document.documentElement.classList.toggle('theme-dark', newTheme === 'dark');
+      localStorage.setItem('sfjr_theme_v2', newTheme);
       localStorage.setItem('theme', newTheme);
-      themeBtn.setAttribute('aria-pressed', !isLight ? 'true' : 'false');
+      themeBtn.setAttribute('aria-pressed', newTheme === 'dark' ? 'true' : 'false');
     });
   }
 
