@@ -323,6 +323,14 @@ window.addEventListener('click', () => {
 
 function signOut() {
   // Clear all user state before reload (v1413)
+  try {
+    const email = currentUser?.email;
+    if (email && window.google?.accounts?.id?.revoke) {
+      window.google.accounts.id.revoke(email, () => {});
+    }
+  } catch (e) {
+    console.warn('[AUTH] Google revoke skipped:', e.message);
+  }
   localStorage.removeItem('google_auth_token');
   sessionStorage.removeItem('sf_login_ui_mode_intent');
   currentUser = null;
@@ -479,6 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.documentElement.setAttribute('data-theme', newTheme);
       document.documentElement.classList.toggle('theme-light', newTheme === 'light');
       document.documentElement.classList.toggle('theme-dark', newTheme === 'dark');
+      document.body.classList.toggle('light-theme', newTheme === 'light');
+      document.body.classList.toggle('dark-theme', newTheme === 'dark');
       localStorage.setItem('sfjr_theme_v2', newTheme);
       localStorage.setItem('theme', newTheme);
       themeBtn.setAttribute('aria-pressed', newTheme === 'dark' ? 'true' : 'false');
@@ -488,7 +498,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- GLOBAL RIPPLE & ARTIFACT CLEANUP (v1416) ---
   document.addEventListener('mousedown', function(e) {
     // 1. Create ripple
-    const ripple = document.createElement('div');
+  const target = e.target;
+  if (target instanceof Element && target.closest('button, a, input, textarea, select, [role="button"], .nav-item, .fd-item')) return;
+  const ripple = document.createElement('div');
     ripple.className = 'ripple';
     const size = 30;
     ripple.style.width = ripple.style.height = size + 'px';
@@ -520,6 +532,12 @@ function setSidebarCollapsedState(isCollapsed) {
   localStorage.setItem('job_radar_sidebar_collapsed', String(collapsed));
   syncDesktopSidebarToggle(collapsed);
   syncSidebarRailFlyoutMode();
+  const headerToggle = document.getElementById('mobileToggle');
+  if (headerToggle) {
+    headerToggle.setAttribute('aria-expanded', String(!collapsed));
+    headerToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
+    headerToggle.title = collapsed ? 'Expand navigation' : 'Collapse navigation';
+  }
 }
 
 window.toggleSidebar = function() {
@@ -529,6 +547,7 @@ window.toggleSidebar = function() {
     toggleMobileSidebar();
     return;
   }
+  localStorage.setItem('sfjr_sidebar_user_toggled', 'true');
   setSidebarCollapsedState(!document.body.classList.contains('sidebar-collapsed'));
 
   // Re-render to adjust for potential layout shifts
@@ -794,6 +813,7 @@ function bindPremiumPreviewControls() {
 }
 
 window.savePremiumProfileSetup = async function() {
+  const triggerBtn = typeof event !== 'undefined' && event?.currentTarget instanceof HTMLButtonElement ? event.currentTarget : document.querySelector('.premium-onboarding-actions .premium-primary-btn');
   const expEl = document.getElementById('premiumExperienceYears');
   const targetEl = document.getElementById('premiumTargetDesignation');
   const currentEl = document.getElementById('premiumCurrentDesignation');
@@ -809,7 +829,12 @@ window.savePremiumProfileSetup = async function() {
     uiMode: currentUiMode
   };
 
+  const originalText = triggerBtn ? triggerBtn.textContent : '';
   try {
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.innerHTML = '<span class="loading-spinner sm" aria-hidden="true"></span> Generating...';
+    }
     const res = await apiFetch('/api/profile/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -834,27 +859,49 @@ window.savePremiumProfileSetup = async function() {
     renderProfileMatchPage(cachedUserProfile);
     await loadReleaseCenter(true).catch(() => {});
     showToast('Roadmap preview generated. Sign in with Google to save it.', 'green');
+  } finally {
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalText || 'Generate My Roadmap';
+    }
   }
 };
 
 function ensureProfileImportModal() {
   if (document.getElementById('profileImportModal')) return;
   document.body.insertAdjacentHTML('beforeend', `
-    <div id="profileImportModal" class="premium-modal" style="display:none;">
-      <div class="premium-modal-box">
+    <div id="profileImportModal" class="premium-modal" onclick="if(event.target === this) closeProfileImport()" style="display:none;">
+      <div class="premium-modal-box" role="dialog" aria-modal="true" aria-labelledby="profileImportTitle">
         <button class="premium-modal-close" onclick="closeProfileImport()" aria-label="Close">&times;</button>
         <div class="premium-eyebrow">Safe Profile Import</div>
         <h2 id="profileImportTitle">Import Profile Text</h2>
         <p class="premium-note">Paste resume, LinkedIn profile text, or Naukri profile text. Do not paste passwords, OTPs, or private account secrets.</p>
-        <textarea id="profileImportText" rows="10" placeholder="Paste profile or resume text here..."></textarea>
+        <textarea id="profileImportText" rows="10" maxlength="5000" placeholder="Example: Salesforce Developer with 3 years of Apex, LWC, Flow, SOQL, integrations, current role, target role, certifications, project highlights, and preferred locations."></textarea>
+        <div class="profile-import-feedback">
+          <p id="profileImportError" class="profile-import-error" role="alert" aria-live="polite"></p>
+          <span id="profileImportCount">0 / 5000 chars</span>
+        </div>
         <input type="hidden" id="profileImportSource" value="manual">
         <div class="premium-modal-actions">
-          <button class="premium-primary-btn" onclick="submitProfileImport()">Analyze & Save</button>
+          <button id="profileImportSubmitBtn" class="premium-primary-btn" onclick="submitProfileImport()">Analyze & Save</button>
           <button class="premium-secondary-btn" onclick="closeProfileImport()">Cancel</button>
         </div>
       </div>
     </div>
   `);
+  const textEl = document.getElementById('profileImportText');
+  if (textEl) {
+    textEl.addEventListener('input', updateProfileImportFeedback);
+  }
+}
+
+function updateProfileImportFeedback(message = '') {
+  const textEl = document.getElementById('profileImportText');
+  const errorEl = document.getElementById('profileImportError');
+  const countEl = document.getElementById('profileImportCount');
+  const length = textEl ? textEl.value.length : 0;
+  if (countEl) countEl.textContent = `${length} / 5000 chars`;
+  if (errorEl) errorEl.textContent = message;
 }
 
 window.openProfileImport = function(source = 'manual') {
@@ -867,12 +914,20 @@ window.openProfileImport = function(source = 'manual') {
   if (title) title.textContent = label;
   if (sourceEl) sourceEl.value = source;
   if (textEl) textEl.value = '';
-  if (modal) modal.style.display = 'flex';
+  updateProfileImportFeedback('');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  setTimeout(() => textEl?.focus(), 0);
 };
 
 window.closeProfileImport = function() {
   const modal = document.getElementById('profileImportModal');
-  if (modal) modal.style.display = 'none';
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+  }
 };
 
 window.submitProfileImport = async function() {
@@ -880,10 +935,18 @@ window.submitProfileImport = async function() {
   const sourceEl = document.getElementById('profileImportSource');
   const profileText = textEl ? textEl.value.trim() : '';
   if (!profileText) {
-    showToast('Paste profile or resume text first.', 'red');
+    updateProfileImportFeedback('Please paste your profile or resume text before analyzing.');
+    if (textEl) textEl.focus();
     return;
   }
+  updateProfileImportFeedback('');
+  const submitBtn = document.getElementById('profileImportSubmitBtn');
+  const originalText = submitBtn ? submitBtn.textContent : '';
   try {
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="loading-spinner sm" aria-hidden="true"></span> Analyzing...';
+    }
     const res = await apiFetch('/api/profile/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -904,7 +967,13 @@ window.submitProfileImport = async function() {
     await loadReleaseCenter(true);
   } catch (e) {
     console.error('[PREMIUM] Import failed:', e);
+    updateProfileImportFeedback('Profile import failed. Try a smaller text sample.');
     showToast('Profile import failed. Try a smaller text sample.', 'red');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText || 'Analyze & Save';
+    }
   }
 };
 
@@ -1053,6 +1122,15 @@ function getNavigationQuestionCount(item) {
   const section = window.SFJR_SALESFORCE_CONTENT?.getSection?.(item.id);
   const count = section?.questionCount || item?.questionCount || 0;
   return count ? `${count} Q` : '';
+}
+
+function getNavigationLabel(id) {
+  for (const group of (window.SFJR_NAVIGATION || [])) {
+    for (const item of (group.items || [])) {
+      if (item.id === id) return item.label;
+    }
+  }
+  return '';
 }
 
 const NAV_ICON_PATHS = Object.freeze({
@@ -1262,8 +1340,9 @@ function renderRecentTopicsPanel() {
 function syncSidebarRailFlyoutMode() {
   const sidebar = document.getElementById('sidebar');
   const sidebarWidth = sidebar ? Math.round(sidebar.getBoundingClientRect().width) : 0;
-  const isTabletRail = window.innerWidth >= 768 && window.innerWidth <= 1023;
-  const isDesktopRail = document.body.classList.contains('sidebar-collapsed') && window.innerWidth >= 1280;
+  const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+  const isTabletRail = isCollapsed && window.innerWidth >= 768 && window.innerWidth <= 1023;
+  const isDesktopRail = isCollapsed && window.innerWidth >= 1280;
   const isVisualRail = sidebarWidth > 0 && sidebarWidth <= 96;
   const isRail = window.innerWidth >= 768 && (isTabletRail || isDesktopRail || isVisualRail);
   document.body.classList.toggle('sidebar-rail-active', isRail);
@@ -4484,7 +4563,7 @@ async function showPage(id) {
 
   // UI Updates
   const headerTitle = document.getElementById('headerTitle');
-  if (headerTitle) headerTitle.textContent = topicConfig[id] ? topicConfig[id].name : 'SF Prep Guide';
+  if (headerTitle) headerTitle.textContent = topicConfig[id]?.name || getNavigationLabel(id) || 'SF Prep Guide';
   trackRecentTopic(id);
   updateSidebarActiveState(id);
   const mainEl = document.getElementById('main');
@@ -5418,7 +5497,9 @@ function syncDesktopSidebarToggle(forceCollapsed) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const storedCollapsed = getScopedItem('sidebar_collapsed', localStorage.getItem('job_radar_sidebar_collapsed') || 'false') === 'true';
+  const storedRaw = getScopedItem('sidebar_collapsed', localStorage.getItem('job_radar_sidebar_collapsed') || 'false');
+  const userToggledSidebar = localStorage.getItem('sfjr_sidebar_user_toggled') === 'true';
+  const storedCollapsed = userToggledSidebar && window.innerWidth >= 1280 && storedRaw === 'true';
   setSidebarCollapsedState(storedCollapsed);
   syncSidebarRailFlyoutMode();
 });
@@ -5530,6 +5611,22 @@ async function saveRetention(q) {
   console.log(`👤 Spaced Repetition: Topic [${topicId}] scheduled for ${stats.interval} days.`);
   renderRevisionAlerts();
 }
+
+window.dismissReviewModal = function() {
+  const confidenceModal = document.getElementById('confidenceModal');
+  if (confidenceModal) {
+    confidenceModal.style.display = 'none';
+    confidenceModal.setAttribute('aria-hidden', 'true');
+  }
+};
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    window.dismissReviewModal?.();
+    window.closeProfileImport?.();
+    window.closeCollapsedNavFlyout?.();
+  }
+});
 
 /* UI templates moved to components.js */
 

@@ -6361,3 +6361,146 @@ button:active,
 .teal-dot-artifact, [style*="backgroundColor: teal"] {
   display: none !important;
 }
+
+/* End-to-end bug repair layer: header, themes, modals, and classic mode. */
+#headerTitle {
+  color: #fff !important;
+  font-weight: 800 !important;
+  max-width: min(520px, 100%) !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.32);
+}
+
+#mainHeader .mobile-toggle {
+  display: inline-flex !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.18)) !important;
+  background: color-mix(in srgb, var(--color-surface, #111827) 84%, transparent) !important;
+}
+
+.modal-x-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border, rgba(148, 163, 184, 0.18));
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text, #fff);
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.modal-x-btn:hover,
+.modal-x-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.profile-import-feedback {
+  min-height: 24px;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text-faint, #7f96ba);
+  font-size: var(--text-xs, 12px);
+}
+
+.profile-import-error {
+  margin: 0;
+  color: var(--color-error, #ef4444);
+  font-size: var(--text-sm, 14px);
+}
+
+html[data-theme="light"],
+body.light-theme {
+  --color-bg: #f7f8fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f9;
+  --color-surface-offset: #e8eef7;
+  --color-text: #0f172a;
+  --color-text-muted: #475569;
+  --color-text-faint: #64748b;
+  --color-border: rgba(15, 23, 42, 0.14);
+  --color-divider: rgba(15, 23, 42, 0.1);
+  --bg: var(--color-bg);
+  --bg-soft: #eef3f9;
+  --surface: #ffffff;
+  --surface-hover: #f8fafc;
+  --card: #ffffff;
+  --card-bg: #ffffff;
+  --card2: #f1f5f9;
+  --text: var(--color-text);
+  --muted: var(--color-text-muted);
+  --border: var(--color-border);
+}
+
+html[data-theme="light"] body,
+body.light-theme {
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+
+html[data-theme="light"] #mainHeader,
+body.light-theme #mainHeader {
+  background: rgba(255, 255, 255, 0.94) !important;
+}
+
+html[data-theme="light"] #headerTitle,
+body.light-theme #headerTitle {
+  color: #0f172a !important;
+  text-shadow: none;
+}
+
+html[data-theme="light"] .content-card,
+html[data-theme="light"] .card,
+html[data-theme="light"] .career-os-panel,
+body.light-theme .content-card,
+body.light-theme .card,
+body.light-theme .career-os-panel {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+body.ui-classic {
+  background: #f0f2f5 !important;
+  color: #1a1a1a !important;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+body.ui-classic #mainHeader {
+  background: #ffffff !important;
+  border-bottom: 1px solid #d7dce3 !important;
+  backdrop-filter: none !important;
+}
+
+body.ui-classic #headerTitle {
+  color: #111827 !important;
+  text-shadow: none;
+}
+
+body.ui-classic .content-card,
+body.ui-classic .card,
+body.ui-classic .career-os-panel,
+body.ui-classic .premium-onboarding-panel,
+body.ui-classic .premium-roadmap-shell {
+  background: #ffffff !important;
+  border: 1px solid #d9dde4 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
