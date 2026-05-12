@@ -513,6 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setSidebarCollapsedState(isCollapsed) {
   const sidebar = document.getElementById('sidebar');
   const collapsed = Boolean(isCollapsed);
+  closeCollapsedNavFlyout();
   document.body.classList.toggle('sidebar-collapsed', collapsed);
   if (sidebar) sidebar.classList.toggle('collapsed', collapsed);
   setScopedItem('sidebar_collapsed', collapsed);
@@ -1155,8 +1156,11 @@ function setOnlySidebarGroupOpen(activeSection) {
 
 function renderSidebarNavItem(item) {
   const badge = getSidebarBadge(item) || getNavigationQuestionCount(item);
+  const action = item.id === 'bookmarks_page'
+    ? 'closeCollapsedNavFlyout();showBookmarks()'
+    : `closeCollapsedNavFlyout();showPage('${escapeHtml(item.id)}')`;
   return `
-    <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${item.id === 'bookmarks_page' ? 'showBookmarks()' : `showPage('${escapeHtml(item.id)}')`}" title="${escapeHtml(item.label)}" aria-label="${escapeHtml(item.label)}">
+    <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${action}" title="${escapeHtml(item.label)}" aria-label="${escapeHtml(item.label)}">
       ${renderNavIcon(getNavIconKey(item))}
       <span class="nav-item-label">${escapeHtml(item.label)}</span>
       ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
@@ -1236,6 +1240,7 @@ function renderSidebarNavigation(options = {}) {
             ${renderNavGroupChevron()}
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
+            <div class="nav-flyout-title">${escapeHtml(group.label)}</div>
             ${renderSidebarNavSections(group.items)}
           </div>
         </section>
@@ -1251,6 +1256,29 @@ function renderRecentTopicsPanel() {
   if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
   if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
   renderSidebarNavigation();
+}
+
+function isSidebarRailCollapsed() {
+  return document.body.classList.contains('sidebar-collapsed') && window.innerWidth >= 768;
+}
+
+function closeCollapsedNavFlyout() {
+  document.querySelectorAll('#sidebar .nav-config-section.is-flyout-open').forEach(section => {
+    section.classList.remove('is-flyout-open');
+    section.style.removeProperty('--collapsed-flyout-top');
+  });
+}
+
+window.closeCollapsedNavFlyout = closeCollapsedNavFlyout;
+
+function positionCollapsedNavFlyout(section) {
+  const button = section?.querySelector('.nav-group-toggle');
+  if (!button) return;
+  const rect = button.getBoundingClientRect();
+  const preferredTop = Math.max(12, Math.round(rect.top - 8));
+  const maxTop = Math.max(12, window.innerHeight - 560);
+  const top = Math.min(preferredTop, maxTop);
+  section.style.setProperty('--collapsed-flyout-top', `${top}px`);
 }
 
 window.changeRecentPage = function(delta, event) {
@@ -1288,6 +1316,20 @@ window.changeRecentPage = function(delta, event) {
 window.toggleNavGroup = function(groupId) {
   const section = document.querySelector(`[data-nav-group="${CSS.escape(String(groupId))}"]`);
   if (!section) return;
+  if (isSidebarRailCollapsed()) {
+    const wasFlyoutOpen = section.classList.contains('is-flyout-open');
+    closeCollapsedNavFlyout();
+    if (wasFlyoutOpen) {
+      setSidebarGroupOpen(section, false);
+      return;
+    }
+    setOnlySidebarGroupOpen(section);
+    section.classList.add('is-flyout-open');
+    positionCollapsedNavFlyout(section);
+    section.querySelector('.nav-group-items')?.scrollTo?.({ top: 0 });
+    return;
+  }
+  closeCollapsedNavFlyout();
   const button = section.querySelector('.nav-group-toggle');
   const isOpen = button?.getAttribute('aria-expanded') === 'true';
   const nextOpen = !isOpen;
@@ -5328,6 +5370,15 @@ document.addEventListener('DOMContentLoaded', () => {
   setSidebarCollapsedState(storedCollapsed);
 });
 
+document.addEventListener('click', event => {
+  if (!isSidebarRailCollapsed()) return;
+  const target = event.target;
+  if (target instanceof Element && target.closest('#sidebar .nav-config-section')) return;
+  closeCollapsedNavFlyout();
+});
+
+window.addEventListener('resize', closeCollapsedNavFlyout);
+
 function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
   const sidebar = document.getElementById('sidebar');
@@ -5989,6 +6040,7 @@ function initKeyboardShortcuts() {
       if (searchInput && document.activeElement === searchInput) {
         searchInput.blur();
       }
+      closeCollapsedNavFlyout();
       toggleMobileSidebar(false);
       const overlay = document.getElementById('shortcutOverlay');
       if (overlay) overlay.style.display = 'none';
