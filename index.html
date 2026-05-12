@@ -39,7 +39,8 @@
       }
       return window._sfjrClientConfigPromise;
     };
-    window.handleCredentialResponse = function(response) {
+    window.handleCredentialResponse = function(response) { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById("loginOverlay").style.display = "none";
+      document.getElementById('loginOverlay').style.display = 'none';
       window._pendingGAuth = response;
       if (typeof window.processGAuth === 'function') window.processGAuth(response);
     };
@@ -60,11 +61,8 @@
           throw new Error('Google Sign-In library did not load.');
         }
         window.google.accounts.id.initialize({
-          client_id: config.googleClientId,
-          callback: window.handleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: true
+          client_id: "991931034479-q2jgdjf3r2fo8j95mnacmgp19t2mnrge.apps.googleusercontent.com",
+          callback: window.handleCredentialResponse
         });
         if (target) {
           target.innerHTML = '';
@@ -123,15 +121,15 @@
       </div>
     </div>
 	    
-    <div style="display:flex; justify-content:center; margin: 1.5rem 0;">
-      <div id="googleSignInButton" aria-label="Google Sign-In"></div>
+    <div style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
+      <div id="googleSignInButton" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+        <div class="loading-spinner sm"></div>
+      </div>
     </div>
     <p id="googleSignInStatus" hidden style="margin:0 0 1rem; color:#fca5a5; font-size:0.78rem; line-height:1.4;"></p>
     
-    <div style="margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; gap:8px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span>
-    </div>
+    <div id="syncStatus" style="display:none; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span></div><div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">🔒 Sign in to enable cloud sync</span></div><div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">?? Sign in to enable cloud sync</span></div>
   </div>
 </div>
 <!-- NO FLOATING PROFILE HERE (MOVED INSIDE MAIN) -->
@@ -320,7 +318,7 @@
     </div>
 
     <div class="header-zone-right">
-      <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light or dark theme" title="Light / Dark Theme">
+      <button type="button" id="themeToggleBtn" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light or dark theme" title="Light / Dark Theme">
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
         <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path></svg>
       </button>

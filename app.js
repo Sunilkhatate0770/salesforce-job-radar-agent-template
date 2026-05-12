@@ -251,8 +251,7 @@ window.processGAuth = async function(response) {
     if (data.success) {
       currentUser = data.user;
       loadUserScopedClientState();
-      const overlay = document.getElementById('loginOverlay');
-      if (overlay) overlay.style.display = 'none';
+      const overlay = document.getElementById("loginOverlay"); if (overlay) overlay.style.display = "none"; const syncStatus = document.getElementById("syncStatus"); if (syncStatus) syncStatus.style.display = "flex"; const syncStatusPreLogin = document.getElementById("syncStatusPreLogin"); if (syncStatusPreLogin) syncStatusPreLogin.style.display = "none";
       
       renderUserProfile(currentUser);
       syncDashboard();
@@ -401,7 +400,7 @@ function syncLoginUiModeControls(mode = currentUiMode) {
   const title = document.getElementById('loginModeTitle');
   const desc = document.getElementById('loginModeDescription');
   if (checkbox) checkbox.checked = normalized !== 'classic';
-  if (title) title.textContent = normalized === 'classic' ? 'Legacy / Classic UI' : '✅ New Premium UI';
+  if (title) title.textContent = normalized === 'classic' ? '🔁 Legacy / Classic UI' : '✅ New Premium UI';
   if (desc) {
     desc.textContent = normalized === 'classic'
       ? 'Use the familiar study sections and old navigation rhythm.'
@@ -453,9 +452,7 @@ async function persistUiMode(mode) {
   }
 }
 
-window.toggleUiMode = function() {
-  persistUiMode(currentUiMode === 'classic' ? 'modern' : 'classic');
-};
+window.toggleUiMode = function() { const isModern = document.body.classList.toggle("modern-ui"); const label = document.getElementById("uiModeToggleLabel"); if (label) label.textContent = isModern ? "Modern" : "Classic"; localStorage.setItem("uiMode", isModern ? "modern" : "classic"); applyUiMode(isModern ? "modern" : "classic"); };
 
 function hydratePremiumSetupForm(profile = {}) {
   const hydratedProfile = mergePremiumDraftProfile(profile);
@@ -6109,3 +6106,9 @@ window.runAgentforceSimulation = async function() {
     outText.innerHTML = '<span style="color:var(--red);">Error: AI simulation is unavailable right now. Please try again shortly.</span>';
   }
 };
+
+document.addEventListener('DOMContentLoaded', () => { const themeBtn = document.getElementById('themeToggleBtn'); if (themeBtn) { themeBtn.addEventListener('click', () => { document.body.classList.toggle('light-theme'); localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); themeBtn.setAttribute('aria-pressed', document.body.classList.contains('light-theme') ? 'true' : 'false'); }); } });
+
+document.addEventListener('DOMContentLoaded', () => { const scanBtn = document.getElementById('btnScanJobs'); if (scanBtn) { scanBtn.addEventListener('click', triggerJobScan); } });
+
+document.addEventListener('DOMContentLoaded', () => { const scanBtn = document.getElementById('btnScanJobs'); if (scanBtn) { scanBtn.addEventListener('click', triggerJobScan); } const themeBtn = document.getElementById('themeToggleBtn'); if (themeBtn) { themeBtn.addEventListener('click', () => { document.body.classList.toggle('light-theme'); localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark'); themeBtn.setAttribute('aria-pressed', document.body.classList.contains('light-theme') ? 'true' : 'false'); }); } });
