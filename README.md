@@ -127,10 +127,11 @@ See `.env.example` for the complete list. Critical variables:
 │   ├── models/          # Mongoose schemas
 │   ├── jobs/            # Job processing and dashboard logic
 │   ├── api/             # API contracts and health checks
+│   ├── data/            # Navigation, Salesforce content, and study analytics modules
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (66 tests)
+├── test/                # Node.js test suite (69 tests)
 └── vercel.json          # Vercel deployment config
 ```
 
@@ -162,6 +163,7 @@ npm run test:opportunities
 - No TypeScript — the codebase is vanilla JavaScript (ESM)
 - No bundler/build step — files are served directly
 - `app.js`, `styles.css`, `src/styles/job-radar.css`, and `api/router.js` are still large legacy files — modularization must be feature-by-feature with regression checks
+- Study tracker math now lives in `src/data/studyAnalytics.js`; continue extracting by feature boundary rather than moving arbitrary blocks
 - Runtime Google Client ID now comes from `/api/client-config`; OAuth client IDs remain public browser configuration
 - Request bodies are sanitized through a shared Vercel/local helper before private mutations run
 - Service worker caches aggressively — may need manual cache clear after deploys

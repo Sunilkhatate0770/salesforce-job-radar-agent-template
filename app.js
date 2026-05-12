@@ -38,6 +38,10 @@ const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260509-responsive-verify';
 
 const featureStylesheetPromises = new Map();
 
+function getStudyAnalytics() {
+  return window.SFJR_STUDY_ANALYTICS || {};
+}
+
 function loadFeatureStylesheet(href) {
   if (!href) return Promise.resolve();
   const existing = document.querySelector(`link[data-feature-style="${href}"], link[href="${href}"]`);
@@ -2334,34 +2338,24 @@ window.updateCourseTargets = function() {
   try {
     const data = globalStudyData;
     if (!data || !data.topics) return;
-    
-    let totalRecommendedMin = 0;
-    for (let id in topicConfig) {
-      totalRecommendedMin += topicConfig[id].recommended;
-    }
-    
-    let totalSpentSec = 0;
-    for (let id in data.topics) {
-      totalSpentSec += data.topics[id].totalSeconds;
-    }
-    
-    // Add active session if any
-    if (currentTrackedPage) totalSpentSec += getCurrentElapsed();
-    
-    const totalReqSec = totalRecommendedMin * 60;
-    const remainingSec = Math.max(0, totalReqSec - totalSpentSec);
-    const deadlineDays = parseInt(document.getElementById('studyDeadlineDays').value) || 30;
-    
-    const requiredDailySec = remainingSec / deadlineDays;
-    const progressPct = Math.min(100, Math.round((totalSpentSec / totalReqSec) * 100));
-    
+
+    const analytics = getStudyAnalytics();
+    const targets = analytics.calculateCourseTargets
+      ? analytics.calculateCourseTargets(
+        data,
+        topicConfig,
+        currentTrackedPage ? { topicId: currentTrackedPage, seconds: getCurrentElapsed() } : null,
+        document.getElementById('studyDeadlineDays')?.value
+      )
+      : { remainingSec: 0, requiredDailySec: 0, progressPct: 0 };
+
     const progressEl = document.getElementById('courseTotalProgress');
     const dailyEl = document.getElementById('courseRequiredDaily');
     const remainEl = document.getElementById('courseRemainingTime');
     
-    if (progressEl) progressEl.textContent = progressPct + '%';
-    if (dailyEl) dailyEl.textContent = (requiredDailySec / 3600).toFixed(1) + ' hrs';
-    if (remainEl) remainEl.textContent = formatTime(remainingSec);
+    if (progressEl) progressEl.textContent = targets.progressPct + '%';
+    if (dailyEl) dailyEl.textContent = (targets.requiredDailySec / 3600).toFixed(1) + ' hrs';
+    if (remainEl) remainEl.textContent = formatTime(targets.remainingSec);
     
   } catch (e) { console.error('Goal update error', e); }
 }
@@ -2397,60 +2391,48 @@ function formatTimeFull(totalSeconds) {
 }
 
 function getTopicStatus(topicId, data) {
-  var topicData = data.topics[topicId];
-  var config = topicConfig[topicId];
-  if (!topicData || topicData.totalSeconds === 0) return { label: 'NOT STARTED', cls: 'status-needs-work' };
-  var pct = (topicData.totalSeconds / 60) / config.recommended * 100;
-  if (pct < 30) return { label: 'NEEDS WORK', cls: 'status-needs-work' };
-  if (pct < 70) return { label: 'IN PROGRESS', cls: 'status-in-progress' };
-  if (pct < 100) return { label: 'GOOD', cls: 'status-good' };
-  return { label: 'EXCELLENT', cls: 'status-excellent' };
+  const analytics = getStudyAnalytics();
+  if (analytics.getTopicStatus) {
+    return analytics.getTopicStatus(
+      topicId,
+      data,
+      topicConfig,
+      currentTrackedPage ? { topicId: currentTrackedPage, seconds: getCurrentElapsed() } : null
+    );
+  }
+  return { label: 'NOT STARTED', cls: 'status-needs-work' };
 }
 
 // =============================================
 // SUGGESTIONS ENGINE
 // =============================================
+function getSuggestionIcon(type) {
+  const icons = {
+    alert: '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;color:var(--red);"><circle cx="12" cy="12" r="10"></circle></svg>',
+    warning: '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;color:var(--amber);"><circle cx="12" cy="12" r="10"></circle></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:12px;height:12px;color:var(--green);"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+    clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+    chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--amber);"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--blue);"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>'
+  };
+  return icons[type] || icons.target;
+}
+
 function generateSuggestions(data) {
-  var suggestions = [];
-  var allTopics = Object.keys(topicConfig);
-  var untouched = [], needsWork = [], inProgress = [];
-  
-  allTopics.forEach(function(id) {
-    var topicData = data.topics[id];
-    var cfg = topicConfig[id];
-    var spent = topicData ? topicData.totalSeconds / 60 : 0;
-    var pct = spent / cfg.recommended * 100;
-    if (spent === 0) untouched.push({ id:id, name:cfg.name, group:cfg.group, recommended:cfg.recommended });
-    else if (pct < 30) needsWork.push({ id:id, name:cfg.name, group:cfg.group, spent:spent, recommended:cfg.recommended, pct:pct });
-    else if (pct < 70) inProgress.push({ id:id, name:cfg.name, group:cfg.group, spent:spent, recommended:cfg.recommended, pct:pct });
+  const analytics = getStudyAnalytics();
+  const models = analytics.buildSuggestionModels
+    ? analytics.buildSuggestionModels(data, topicConfig)
+    : [{ icon: 'target', text: '<b>Start studying!</b> Open any topic to begin.', priority: 'MEDIUM', cls: 'priority-medium' }];
+  return models.map(function(s) {
+    return {
+      icon: getSuggestionIcon(s.icon),
+      text: s.text,
+      priority: s.priority,
+      cls: s.cls
+    };
   });
-  
-  var fdeTopic = untouched.filter(function(t){ return t.group === 'FDE Prep'; });
-  if (fdeTopic.length > 0) {
-    suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;color:var(--red);"><circle cx="12" cy="12" r="10"></circle></svg>', text:'<b>Start FDE topics immediately!</b> <b>'+fdeTopic.length+' FDE topics</b> not started: '+fdeTopic.slice(0,3).map(function(t){return t.name}).join(', ')+(fdeTopic.length>3?'...':'')+'. Critical for your interview.', priority:'HIGH', cls:'priority-high' });
-  }
-  var nonFde = untouched.filter(function(t){ return t.group !== 'FDE Prep'; });
-  if (nonFde.length > 0) {
-    suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;color:var(--amber);"><circle cx="12" cy="12" r="10"></circle></svg>', text:'<b>'+nonFde.length+' topics not started:</b> '+nonFde.slice(0,4).map(function(t){return t.name}).join(', ')+(nonFde.length>4?'...':'')+'.', priority:'MEDIUM', cls:'priority-medium' });
-  }
-  if (needsWork.length > 0) {
-    var low = needsWork.sort(function(a,b){return a.pct-b.pct}).slice(0,3);
-    suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>', text:'<b>Revisit these:</b> '+low.map(function(t){return t.name+' ('+Math.round(t.spent)+'/'+t.recommended+'m)'}).join(', '), priority:'MEDIUM', cls:'priority-medium' });
-  }
-  if (inProgress.length > 0) {
-    suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:12px;height:12px;color:var(--green);"><polyline points="20 6 9 17 4 12"></polyline></svg>', text:'<b>Almost there!</b> '+inProgress.map(function(t){return t.name+' ('+Math.round(t.pct)+'%)'}).join(', ')+'. Few more sessions needed.', priority:'LOW', cls:'priority-low' });
-  }
-  var ts = 0;
-  Object.keys(data.topics).forEach(function(k){ 
-    const td = data.topics[k];
-    if (td && typeof td.totalSeconds !== 'undefined') ts += td.totalSeconds;
-  });
-  var th = ts / 3600;
-  if (th < 5) suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>', text:'<b>'+Math.round(th*10)/10+' hours total.</b> Aim for 30+ hours.', priority:'HIGH', cls:'priority-high' });
-  else if (th < 20) suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>', text:'<b>Great!</b> '+Math.round(th*10)/10+' hours. Keep going!', priority:'LOW', cls:'priority-low' });
-  else suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;color:var(--amber);"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34M15 22v-4H9v4M18 5V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v1c0 3.87 3.13 7 7 7s7-3.13 7-7z"></path></svg>', text:'<b>Outstanding! '+Math.round(th*10)/10+'h logged.</b> Focus on weakest areas now.', priority:'LOW', cls:'priority-low' });
-  if (!suggestions.length) suggestions.push({ icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px;color:var(--blue);"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>', text:'<b>Start studying!</b> Open any topic to begin.', priority:'MEDIUM', cls:'priority-medium' });
-  return suggestions;
 }
 
 async function fetchDailySummary() {
@@ -2799,32 +2781,14 @@ function renderTableView(container, dates, histories) {
 }
 
 function renderAnalyticsView(container, dates, histories) {
-  const topicStats = {};
-  const topicDetails = {};
-  
-  dates.forEach(date => {
-    const h = histories[date];
-    const breakdown = h.study.topicBreakdown || {};
-    
-    if (Object.keys(breakdown).length > 0) {
-      Object.keys(breakdown).forEach(t => {
-        if (t === 'None') return;
-        topicStats[t] = (topicStats[t] || 0) + (breakdown[t].totalSeconds || 0);
-        if (!topicDetails[t]) topicDetails[t] = { sessions: 0, lastDate: date };
-        topicDetails[t].sessions += (h.study.sessionsCount || 1);
-        if (date > topicDetails[t].lastDate) topicDetails[t].lastDate = date;
-      });
-    } else if (h.study.totalSeconds > 0) {
-      // Fallback for old data: assume topTopic or distribute among allTopics
-      const topT = h.study.topTopic || (h.study.allTopics && h.study.allTopics[0]) || 'General';
-      topicStats[topT] = (topicStats[topT] || 0) + h.study.totalSeconds;
-      if (!topicDetails[topT]) topicDetails[topT] = { sessions: 0, lastDate: date };
-      topicDetails[topT].sessions += (h.study.sessionsCount || 1);
-    }
-  });
-
-  const sortedTopics = Object.keys(topicStats).sort((a,b) => topicStats[b] - topicStats[a]);
-  const totalTime = sortedTopics.reduce((sum, t) => sum + topicStats[t], 0);
+  const analytics = getStudyAnalytics();
+  const analyticsData = analytics.buildHistoryTopicAnalytics
+    ? analytics.buildHistoryTopicAnalytics(dates, histories, topicConfig)
+    : { topicStats: {}, topicDetails: {}, sortedTopics: [], totalTime: 0, cards: [] };
+  const topicStats = analyticsData.topicStats;
+  const topicDetails = analyticsData.topicDetails;
+  const sortedTopics = analyticsData.sortedTopics;
+  const totalTime = analyticsData.totalTime;
 
   // SVG Donut Chart (Tier 2C)
   let svgHtml = '';
@@ -2883,16 +2847,13 @@ function renderAnalyticsView(container, dates, histories) {
 
   let html = svgHtml + '<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:15px; margin-top:20px;">';
   
-  sortedTopics.forEach((t, idx) => {
-    let cfg = null;
-    for (let id in topicConfig) { if (topicConfig[id].name === t || t.startsWith(topicConfig[id].name)) { cfg = topicConfig[id]; break; } }
-    const spent = topicStats[t];
-    const target = cfg ? (cfg.recommended * 60) : 3600;
-    const pct = Math.min((spent / target) * 100, 100);
-    const details = topicDetails[t];
-    
-    const colors = ['#4f8ef7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
-    const accent = colors[idx % colors.length];
+  analyticsData.cards.forEach((card) => {
+    const t = card.topic;
+    const spent = card.spent;
+    const target = card.target;
+    const pct = card.pct;
+    const details = card.details;
+    const accent = card.accent;
 
     html += `
       <div style="background:rgba(255,255,255,0.02); padding:1.2rem; border-radius:12px; border:1px solid rgba(255,255,255,0.05); position:relative; overflow:hidden; box-shadow:0 4px 15px rgba(0,0,0,0.1);">
@@ -2933,27 +2894,19 @@ function renderAnalyticsView(container, dates, histories) {
 // =============================================
 async function updateTrackerUI(useCache = false) {
   const data = useCache && globalStudyData ? globalStudyData : await getStudyData();
-  var allTopics = Object.keys(topicConfig);
-  var liveSeconds = getCurrentElapsed();
-  
-  var totalSeconds = 0, totalSessionCount = 0, topicsStudied = 0, todaySeconds = 0;
+  const analytics = getStudyAnalytics();
+  const liveContext = currentTrackedPage ? { topicId: currentTrackedPage, seconds: getCurrentElapsed() } : null;
+  var liveSeconds = liveContext ? liveContext.seconds : 0;
   const now = new Date();
   const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  
-  allTopics.forEach(function(id) {
-    var td = data.topics[id];
-    if (td) {
-      totalSeconds += td.totalSeconds;
-      totalSessionCount += td.sessions;
-      if (td.totalSeconds > 0) topicsStudied++;
-    }
-  });
-  if (currentTrackedPage) totalSeconds += liveSeconds;
-  
-  data.sessions.forEach(function(s) {
-    if (s.date === today) todaySeconds += s.duration;
-  });
-  if (currentTrackedPage) todaySeconds += liveSeconds;
+  const totals = analytics.calculateStudyTotals
+    ? analytics.calculateStudyTotals(data, topicConfig, liveContext, today)
+    : { allTopics: Object.keys(topicConfig), totalSeconds: 0, totalSessionCount: 0, topicsStudied: 0, todaySeconds: 0 };
+  var allTopics = totals.allTopics;
+  var totalSeconds = totals.totalSeconds;
+  var totalSessionCount = totals.totalSessionCount;
+  var topicsStudied = totals.topicsStudied;
+  var todaySeconds = totals.todaySeconds;
 
   // Real-time Summary Card Update
   const card = document.getElementById('dailyInsightCard');
@@ -2984,22 +2937,13 @@ async function updateTrackerUI(useCache = false) {
   
   var chartEl = document.getElementById('timeChart');
   if (chartEl) {
-    var maxSeconds = 1;
-    var colors = {'Technical':'linear-gradient(90deg,#4f8ef7,#22d3ee)','Communication':'linear-gradient(90deg,#f472b6,#a78bfa)','Domain':'linear-gradient(90deg,#f4c542,#3dd68c)','FDE Prep':'linear-gradient(90deg,#6366f1,#a78bfa)','General':'linear-gradient(90deg,#3dd68c,#22d3ee)','Scenarios':'linear-gradient(90deg,#fb923c,#f472b6)','Reference':'linear-gradient(90deg,#a78bfa,#818cf8)','Strategy':'linear-gradient(90deg,#f4c542,#fb923c)','Company':'linear-gradient(90deg,#34d399,#3dd68c)'};
-    allTopics.forEach(function(id) {
-      var s = (data.topics[id]?data.topics[id].totalSeconds:0) + (currentTrackedPage===id?liveSeconds:0);
-      if (s > maxSeconds) maxSeconds = s;
-    });
-    var chartHtml = '';
-    allTopics.forEach(function(id) {
-      var cfg = topicConfig[id];
-      var s = (data.topics[id]?data.topics[id].totalSeconds:0) + (currentTrackedPage===id?liveSeconds:0);
-      var pct = Math.min((s/maxSeconds)*100, 100);
-      if (s===0 && maxSeconds>1) pct = 0;
-      var color = colors[cfg.group] || colors['General'];
-      var active = currentTrackedPage===id ? ' <span style="color:var(--green);font-size:0.6rem;"> LIVE</span>' : '';
-      chartHtml += '<div class="chart-bar-container"><div class="chart-bar-label">'+cfg.name+active+'</div><div class="chart-bar-wrap"><div class="chart-bar-value" style="width:'+pct+'%;background:'+color+';"></div></div><div class="chart-bar-time">'+formatTime(s)+'</div></div>';
-    });
+    const chartRows = analytics.buildTopicChartRows
+      ? analytics.buildTopicChartRows(data, topicConfig, liveContext)
+      : [];
+    var chartHtml = chartRows.map(function(row) {
+      var active = row.active ? ' <span style="color:var(--green);font-size:0.6rem;"> LIVE</span>' : '';
+      return '<div class="chart-bar-container"><div class="chart-bar-label">'+escapeHtml(row.name)+active+'</div><div class="chart-bar-wrap"><div class="chart-bar-value" style="width:'+row.pct+'%;background:'+row.color+';"></div></div><div class="chart-bar-time">'+formatTime(row.seconds)+'</div></div>';
+    }).join('');
     chartEl.innerHTML = chartHtml;
   }
   
@@ -3011,21 +2955,18 @@ async function updateTrackerUI(useCache = false) {
   
   var gridEl = document.getElementById('trackerGrid');
   if (gridEl) {
-    var gridHtml = '';
-    allTopics.forEach(function(id) {
-      var cfg = topicConfig[id], td = data.topics[id];
-      var s = (td?td.totalSeconds:0) + (currentTrackedPage===id?liveSeconds:0);
-      var pct = Math.min((s/60)/cfg.recommended*100, 100);
-      var status = getTopicStatus(id, data);
-      var last = td&&td.lastStudied ? new Date(td.lastStudied).toLocaleDateString() : 'Never';
-      var isActive = currentTrackedPage===id;
-      gridHtml += '<div class="tracker-card" style="--progress:'+pct+'%;'+(isActive?'border-color:var(--green);':'')+'">';
-      gridHtml += '<div class="tracker-status '+status.cls+'">'+(isActive?(isPaused?' PAUSED':' LIVE'):status.label)+'</div>';
-      gridHtml += '<div class="tracker-topic">'+cfg.name+'</div>';
-      gridHtml += '<div class="tracker-time">'+formatTime(s)+' <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">/ '+cfg.recommended+'m</span></div>';
-      gridHtml += '<div class="tracker-bar"><div class="tracker-bar-fill" style="width:'+pct+'%;"></div></div>';
-      gridHtml += '<div class="tracker-sessions">'+(td?td.sessions:0)+' sessions  -  Last: '+last+'</div></div>';
-    });
+    const trackerRows = analytics.buildTrackerRows
+      ? analytics.buildTrackerRows(data, topicConfig, liveContext)
+      : [];
+    var gridHtml = trackerRows.map(function(row) {
+      var last = row.lastStudied ? new Date(row.lastStudied).toLocaleDateString() : 'Never';
+      return '<div class="tracker-card" style="--progress:'+row.pct+'%;'+(row.active?'border-color:var(--green);':'')+'">' +
+        '<div class="tracker-status '+row.status.cls+'">'+(row.active?(isPaused?' PAUSED':' LIVE'):row.status.label)+'</div>' +
+        '<div class="tracker-topic">'+escapeHtml(row.name)+'</div>' +
+        '<div class="tracker-time">'+formatTime(row.seconds)+' <span style="font-size:0.7rem;color:var(--muted);font-weight:400;">/ '+row.recommended+'m</span></div>' +
+        '<div class="tracker-bar"><div class="tracker-bar-fill" style="width:'+row.pct+'%;"></div></div>' +
+        '<div class="tracker-sessions">'+row.sessions+' sessions  -  Last: '+escapeHtml(last)+'</div></div>';
+    }).join('');
     gridEl.innerHTML = gridHtml;
   }
   

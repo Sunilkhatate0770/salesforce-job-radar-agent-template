@@ -1306,7 +1306,7 @@ table {
 
 @media (max-width: 420px) {
   #mainHeader {
-    grid-template-columns: 40px minmax(0, 1fr) minmax(74px, max-content) !important;
+    grid-template-columns: 44px minmax(0, 1fr) minmax(74px, max-content) !important;
     padding-left: 10px !important;
     padding-right: 10px !important;
   }

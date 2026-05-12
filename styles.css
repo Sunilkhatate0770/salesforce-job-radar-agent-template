@@ -3530,6 +3530,7 @@ body:not(:has(#job_radar.active)) .fab-add {
   #mainHeader .header-zone-left,
   #mainHeader .header-zone-right {
     flex: 0 0 44px !important;
+    min-width: 44px !important;
   }
 
   #headerTitle {

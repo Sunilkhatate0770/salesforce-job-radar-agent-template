@@ -12,6 +12,14 @@
 - Current large-file reality: `app.js`, `styles.css`, `src/styles/job-radar.css`, `src/run.js`, `api/router.js`, and `code-practice.js` are still legacy monoliths. Further splitting should happen by feature boundary with tests and browser verification, not by moving arbitrary blocks.
 - Next safe split candidates: job radar CSS into board/cards/activity-log/responsive files, `app.js` navigation shell into a standalone module, and API route handlers into auth/profile/jobs/releases/study services.
 
+## 2026-05-12 Study Analytics Addendum
+
+- Extracted reusable study tracker math into `src/data/studyAnalytics.js` so totals, course targets, suggestion models, chart rows, tracker rows, and history analytics are tested outside the large SPA controller.
+- Wired `app.js` tracker/history rendering to the shared analytics module while keeping the existing DOM/UI structure stable.
+- Added `test/studyAnalytics.test.js` covering live session totals, interview-focused suggestions, and history chart aggregation.
+- Syntax coverage is now 101 JavaScript files, and the Node suite is now 69 tests.
+- Tightened the mobile header zone minimum width to remove the remaining 320px/390px responsive verifier warning.
+
 ## 2026-05-06 Production Fix Addendum
 
 ### Fixes Completed In This Pass
@@ -289,6 +297,7 @@ Gradually migrate to TypeScript:
 - [ ] Replace in-memory API limiter with distributed Upstash or Vercel Edge Middleware enforcement
 - [x] Apply shared request-body sanitization to Vercel and local POST/PATCH endpoints
 - [x] Integrate skeleton/spinner states into core async data sections
+- [x] Extract study tracker analytics into a reusable tested module
 
 ### Medium-term (1-2 Months)
 - [ ] Add Vite build pipeline for bundling and minification
