@@ -4010,6 +4010,17 @@ body:not(:has(#job_radar.active)) .fab-add {
   transform: scale(0.96);
 }
 
+[data-theme="light"] .ui-mode-toggle {
+  background: rgba(0,0,0,0.05);
+  color: var(--text);
+  border-color: rgba(0,0,0,0.1);
+}
+
+[data-theme="light"] .ui-mode-toggle:hover {
+  background: rgba(0,0,0,0.1);
+  border-color: var(--blue);
+}
+
 .theme-toggle-btn {
   width: 40px;
   height: 40px;
@@ -4199,16 +4210,20 @@ body.ui-classic .premium-mini-panel {
   font-weight: 800;
 }
 
-.premium-onboarding-grid input,
 .premium-onboarding-grid select,
+.premium-onboarding-grid input,
 .premium-modal textarea {
   width: 100%;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.24);
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
   color: var(--text);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  font-weight: 500;
   outline: none;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
 }
 
 .premium-onboarding-grid input:focus,
@@ -6178,55 +6193,7 @@ button:active,
    value into --sidebar-sticky-header-h. This prevents the search field from
    sliding under the sticky brand/close area while the menu scrolls. */
 #sidebar {
-  --sidebar-sticky-header-h: 118px;
-  isolation: isolate;
-}
-
-#sidebar .sidebar-header {
-  background: var(--surface-hover) !important;
-  z-index: 130 !important;
-}
-
-#sidebar .search-wrap {
-  top: var(--sidebar-sticky-header-h) !important;
-  z-index: 129 !important;
-  background: var(--surface-hover) !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
-  box-shadow: 0 14px 22px rgba(0, 0, 0, 0.34) !important;
-}
-
-#sidebar #searchInput {
-  background: var(--bg-soft) !important;
-  border-color: rgba(96, 165, 250, 0.2) !important;
-}
-
-.activity-log-panel {
-  background: var(--bg-soft) !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.activity-log-panel .log-panel-header,
-.activity-log-panel .log-panel-footer {
-  background: var(--surface-hover) !important;
-}
-
-@media (max-width: 900px) {
-  #sidebar {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: var(--radius, 16px);
-}
-
-/* Navigation and slide-over hardening.
-   The sidebar brand height changes with content, so app.js writes the measured
-   value into --sidebar-sticky-header-h. This prevents the search field from
-   sliding under the sticky brand/close area while the menu scrolls. */
-#sidebar {
-  --sidebar-sticky-header-h: 118px;
+  --sidebar-sticky-header-h: 140px;
   isolation: isolate;
 }
 
@@ -6263,25 +6230,5 @@ button:active,
 @media (max-width: 900px) {
   #sidebar {
     --sidebar-sticky-header-h: 124px;
-  }
-}
-
-/* Bug 8: Global Teal Dot Ripple Fix */
-.btn, .sidebar-action-btn, .career-os-primary-btn, .career-os-link-btn, .sync-btn-premium, .theme-toggle-btn, .ui-mode-toggle {
-  position: relative;
-  overflow: hidden;
-}
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  transform: scale(0);
-  animation: ripple-anim 0.6s linear;
-  background: rgba(255,255,255,0.3);
-  pointer-events: none;
-}
-@keyframes ripple-anim {
-  to {
-    transform: scale(4);
-    opacity: 0;
   }
 }

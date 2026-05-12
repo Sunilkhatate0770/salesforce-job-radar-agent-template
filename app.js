@@ -469,9 +469,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeBtn = document.getElementById('themeToggleBtn');
   if (themeBtn) {
     themeBtn.addEventListener('click', () => {
-      document.body.classList.toggle('light-theme');
-      localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
-      themeBtn.setAttribute('aria-pressed', document.body.classList.contains('light-theme') ? 'true' : 'false');
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const newTheme = isLight ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      themeBtn.setAttribute('aria-pressed', !isLight ? 'true' : 'false');
     });
   }
 });
