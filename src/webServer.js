@@ -30,6 +30,7 @@ import {
   readReleaseCenterPayload,
   selectPersonalizedReleaseItems
 } from './releases/releaseCenter.js';
+import { parseJsonBody } from './api/requestSanitizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -249,26 +250,14 @@ function topicConfigName(topicId) {
 }
 
 function readBody(req) {
-  if (!req.body) return {};
-  if (typeof req.body === 'string') {
-    try { return JSON.parse(req.body); } catch (e) { return {}; }
-  }
-  if (Buffer.isBuffer(req.body)) {
-    try { return JSON.parse(req.body.toString('utf8')); } catch (e) { return {}; }
-  }
-  return typeof req.body === 'object' ? req.body : {};
+  return parseJsonBody(req.body);
 }
 
 async function readJsonRequest(req) {
   if (req.body) return readBody(req);
   let body = '';
   for await (const chunk of req) body += chunk;
-  if (!body) return {};
-  try {
-    return JSON.parse(body);
-  } catch (err) {
-    return {};
-  }
+  return parseJsonBody(body);
 }
 
 function safePracticeFileName(value) {
@@ -588,9 +577,7 @@ export default async function handler(req, res) {
     // Auth Endpoint - Does NOT require userId
     if (url === '/api/auth/google' && method === 'POST') {
       try {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const { token } = JSON.parse(body);
+        const { token } = await readJsonRequest(req);
         
         const ticket = await client.verifyIdToken({
           idToken: token, audience: process.env.GOOGLE_CLIENT_ID
@@ -653,9 +640,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify(sessions));
       } 
       else if (url === '/api/study/session' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const sessionData = JSON.parse(body);
+        const sessionData = await readJsonRequest(req);
         const session = new StudySession({ ...sessionData, userId });
         await session.save();
         res.writeHead(201, { 'Content-Type': 'application/json' });
@@ -672,9 +657,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ completedTasks: tasks.map(t => t.index) }));
       }
       else if (url === '/api/study/toggle-task' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const payload = JSON.parse(body || '{}');
+        const payload = await readJsonRequest(req);
         const taskIndex = Number(payload.index ?? payload.taskId);
         if (!Number.isFinite(taskIndex)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -714,10 +697,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, completedTasks: [], sessions: [] }));
       }
       else if (url.match(/^\/api\/jobs\/[^/]+\/status$/) && method === 'PATCH') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        let payload = {};
-        try { payload = JSON.parse(body || '{}'); } catch (e) { payload = {}; }
+        const payload = await readJsonRequest(req);
 
         const routeId = decodeURIComponent(url.split('/')[3] || '');
         const rawKey = payload.job_hash || payload.jobHash || payload.jobId || routeId;
@@ -868,9 +848,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify(summary));
       }
       else if (url === '/api/profile/sync' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const { platform } = JSON.parse(body);
+        const { platform } = await readJsonRequest(req);
 
         console.log(`[Sync] Triggering local AI sync for ${platform}...`);
         
@@ -944,9 +922,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, leaderboard }));
       }
       else if (url === '/api/profile/save-retention' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const { topicId, stats } = JSON.parse(body || '{}');
+        const { topicId, stats } = await readJsonRequest(req);
         if (!topicId || !stats) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'topicId and stats are required' }));
@@ -976,9 +952,7 @@ export default async function handler(req, res) {
         }
       }
       else if (url.includes('profile/save') && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const { _id, __v, createdAt, ...profileData } = JSON.parse(body || '{}');
+        const { _id, __v, createdAt, ...profileData } = await readJsonRequest(req);
 
         // Fetch existing for merging
         let existing = null;
@@ -1043,9 +1017,7 @@ export default async function handler(req, res) {
         }
       }
       else if (url === '/api/profile/import' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const payload = JSON.parse(body || '{}');
+        const payload = await readJsonRequest(req);
         const extracted = extractProfileImportFields(payload.text || payload.profileText || '');
         if (!extracted.rawText) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1232,9 +1204,7 @@ export default async function handler(req, res) {
         }
       }
       else if (url === '/api/jobs/apply' && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const { hash } = JSON.parse(body);
+        const { hash } = await readJsonRequest(req);
         
         const job = await JobRecord.findOne({ job_hash: hash, userId });
         if (!job) {
@@ -1252,9 +1222,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, message: 'Automation launched' }));
       }
       else if (url.startsWith('/api/ai/') && method === 'POST') {
-        let body = '';
-        for await (const chunk of req) body += chunk;
-        const payload = JSON.parse(body || '{}');
+        const payload = await readJsonRequest(req);
         const kind = url.split('/').pop();
         const prompt = payload.prompt || payload.answer || payload.message || JSON.stringify(payload);
         let responseText = '';
@@ -1314,7 +1282,7 @@ export default async function handler(req, res) {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { prompt, topic, difficulty } = JSON.parse(body);
+        const { prompt, topic, difficulty } = parseJsonBody(body);
         
         // Construct a specialized system prompt for the interview
         const systemPrompt = `You are a Senior Salesforce Technical Interviewer. 
@@ -1351,7 +1319,7 @@ export default async function handler(req, res) {
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
       try {
-        const { platform } = JSON.parse(body);
+        const { platform } = parseJsonBody(body);
         const { exec } = await import('child_process');
         
         exec(`node src/tools/syncProfile.js ${platform || 'LinkedIn'}`, (error, stdout, stderr) => {

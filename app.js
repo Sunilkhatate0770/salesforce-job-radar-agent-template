@@ -3918,7 +3918,9 @@ async function renderTimetable() {
   }
   
   console.log('WAIT [SCHEDULE] Population started...');
-  container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--muted);">Loading daily schedule...</div>';
+  container.innerHTML = typeof renderSkeletonRows === 'function'
+    ? `<div class="content-card" aria-busy="true">${renderSkeletonRows(4)}</div>`
+    : '<div class="content-card" aria-busy="true"><div class="loading-spinner sm"></div></div>';
 
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();

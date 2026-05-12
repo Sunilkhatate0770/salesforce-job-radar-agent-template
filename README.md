@@ -130,7 +130,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (63 tests)
+├── test/                # Node.js test suite (66 tests)
 └── vercel.json          # Vercel deployment config
 ```
 
@@ -163,6 +163,7 @@ npm run test:opportunities
 - No bundler/build step — files are served directly
 - `app.js`, `styles.css`, `src/styles/job-radar.css`, and `api/router.js` are still large legacy files — modularization must be feature-by-feature with regression checks
 - Runtime Google Client ID now comes from `/api/client-config`; OAuth client IDs remain public browser configuration
+- Request bodies are sanitized through a shared Vercel/local helper before private mutations run
 - Service worker caches aggressively — may need manual cache clear after deploys
 - No lint script yet — use `npm run check:syntax` and `npm test` until ESLint is introduced in a staged pass
 

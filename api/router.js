@@ -27,6 +27,7 @@ import {
   selectPersonalizedReleaseItems
 } from '../src/releases/releaseCenter.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
+import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
 
 /**
  * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
@@ -38,62 +39,6 @@ import { applyRateLimit } from '../src/api/rateLimit.js';
  * automatically via the checkAndArchiveOverflow() engine to maintain 
  * the 512MB MongoDB limit. READS must merge both tiers.
  */
-
-// ===== INPUT VALIDATION HELPERS (v1413) =====
-function validateString(value, maxLength = 500) {
-  if (value === undefined || value === null) return '';
-  const str = String(value).trim();
-  return str.slice(0, maxLength);
-}
-
-function validateNumber(value, min = 0, max = 100, fallback = 0) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return fallback;
-  return Math.max(min, Math.min(max, num));
-}
-
-function validateArray(value, maxItems = 100, maxItemLength = 200) {
-  if (!Array.isArray(value)) return [];
-  return value
-    .slice(0, maxItems)
-    .map(item => validateString(item, maxItemLength))
-    .filter(Boolean);
-}
-
-function validateEnum(value, allowed, fallback) {
-  const str = String(value || '').toLowerCase().trim();
-  return allowed.includes(str) ? str : fallback;
-}
-
-function sanitizeBody(body, schema) {
-  if (!body || typeof body !== 'object') return {};
-  const result = {};
-  for (const [key, rule] of Object.entries(schema)) {
-    if (!(key in body)) continue;
-    const value = body[key];
-    switch (rule.type) {
-      case 'string':
-        result[key] = validateString(value, rule.maxLength || 500);
-        break;
-      case 'number':
-        result[key] = validateNumber(value, rule.min || 0, rule.max || 10000, rule.fallback || 0);
-        break;
-      case 'array':
-        result[key] = validateArray(value, rule.maxItems || 100, rule.maxItemLength || 200);
-        break;
-      case 'enum':
-        result[key] = validateEnum(value, rule.allowed || [], rule.fallback || '');
-        break;
-      case 'boolean':
-        result[key] = Boolean(value);
-        break;
-      default:
-        result[key] = value;
-    }
-  }
-  return result;
-}
-// ===== END INPUT VALIDATION =====
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -277,14 +222,7 @@ function mongoJobQuery(userId) {
 }
 
 function readBody(req) {
-  if (!req.body) return {};
-  if (typeof req.body === 'string') {
-    try { return JSON.parse(req.body); } catch (e) { return {}; }
-  }
-  if (Buffer.isBuffer(req.body)) {
-    try { return JSON.parse(req.body.toString('utf8')); } catch (e) { return {}; }
-  }
-  return typeof req.body === 'object' ? req.body : {};
+  return parseJsonBody(req.body);
 }
 
 function normalizeBoardStatus(value) {
@@ -889,15 +827,17 @@ export default async function(req, res) {
     // Soft Connect to Legacy DB
     await connectDB();
 
-    // GLOBAL BODY PARSER
-    if (req.method === 'POST' && req.body && typeof req.body === 'string') {
-      try { req.body = JSON.parse(req.body); } catch(e) { console.error('Body parse fail:', e); }
+    // GLOBAL BODY PARSER + SANITIZER
+    if ((req.method === 'POST' || req.method === 'PATCH') && req.body) {
+      req.body = typeof req.body === 'string' || Buffer.isBuffer(req.body)
+        ? parseJsonBody(req.body)
+        : sanitizeApiBody(req.body);
     }
 
     // 1. AUTH ENDPOINTS
     if (path === 'auth/google' && req.method === 'POST') {
       try {
-        const { token } = req.body;
+        const { token } = readBody(req);
         const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
         const payload = ticket.getPayload();
         const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
@@ -1311,7 +1251,7 @@ export default async function(req, res) {
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/toggle-bookmark');
       const profile = loadedProfile || {};
       let bookmarks = profile?.bookmarks || [];
-      const bookmark = req.body;
+      const bookmark = readBody(req);
       
       const exists = bookmarks.some(b => b.q === bookmark.q);
       if (exists) {

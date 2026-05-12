@@ -128,7 +128,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 - ✅ **Gradient Text** — `.gradient-text` utility for branded heading treatments
 
 ### Backend Improvements (v1413)
-- ✅ **Input Validation** — Added `validateString`, `validateNumber`, `validateArray`, `validateEnum`, `sanitizeBody` helpers
+- ✅ **Input Validation** — Added shared request sanitization for Vercel and local API routes, including prototype-pollution protection and payload caps
 - ✅ **CORS Preflight** — Full OPTIONS handler with configurable headers
 - ✅ **Error Masking** — Production-safe error responses that never leak stack traces
 
@@ -287,8 +287,8 @@ Gradually migrate to TypeScript:
 
 ### Short-term (1-2 Weeks)
 - [ ] Replace in-memory API limiter with distributed Upstash or Vercel Edge Middleware enforcement
-- [ ] Apply `sanitizeBody()` validation to all POST endpoints
-- [ ] Integrate loading skeletons into all async data sections
+- [x] Apply shared request-body sanitization to Vercel and local POST/PATCH endpoints
+- [x] Integrate skeleton/spinner states into core async data sections
 
 ### Medium-term (1-2 Months)
 - [ ] Add Vite build pipeline for bundling and minification

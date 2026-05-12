@@ -506,7 +506,11 @@
     <div class="page-sub">Current release intelligence mapped to your Salesforce experience level and target designation.</div>
   </div>
   <div id="releaseCenterContent">
-    <div class="content-card">Loading Salesforce release intelligence...</div>
+    <div class="content-card" aria-busy="true">
+      <div class="skeleton-heading skeleton"></div>
+      <div class="skeleton-text skeleton long"></div>
+      <div class="skeleton-text skeleton medium"></div>
+    </div>
   </div>
 </div>
 
@@ -516,7 +520,10 @@
     <div class="page-sub">Guided Salesforce coding drills with browser preview, Apex static checks, AI review, and Google-synced attempts.</div>
   </div>
   <div id="codePracticeApp" class="code-practice-shell">
-    <div class="cp-loading">Loading Code Practice workspace...</div>
+    <div class="cp-loading" aria-busy="true">
+      <span class="loading-spinner sm" aria-hidden="true"></span>
+      Loading Code Practice workspace...
+    </div>
   </div>
 </div>
 
@@ -753,8 +760,21 @@
       </button>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;">
-      <div id="leaderboardList" style="display:flex; flex-direction:column; gap:10px;">
-        <span style="color:var(--muted); font-size:0.8rem;">Loading your study summary...</span>
+      <div id="leaderboardList" style="display:flex; flex-direction:column; gap:10px;" aria-busy="true">
+        <div class="skeleton-row">
+          <div class="skeleton-avatar skeleton"></div>
+          <div style="flex:1;">
+            <div class="skeleton-text skeleton medium"></div>
+            <div class="skeleton-text skeleton short"></div>
+          </div>
+        </div>
+        <div class="skeleton-row">
+          <div class="skeleton-avatar skeleton"></div>
+          <div style="flex:1;">
+            <div class="skeleton-text skeleton medium"></div>
+            <div class="skeleton-text skeleton short"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
