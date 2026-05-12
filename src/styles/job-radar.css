@@ -3558,6 +3558,50 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
   isolation: isolate;
 }
 
+/* Career OS card normalization: keep job intelligence cards on the shared
+   surface system without changing their rendered data or actions. */
+#job_radar .job-radar-card,
+#job_radar .job-card-prob,
+#job_radar .insight-card,
+#job_radar .insight-card-v3,
+#job_radar .jcard,
+#job_radar .jcard-v3,
+#job_radar .radar-stat-card,
+#job_radar .radar-kpi-card {
+  background: var(--color-surface, var(--jr-surface, var(--surface))) !important;
+  border: 1px solid oklch(from var(--color-text, #e2e8f0) l c h / 0.10) !important;
+  border-left-color: oklch(from var(--color-text, #e2e8f0) l c h / 0.10) !important;
+  border-left-width: 1px !important;
+  border-radius: var(--radius-lg, 12px) !important;
+  box-shadow: var(--shadow-sm, 0 8px 24px rgba(0, 0, 0, 0.22)) !important;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), border-color 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#job_radar .job-radar-card:hover,
+#job_radar .job-card-prob:hover,
+#job_radar .insight-card:hover,
+#job_radar .insight-card-v3:hover,
+#job_radar .jcard:hover,
+#job_radar .jcard-v3:hover,
+#job_radar .radar-stat-card:hover,
+#job_radar .radar-kpi-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--shadow-lg, 0 18px 44px rgba(0, 0, 0, 0.34)) !important;
+}
+
+#job_radar .jcard-why {
+  border-left-color: oklch(from var(--color-text, #e2e8f0) l c h / 0.10) !important;
+  border-left-width: 1px !important;
+  border-radius: var(--radius-md, 8px) !important;
+}
+
+#job_radar .jcard-icon,
+#job_radar .radar-stat-card .stat-icon {
+  background: transparent !important;
+  color: var(--color-primary, var(--jr-blue, #60a5fa)) !important;
+  border-color: var(--color-border, var(--jr-border, #1e3055)) !important;
+}
+
 .activity-log-panel::before {
   content: "";
   position: absolute;

@@ -12,14 +12,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="SF Prep">
+  <!-- Fontshare - body font -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet">
+
+  <!-- Google Fonts - display/heading font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260512-study-analytics">
-<link rel="stylesheet" href="responsive.css?v=20260512-study-analytics">
-<link rel="stylesheet" href="src/styles/navigation.css?v=20260509-collapsed-header-cleanup">
+<link rel="stylesheet" href="styles.css?v=20260512-career-os">
+<link rel="stylesheet" href="responsive.css?v=20260512-career-os">
+<link rel="stylesheet" href="src/styles/navigation.css?v=20260512-career-os">
   <script>
     window._sfjrClientConfigPromise = null;
     window.loadClientConfig = function() {
@@ -82,7 +89,7 @@
   </script>
   <script src="https://accounts.google.com/gsi/client" async defer onload="initializeGoogleSignIn()"></script>
 <script src="src/radar-cloud.js?v=20260503-radar-scroll"></script>
-<script src="src/components.js?v=20260506-pager-controls"></script>
+<script src="src/components.js?v=20260512-career-os"></script>
   <!-- app.js moved to bottom for performance and DOM stability -->
 </head>
 <body>
@@ -197,6 +204,9 @@
       INITIATE GLOBAL JOB SCAN
     </button>
     <div id="scanStatusText" style="font-size:0.6rem; color:var(--muted); text-align:center; margin-top:8px;">Ready to scan</div>
+    <div class="scan-stage-progress" aria-label="Job scan progress">
+      <span id="scanStageProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></span>
+    </div>
     
     <!-- REVISION ALERTS (v1342) -->
     <div id="revisionAlerts" style="margin-top:20px;"></div>
@@ -310,6 +320,10 @@
     </div>
 
     <div class="header-zone-right">
+      <button type="button" class="theme-toggle-btn" data-theme-toggle aria-label="Toggle light or dark theme" title="Light / Dark Theme">
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path></svg>
+      </button>
       <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
         <span id="uiModeToggleLabel">Modern</span>
       </button>
@@ -357,9 +371,9 @@
       <span style="width:42px; height:42px; background:linear-gradient(135deg,#8b5cf6,#3b82f6); border-radius:12px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 15px rgba(139,92,246,0.3);">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><polyline points="17 11 19 13 23 9"></polyline></svg>
       </span>
-      AI Profile Matching & Study Plan
+      Career Operating System
     </div>
-	  <div class="page-sub">One career intelligence view for experience roadmap, safe profile import, releases, and job-gap study planning.</div>
+	  <div class="page-sub">A Salesforce professional command center for today's focus, job radar, interview readiness, and next actions.</div>
   </div>
 
   <div id="premiumOnboardingPanel" class="premium-onboarding-panel">
@@ -891,10 +905,11 @@
 
     <!-- Chat Interface -->
     <div id="interviewChat" style="flex:1; overflow-y:auto; padding:1.5rem; display:flex; flex-direction:column; gap:1.5rem;">
-      <div style="text-align:center; color:var(--muted); margin-top:100px;">
-        <div style="font-size:3rem; margin-bottom:1rem; color:var(--blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:80px;height:80px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg></div>
-        <h3>Welcome to the Interview Room</h3>
-        <p>Your AI interview engine is ready to challenge you.</p>
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg></div>
+        <h3>No mock interviews scheduled</h3>
+        <p>Set one up now and practice with real-time feedback from your AI agent.</p>
+        <button type="button" class="empty-state-action" onclick="document.getElementById('interviewTopic')?.focus()">Set Up Mock</button>
       </div>
     </div>
 
@@ -1126,11 +1141,27 @@
 </div><!-- end #main -->
 
 
-<script src="src/data/navigation.js?v=20260506-core-scenario"></script>
+<script src="src/data/navigation.js?v=20260512-career-os"></script>
 <script src="src/data/salesforceContent.js?v=20260506-nav-fallback"></script>
 <script src="src/data/studyAnalytics.js?v=20260512-study-analytics"></script>
-<script src="app.js?v=20260512-study-analytics"></script>
+<script src="app.js?v=20260512-career-os"></script>
 <script src="src/ui-shell.js?v=20260503-radar-scroll"></script>
 <script src="code-practice.js?v=20260506-builder-fix"></script>
+<script>
+  (function(){
+    const t = document.querySelector('[data-theme-toggle]');
+    const r = document.documentElement;
+    let d = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+    const sync = function() {
+      r.setAttribute('data-theme', d);
+      if (t) t.setAttribute('aria-pressed', d === 'dark' ? 'true' : 'false');
+    };
+    sync();
+    t && t.addEventListener('click', () => {
+      d = d === 'dark' ? 'light' : 'dark';
+      sync();
+    });
+  })();
+</script>
 </body>
 </html>

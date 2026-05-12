@@ -1287,7 +1287,14 @@ window.solve = solve;`
           <span class="cp-badge score">${completed.length} complete</span>
           <span class="cp-badge">${attempts.length} attempts</span>
         </div>
-        ${attempts[0] ? `<div class="cp-subtle" style="margin-top:10px;">Latest: ${escapeHtml(attempts[0].title || attempts[0].challengeId)} (${Number(attempts[0].score || 0)}%)</div>` : '<div class="cp-subtle" style="margin-top:10px;">No saved attempts yet.</div>'}
+        ${attempts[0] ? `<div class="cp-subtle" style="margin-top:10px;">Latest: ${escapeHtml(attempts[0].title || attempts[0].challengeId)} (${Number(attempts[0].score || 0)}%)</div>` : `
+          <div class="empty-state cp-empty-state">
+            <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 9l-4 3 4 3"></path><path d="M16 9l4 3-4 3"></path><path d="M14 5l-4 14"></path></svg></div>
+            <h3>No coding attempts this week</h3>
+            <p>Try a challenge and save your first run when you are ready.</p>
+            <button type="button" class="empty-state-action" data-cp-action="run">Try a Challenge</button>
+          </div>
+        `}
       </div>
     `;
   }

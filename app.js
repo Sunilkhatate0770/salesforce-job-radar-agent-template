@@ -946,6 +946,14 @@ function setScopedItem(key, value) {
 }
 
 const RECENT_TOPIC_LIMIT = 14;
+const SIDEBAR_CLUSTER_CONFIG = Object.freeze([
+  { id: 'dashboard', label: 'Dashboard', description: 'Daily plan, progress, history, and saved revision.' },
+  { id: 'jobs', label: 'Jobs', description: 'Job Radar, pipeline, applications, and role fit.' },
+  { id: 'interview-prep', label: 'Interview Prep', description: 'Salesforce topic banks and guided prep paths.' },
+  { id: 'practice', label: 'Practice', description: 'Coding reps, mock rooms, speaking, and behavioral drills.' },
+  { id: 'intelligence', label: 'Intelligence', description: 'Releases, companies, FDE, Agentforce, and Data Cloud.' },
+  { id: 'settings', label: 'Settings', description: 'Profile sources, display mode, and workspace preferences.' }
+]);
 
 function getRecentTopicItems() {
   const recentIds = readScopedJson('recentTopics', [], 'sf_recent_topics');
@@ -958,6 +966,57 @@ function getRecentTopicItems() {
       name: topicConfig[id].name || topicConfigName(id),
       group: topicConfig[id].group || 'Topic'
     }));
+}
+
+function getSidebarClusterId(group = {}, item = {}) {
+  const groupId = String(group.id || '');
+  const itemId = String(item.id || '');
+
+  if (itemId === 'job_radar') return 'jobs';
+  if (itemId === 'code_practice') return 'practice';
+  if (itemId === 'salesforce_releases' || ['company-prep', 'fde-prep', 'agentforce-data-cloud'].includes(groupId)) return 'intelligence';
+  if (groupId === 'home-dashboard') return 'dashboard';
+  if (groupId === 'mock-communication') return 'practice';
+  return 'interview-prep';
+}
+
+function getSidebarClusteredGroups(sourceGroups = []) {
+  const clusters = SIDEBAR_CLUSTER_CONFIG.map(config => ({ ...config, items: [] }));
+  const byId = new Map(clusters.map(cluster => [cluster.id, cluster]));
+
+  (sourceGroups || []).forEach(group => {
+    (group.items || []).forEach(item => {
+      const clusterId = getSidebarClusterId(group, item);
+      const cluster = byId.get(clusterId) || byId.get('interview-prep');
+      cluster.items.push({
+        ...item,
+        section: group.label || item.section || 'Modules',
+        description: item.description || group.description || ''
+      });
+    });
+  });
+
+  return clusters;
+}
+
+function renderSidebarSettingsUtility() {
+  return `
+    <div class="nav-subsection nav-settings-utility" data-nav-subsection="Workspace">
+      <div class="nav-subsection-title">Workspace</div>
+      <button type="button" class="nav-item nav-utility-item" onclick="showPage('profile_match');document.getElementById('syncCtaCards')?.style.setProperty('display','grid');document.getElementById('profileSourceHeading')?.style.setProperty('display','flex')" title="Profile sources" aria-label="Profile sources">
+        ${renderNavIcon('user')}
+        <span class="nav-item-label">Profile Sources</span>
+      </button>
+      <button type="button" class="nav-item nav-utility-item" onclick="document.querySelector('[data-theme-toggle]')?.click()" title="Toggle theme" aria-label="Toggle theme">
+        ${renderNavIcon('settings')}
+        <span class="nav-item-label">Theme Mode</span>
+      </button>
+      <button type="button" class="nav-item nav-utility-item" onclick="toggleUiMode()" title="Toggle UI mode" aria-label="Toggle UI mode">
+        ${renderNavIcon('settings')}
+        <span class="nav-item-label">Classic / Modern</span>
+      </button>
+    </div>
+  `;
 }
 
 function getSidebarBadge(item) {
@@ -999,6 +1058,7 @@ const NAV_ICON_PATHS = Object.freeze({
   fde: '<path d="M4 18l6-12 4 8 2-4 4 8"></path><path d="M4 18h16"></path>',
   company: '<path d="M5 20V6l7-3 7 3v14"></path><path d="M9 20v-6h6v6"></path><path d="M9 8h.01M12 8h.01M15 8h.01M9 11h.01M12 11h.01M15 11h.01"></path>',
   mock: '<path d="M5 6h14v9H8l-3 3V6Z"></path><path d="M9 10h6M9 13h4"></path>',
+  settings: '<path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z"></path><path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.05.05a2 2 0 1 1-2.83 2.83l-.05-.05a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.1 1.65V21a2 2 0 1 1-4 0v-.08a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-2 .36l-.05.05a2 2 0 1 1-2.83-2.83L3.9 16.8a1.8 1.8 0 0 0 .36-2 1.8 1.8 0 0 0-1.65-1.1H2.5a2 2 0 1 1 0-4h.08a1.8 1.8 0 0 0 1.65-1.1 1.8 1.8 0 0 0-.36-2l-.05-.05A2 2 0 1 1 6.65 3.7l.05.05a1.8 1.8 0 0 0 2 .36 1.8 1.8 0 0 0 1.1-1.65V2.5a2 2 0 1 1 4 0v.08a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 2-.36l.05-.05a2 2 0 1 1 2.83 2.83l-.05.05a1.8 1.8 0 0 0-.36 2 1.8 1.8 0 0 0 1.65 1.1h.08a2 2 0 1 1 0 4h-.08A1.8 1.8 0 0 0 19.4 15Z"></path>',
   book: '<path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 0-4-4V4Z"></path><path d="M5 4v12"></path>'
 });
 
@@ -1030,6 +1090,10 @@ function getNavIconKey(item = {}) {
 function getNavGroupIconKey(group = {}) {
   const text = `${group.id || ''} ${group.label || ''}`.toLowerCase();
   if (/home|dashboard/.test(text)) return 'dashboard';
+  if (/job/.test(text)) return 'radar';
+  if (/practice/.test(text)) return 'code';
+  if (/intelligence/.test(text)) return 'release';
+  if (/settings/.test(text)) return 'settings';
   if (/core developer/.test(text)) return 'apex';
   if (/lightning|ui/.test(text)) return 'ui';
   if (/security|data model/.test(text)) return 'security';
@@ -1108,7 +1172,8 @@ function renderSidebarNavigation(options = {}) {
   const host = document.getElementById('sidebarNavContent');
   if (!host) return;
   const shouldScrollActive = options.scrollActive === true;
-  const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+  const sourceGroups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+  const groups = getSidebarClusteredGroups(sourceGroups);
   const activeNavId = getScopedItem('last_active_tab', 'profile_match');
   const activeGroupIndex = groups.findIndex(group => (group.items || []).some(item => item.id === activeNavId));
   const openGroupIndex = activeGroupIndex >= 0 ? activeGroupIndex : 0;
@@ -1143,15 +1208,21 @@ function renderSidebarNavigation(options = {}) {
       const sectionId = `nav-group-${group.id}`;
       const groupIconKey = getNavGroupIconKey(group);
       const isOpen = groupIndex === openGroupIndex;
+      const groupCount = group.id === 'settings' ? 3 : (group.items || []).length;
       return `
         <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
           <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
             ${renderNavIcon(groupIconKey, `nav-group-icon nav-group-icon-${groupIconKey}`)}
-            <span class="nav-group-label">${escapeHtml(group.label)}</span>
+            <span class="nav-group-text">
+              <span class="nav-group-label">${escapeHtml(group.label)}</span>
+              <span class="nav-group-desc">${escapeHtml(group.description || `${(group.items || []).length} modules`)}</span>
+            </span>
+            <span class="nav-group-count">${escapeHtml(String(groupCount))}</span>
             ${renderNavGroupChevron()}
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
             ${renderSidebarNavSections(group.items)}
+            ${group.id === 'settings' ? renderSidebarSettingsUtility() : ''}
           </div>
         </section>
       `;
@@ -1760,12 +1831,17 @@ async function loadJobRadarMarketIntelligence() {
 }
 
 async function loadJobIntelligence() {
-  const section = document.getElementById('jobIntelligenceSection');
-  const content = document.getElementById('jobIntelligenceContent');
+  const section = document.getElementById('careerOsJobRadarSummary') || document.getElementById('jobIntelligenceSection');
+  const content = document.getElementById('careerOsJobIntelContent') || document.getElementById('jobIntelligenceContent');
   if (!section || !content) return;
 
-  section.style.display = 'block';
-  content.innerHTML = '<div class="premium-loading">Loading job market intelligence...</div>';
+  section.style.display = '';
+  section.classList.remove('error');
+  section.classList.add('loading');
+  content.innerHTML = `
+    <div class="career-os-skeleton" aria-busy="true" aria-label="Loading job market intelligence">
+      <span></span><span></span><span></span>
+    </div>`;
 
   try {
     const res = await apiFetch('/api/profile/match?cb=' + Date.now());
@@ -1773,6 +1849,8 @@ async function loadJobIntelligence() {
       console.log('[JOB-INTEL] API responded with:', res.status);
       const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
       content.innerHTML = renderJobIntelligence(radarIntel);
+      section.classList.remove('loading');
+      if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
       return;
     }
     const data = await res.json();
@@ -1784,6 +1862,8 @@ async function loadJobIntelligence() {
     if (matchedSkills.length === 0 && missingSkills.length === 0) {
       const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
       content.innerHTML = renderJobIntelligence(radarIntel);
+      section.classList.remove('loading');
+      if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
       return;
     }
     content.innerHTML = renderJobIntelligence({
@@ -1791,9 +1871,16 @@ async function loadJobIntelligence() {
       ...data,
       source: 'cloud'
     });
+    section.classList.remove('loading');
+    if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
   } catch (e) {
     console.warn('[JOB-INTEL] Failed to load job intelligence:', e.message);
-    content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache'));
+    content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache')) +
+      (typeof renderInlineErrorState === 'function'
+        ? renderInlineErrorState('Job intelligence is using local data right now.', 'loadJobIntelligence()')
+        : '<div class="inline-error-state">Job intelligence is using local data right now.</div>');
+    section.classList.remove('loading');
+    if (section) section.classList.add('error');
   }
 }
 
@@ -1853,7 +1940,21 @@ async function renderTopicContent(topicId) {
   if (!viewer) return false;
   
   const data = await loadKnowledgeData(topicId);
-  if (!data) return false;
+  if (!data) {
+    const companyBriefTopics = new Set(['company_iq', 'company_interviews', 'mobigic_pwc', 'thenken_globus', 'sf_official', 'sf_onsite', 'deloitte', 'accenture', 'infosys_prep', 'tcs_prep', 'capgemini_prep', 'cognizant_prep', 'persistent_prep', 'epam_prep']);
+    if (companyBriefTopics.has(topicId)) {
+      const page = document.getElementById(topicId) || viewer;
+      page.innerHTML = renderEmptyState({
+        icon: 'briefcase',
+        title: 'No companies researched yet',
+        description: 'Explore top Salesforce employers and turn one brief into interview talking points.',
+        actionLabel: 'Explore Employers',
+        actionFn: "showPage('company_iq')"
+      });
+      return true;
+    }
+    return false;
+  }
 
   viewer.innerHTML = `
     <h1 class="page-title">${data.title || topicConfigName(topicId)}</h1>
@@ -3041,6 +3142,52 @@ function setJobRadarNotice(status, message, detail) {
   }
 }
 
+function updateCareerOsScanStatus(label, active = false) {
+  const node = document.querySelector('.career-os-scan-state');
+  if (!node) return;
+  node.classList.remove('is-transitioning');
+  node.classList.toggle('is-active', active);
+  requestAnimationFrame(() => {
+    node.textContent = label;
+    node.classList.add('is-transitioning');
+  });
+}
+
+function updateJobScanProgress(percent, label) {
+  const bar = document.getElementById('scanStageProgress');
+  const text = document.getElementById('scanStatusText');
+  const value = Math.max(0, Math.min(100, Number(percent || 0)));
+  if (bar) {
+    bar.style.width = `${value}%`;
+    bar.setAttribute('aria-valuenow', String(value));
+  }
+  if (text && label) text.textContent = label;
+}
+
+function runCareerOsScanLifecycle() {
+  const stages = [
+    { label: 'Ready', delay: 0, active: false, progress: 0 },
+    { label: 'Scanning', delay: 120, active: true, progress: 30 },
+    { label: 'Processing', delay: 1050, active: true, progress: 68 },
+    { label: 'Ranked Opportunities', delay: 2200, active: false, progress: 100 }
+  ];
+  (window.__careerOsScanLifecycleTimers || []).forEach(clearTimeout);
+  window.__careerOsScanLifecycleTimers = [];
+  const prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    updateCareerOsScanStatus('Scanning', true);
+    updateJobScanProgress(45, 'Scanning job sources...');
+    return;
+  }
+  stages.forEach(stage => {
+    const timer = setTimeout(() => {
+      updateCareerOsScanStatus(stage.label, stage.active);
+      updateJobScanProgress(stage.progress, `${stage.label}...`);
+    }, stage.delay);
+    window.__careerOsScanLifecycleTimers.push(timer);
+  });
+}
+
 function setJobRadarBadge(text, variant, title) {
   if (window.RadarCloud) {
     window.RadarCloud.setBadge('dbStatusBadge', text, variant, title);
@@ -3610,6 +3757,7 @@ async function triggerJobScan() {
   const isSignedIn = window.RadarCloud ? window.RadarCloud.hasAuth() : Boolean(localStorage.getItem('google_auth_token'));
 
   if (!isSignedIn) {
+    updateJobScanProgress(0, 'Sign in to run a private cloud scan.');
     setJobRadarNotice('locked', 'Sign in to run a cloud scan', 'The scan can only attach results to your private Google profile after sign-in.');
     setJobRadarBadge('Sign-in Required', 'locked', 'Sign in before starting a scan.');
     if (statusText) statusText.textContent = 'Sign in to run a private cloud scan.';
@@ -3621,10 +3769,12 @@ async function triggerJobScan() {
     btn.dataset.originalHtml = originalHtml;
     btn.disabled = true;
     btn.style.opacity = '0.7';
-    btn.innerHTML = 'SCANNING JOB SOURCES...';
+    btn.innerHTML = '<span class="loading-spinner sm" aria-hidden="true"></span><span>SCANNING JOB SOURCES...</span>';
   }
   if (statusText) statusText.textContent = 'Running fresh job scan and profile match analysis...';
+  updateJobScanProgress(12, 'Preparing scan...');
   setJobRadarNotice('loading', 'Starting Job Radar scan', 'Queuing the cloud workflow and keeping your current board available.');
+  runCareerOsScanLifecycle();
 
   showToast('Scan started. Fetching the latest Salesforce roles.');
 
@@ -3637,11 +3787,15 @@ async function triggerJobScan() {
       const scanMessage = data.message || (data.queued ? 'Cloud job radar workflow queued successfully.' : 'Showing cached jobs while scan credentials are configured.');
       if (statusText) statusText.textContent = scanMessage;
       setJobRadarNotice(data.queued ? 'loading' : 'degraded', data.queued ? 'Cloud scan queued' : 'Cached scan mode', scanMessage);
+      updateCareerOsScanStatus(data.queued ? 'Processing' : 'Ranked Opportunities', data.queued);
+      updateJobScanProgress(data.queued ? 72 : 100, scanMessage);
       showToast(data.queued ? 'Cloud scan queued. The board will refresh shortly.' : 'Cloud scan is in cached mode. Check Vercel GitHub envs.');
       setTimeout(async () => {
         await fetchJobsList(); 
         showToast(data.queued ? 'Dashboard refreshed after scan request.' : 'Dashboard refreshed from cached cloud data.');
         if (statusText) statusText.textContent = data.queued ? 'Last scan request completed.' : 'Cached data refresh completed.';
+        updateCareerOsScanStatus('Ranked Opportunities', false);
+        updateJobScanProgress(100, data.queued ? 'Last scan request completed.' : 'Cached data refresh completed.');
         if (btn) {
           btn.disabled = false;
           btn.style.opacity = '1';
@@ -3655,6 +3809,8 @@ async function triggerJobScan() {
     console.error('Scan Error:', e);
     showToast('Scan request failed. Existing board data is still available.');
     setJobRadarNotice('error', 'Scan request failed', e.message || 'Check cloud scan configuration and try again.');
+    updateCareerOsScanStatus('Scan needs retry', false);
+    updateJobScanProgress(0, 'Scan request failed. Try again when ready.');
     if (statusText) statusText.textContent = 'Scan request failed. Check cloud scan configuration and try again.';
     if (btn) {
       btn.disabled = false;
@@ -4166,7 +4322,9 @@ async function showPage(id) {
 	        } else {
 	          if (loadingEl) {
 	            loadingEl.style.display = 'block';
-	            loadingEl.innerHTML = renderSkeletonProfile() + renderSkeletonCards(2);
+	            loadingEl.innerHTML = typeof renderSkeletonDashboard === 'function'
+                ? renderSkeletonDashboard()
+                : renderSkeletonProfile() + renderSkeletonCards(2);
 	          }
 	          loadUserProfile().then(() => {
 	            if (cachedUserProfile) {
@@ -5128,25 +5286,8 @@ function syncSidebarStickyOffset() {
 
 // --- THEME TOGGLE (v1415) ---
 function toggleTheme() {
-  const isLight = document.documentElement.classList.toggle('theme-light');
-  localStorage.setItem('job_radar_theme', isLight ? 'light' : 'dark');
-  const btn = document.querySelector('.theme-toggle-btn svg');
-  if (btn) {
-    if (isLight) {
-      btn.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-    } else {
-      btn.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-    }
-  }
+  document.querySelector('[data-theme-toggle]')?.click();
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('job_radar_theme') === 'light') {
-    document.documentElement.classList.add('theme-light');
-    const btn = document.querySelector('.theme-toggle-btn svg');
-    if (btn) btn.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-  }
-});
 
 // --- DESKTOP SIDEBAR COLLAPSE (v1414) ---
 function toggleDesktopSidebar() {

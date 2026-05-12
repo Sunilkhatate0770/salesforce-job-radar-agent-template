@@ -33,11 +33,24 @@ function renderSkeletonProfile() {
 }
 
 function renderSkeletonDashboard() {
-  return `<div style="display:grid;gap:16px;padding:4px 0;">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
-      ${Array.from({ length: 3 }, () => `<div class="skeleton-card skeleton" style="height:80px;border-radius:14px;"></div>`).join('')}
+  return `<div class="career-os-shell dashboard-skeleton-state" aria-busy="true" aria-label="Loading dashboard">
+    <section class="career-os-panel card-featured">
+      <div class="skeleton-heading skeleton"></div>
+      <div class="skeleton-text skeleton long"></div>
+      <div class="skeleton-grid">
+        ${Array.from({ length: 3 }, () => `<div class="skeleton-card skeleton" style="height:72px;"></div>`).join('')}
+      </div>
+    </section>
+    <div class="career-os-grid">
+      ${Array.from({ length: 3 }, () => `
+        <section class="career-os-panel card-standard">
+          <div class="skeleton-heading skeleton"></div>
+          <div class="skeleton-text skeleton long"></div>
+          <div class="skeleton-text skeleton medium"></div>
+          <div class="skeleton-card skeleton" style="height:96px;"></div>
+        </section>
+      `).join('')}
     </div>
-    ${renderSkeletonCards(2)}
   </div>`;
 }
 
@@ -62,15 +75,24 @@ function renderEmptyState(options = {}) {
   };
 
   const actionHtml = actionLabel && actionFn
-    ? `<button class="btn-ghost-sm" onclick="${actionFn}" style="margin-top:8px;">${actionLabel}</button>`
+    ? `<button type="button" class="empty-state-action" onclick="${actionFn}">${componentEscapeHtml(actionLabel)}</button>`
     : '';
 
-  return `<div class="empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1.5rem;text-align:center;gap:12px;min-height:200px;">
-    ${icons[icon] || icons.inbox}
-    <div style="font-size:0.95rem;font-weight:600;color:var(--text);opacity:0.7;">${title}</div>
-    ${description ? `<div style="font-size:0.75rem;color:var(--muted);max-width:320px;line-height:1.5;">${description}</div>` : ''}
+  return `<div class="empty-state">
+    <div class="empty-state-icon">${icons[icon] || icons.inbox}</div>
+    <h3>${componentEscapeHtml(title)}</h3>
+    ${description ? `<p>${componentEscapeHtml(description)}</p>` : ''}
     ${actionHtml}
   </div>`;
+}
+
+function renderInlineErrorState(message, retryAction = '') {
+  return `
+    <div class="inline-error-state" role="status">
+      <span>${componentEscapeHtml(message || 'Something needs another try.')}</span>
+      ${retryAction ? `<button type="button" class="career-os-link-btn" onclick="${retryAction}">Retry</button>` : ''}
+    </div>
+  `;
 }
 
 // --- PRESENTATION HELPERS ---
@@ -141,6 +163,411 @@ function renderUserProfile(user) {
   if (sidebarEmail) sidebarEmail.textContent = user.email;
 }
 
+function getCareerOsTodayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function careerOsFormatDate() {
+  return new Date().toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+function careerOsFormatHours(seconds) {
+  const value = Math.max(0, Number(seconds || 0));
+  const hours = value / 3600;
+  if (hours >= 10) return `${Math.round(hours)}h`;
+  if (hours >= 1) return `${hours.toFixed(1)}h`;
+  return `${Math.round(value / 60)}m`;
+}
+
+function careerOsFormatCount(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? String(number) : '0';
+}
+
+function getCareerOsTopicName(topic) {
+  return componentEscapeHtml(extractIndustrialTopicName(topic));
+}
+
+function getCareerOsTopicId(topic, fallback = 'study_tracker') {
+  if (!topic) return fallback;
+  if (typeof topic === 'string') return topic.toLowerCase().replace(/\s+/g, '_');
+  return topic.topicId || topic.id || topic.sectionId || fallback;
+}
+
+function getCareerOsStudySnapshot(profile, liveContext = true) {
+  let data = {};
+  try {
+    data = typeof globalStudyData !== 'undefined' && globalStudyData ? globalStudyData : {};
+  } catch (err) {
+    data = {};
+  }
+
+  const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+  const topics = data.topics || {};
+  const todayKey = getCareerOsTodayKey();
+  const todaySeconds = sessions
+    .filter(session => session && session.date === todayKey)
+    .reduce((sum, session) => sum + Number(session.duration || 0), 0);
+  const liveSeconds = liveContext && typeof getCurrentElapsed === 'function' ? getCurrentElapsed() : 0;
+  const totalSeconds = Object.values(topics)
+    .reduce((sum, topic) => sum + Number(topic?.totalSeconds || 0), 0) + liveSeconds;
+  const recentSessions = sessions
+    .slice()
+    .sort((a, b) => new Date(b.endTime || b.startTime || b.date || 0) - new Date(a.endTime || a.startTime || a.date || 0));
+  const lastTopic = recentSessions[0]?.topicName || recentSessions[0]?.topic || '';
+
+  return {
+    todaySeconds: todaySeconds + liveSeconds,
+    totalSeconds,
+    sessionCount: sessions.length,
+    lastTopic,
+    activeTopic: typeof currentTrackedPage !== 'undefined' && currentTrackedPage
+      ? (topicConfig?.[currentTrackedPage]?.name || currentTrackedPage)
+      : '',
+    roadmapCount: Array.isArray(profile.studyPlanTopics) ? profile.studyPlanTopics.length : 0
+  };
+}
+
+function getCareerOsJobSnapshot() {
+  const jobs = Array.isArray(window.pipelineJobs) ? window.pipelineJobs : [];
+  const byStatus = status => jobs.filter(job => componentText(job.status, 'todo') === status);
+  const todo = byStatus('todo');
+  const applied = byStatus('applied');
+  const interview = byStatus('interview');
+  const offer = byStatus('offer');
+  const rejected = byStatus('rejected');
+  const highFit = todo.filter(job => Number(job.score || job.match_score || 0) >= 80);
+  const followUps = typeof getFollowUpStatus === 'function'
+    ? jobs.filter(job => getFollowUpStatus(job))
+    : [];
+  const fresh = typeof jobRadarDaysOld === 'function'
+    ? todo.filter(job => jobRadarDaysOld(job) <= 1)
+    : todo.slice(0, 3);
+  const newest = jobs.slice().sort((a, b) => {
+    const dateA = typeof jobRadarDate === 'function' ? jobRadarDate(a) : new Date(a.createdAt || a.first_seen_at || 0);
+    const dateB = typeof jobRadarDate === 'function' ? jobRadarDate(b) : new Date(b.createdAt || b.first_seen_at || 0);
+    return dateB - dateA;
+  })[0];
+
+  return {
+    jobs,
+    todo,
+    applied,
+    interview,
+    offer,
+    rejected,
+    highFit,
+    followUps,
+    fresh,
+    newest,
+    submitted: applied.length + interview.length + offer.length + rejected.length
+  };
+}
+
+function getCareerOsFocus(profile, jobs) {
+  const topics = Array.isArray(profile.studyPlanTopics) ? profile.studyPlanTopics : [];
+  const missing = Array.isArray(profile.missingSkills) ? profile.missingSkills : [];
+  const firstHighFit = jobs.highFit[0] || jobs.fresh[0] || jobs.todo[0];
+  const firstTopic = topics[0];
+
+  if (typeof currentTrackedPage !== 'undefined' && currentTrackedPage) {
+    return {
+      label: 'Live study block',
+      title: topicConfig?.[currentTrackedPage]?.name || currentTrackedPage,
+      detail: 'Keep the timer running and finish one clean explanation before switching topics.',
+      actionLabel: 'Continue',
+      action: `showPage('${componentEscapeJsArg(currentTrackedPage)}')`
+    };
+  }
+
+  if (firstHighFit) {
+    return {
+      label: 'Best career move',
+      title: `${componentText(firstHighFit.company, 'Target company')} - ${componentText(firstHighFit.role || firstHighFit.title, 'Salesforce role')}`,
+      detail: 'Review the role, tailor the resume actions, and move it through the pipeline today.',
+      actionLabel: 'Open Radar',
+      action: "showPage('job_radar')"
+    };
+  }
+
+  if (firstTopic) {
+    return {
+      label: 'Study focus',
+      title: extractIndustrialTopicName(firstTopic),
+      detail: firstTopic.reason || 'This topic has the strongest signal for your current target role.',
+      actionLabel: 'Start Prep',
+      action: `showPage('${componentEscapeJsArg(getCareerOsTopicId(firstTopic))}')`
+    };
+  }
+
+  return {
+    label: 'Setup focus',
+    title: missing[0] ? `Close ${missing[0]}` : 'Build today\'s Salesforce plan',
+    detail: missing[0]
+      ? 'Turn the top skill gap into one interview-ready story and one code example.'
+      : 'Import your profile or generate the roadmap to personalize the command center.',
+    actionLabel: missing[0] ? 'Open Tracker' : 'Update Profile',
+    action: missing[0] ? "showPage('study_tracker')" : "document.getElementById('syncCtaCards')?.style.setProperty('display','grid')"
+  };
+}
+
+function renderCareerOsMetric(label, value, suffix = '', tone = 'blue') {
+  const numeric = Number(value || 0);
+  return `
+    <div class="career-os-metric ${tone}">
+      <span>${componentEscapeHtml(label)}</span>
+      <strong data-countup="true" data-count-up="${numeric}" data-count-target="${numeric}" data-count-suffix="${componentEscapeAttr(suffix)}">${careerOsFormatCount(numeric)}${componentEscapeHtml(suffix)}</strong>
+    </div>
+  `;
+}
+
+function renderCareerOsInfoMetric(label, value, tone = 'blue') {
+  return `
+    <div class="career-os-metric ${tone}">
+      <span>${componentEscapeHtml(label)}</span>
+      <strong>${componentEscapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function renderCareerOsEmptyState(title, detail, actionLabel, action) {
+  return `
+    <div class="career-os-empty">
+      <strong>${componentEscapeHtml(title)}</strong>
+      <span>${componentEscapeHtml(detail)}</span>
+      ${actionLabel && action ? `<button type="button" class="career-os-link-btn" onclick="${action}">${componentEscapeHtml(actionLabel)}</button>` : ''}
+    </div>
+  `;
+}
+
+function getCareerOsScore(job) {
+  const value = Number(job?.score || job?.match_score || job?.probability || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function getCareerOsJobDate(job) {
+  if (!job) return null;
+  const value = job.last_seen_at || job.first_seen_at || job.posted_at || job.updatedAt || job.updated_at || job.createdAt || job.created_at || job.dateAdded;
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getCareerOsMatchQuality(jobs) {
+  const scored = (jobs.todo.length ? jobs.todo : jobs.jobs)
+    .map(getCareerOsScore)
+    .filter(score => score > 0);
+  if (!scored.length) return 0;
+  return Math.round(scored.reduce((sum, score) => sum + score, 0) / scored.length);
+}
+
+function getCareerOsLastScanLabel(jobs) {
+  const date = getCareerOsJobDate(jobs.newest);
+  if (!date) return 'Not run yet';
+  return typeof timeAgo === 'function' ? timeAgo(date) : date.toLocaleDateString();
+}
+
+function getCareerOsDisplayName(profile) {
+  const name = profile.name || profile.fullName || profile.displayName || (typeof currentUser !== 'undefined' && currentUser?.name) || 'Salesforce pro';
+  return String(name).trim().split(/\s+/)[0] || 'Salesforce pro';
+}
+
+function getCareerOsPrepCategories(profile, strength) {
+  const skills = (profile.skills || []).map(skill => String(skill).toLowerCase());
+  const missing = (profile.missingSkills || []).map(skill => String(skill).toLowerCase());
+  const studyTopics = (() => {
+    try {
+      return typeof globalStudyData !== 'undefined' && globalStudyData?.topics ? globalStudyData.topics : {};
+    } catch (err) {
+      return {};
+    }
+  })();
+  const categories = [
+    { label: 'Apex', keys: ['apex', 'soql', 'async'] },
+    { label: 'LWC', keys: ['lwc', 'lightning web component', 'javascript'] },
+    { label: 'Integration', keys: ['integration', 'rest', 'soap', 'api'] },
+    { label: 'Triggers', keys: ['trigger', 'bulkification', 'order of execution'] },
+    { label: 'Security', keys: ['security', 'sharing', 'permission'] }
+  ];
+
+  return categories.map(category => {
+    const imported = category.keys.some(key => skills.some(skill => skill.includes(key)));
+    const gap = category.keys.some(key => missing.some(skill => skill.includes(key)));
+    const studiedSeconds = Object.entries(studyTopics).reduce((sum, [id, topic]) => {
+      const haystack = `${id} ${topic?.name || ''} ${topic?.topic || ''}`.toLowerCase();
+      return category.keys.some(key => haystack.includes(key)) ? sum + Number(topic?.totalSeconds || 0) : sum;
+    }, 0);
+    const base = Math.round(Number(strength || 0) * 0.45);
+    const value = Math.max(12, Math.min(96, base + (imported ? 28 : 12) + Math.min(24, Math.round(studiedSeconds / 1800)) - (gap ? 16 : 0)));
+    return { ...category, value, status: gap ? 'Needs reps' : imported ? 'Ready' : 'Queued' };
+  });
+}
+
+function renderCareerOsPrepBars(categories) {
+  return categories.map(category => `
+    <div class="career-os-prep-row">
+      <div class="career-os-prep-row-head">
+        <span>${componentEscapeHtml(category.label)}</span>
+        <b>${componentEscapeHtml(category.status)}</b>
+      </div>
+      <div class="career-os-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${category.value}">
+        <span style="--prep-value:${category.value}%"></span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function careerOsSaveTopRoles() {
+  const jobs = Array.isArray(window.pipelineJobs) ? window.pipelineJobs : [];
+  const candidates = jobs
+    .filter(job => componentText(job.status, 'todo') === 'todo')
+    .sort((a, b) => getCareerOsScore(b) - getCareerOsScore(a))
+    .slice(0, 3);
+
+  if (!candidates.length) {
+    if (typeof showToast === 'function') showToast('Start a scan to create top roles to save.');
+    if (typeof triggerJobScan === 'function') triggerJobScan();
+    return;
+  }
+
+  candidates.forEach(job => {
+    job.saved = true;
+    job.pinned = true;
+    job.updatedAt = new Date().toISOString();
+  });
+  if (typeof savePipeline === 'function') savePipeline();
+  if (typeof renderBoard === 'function') renderBoard();
+  if (typeof showToast === 'function') showToast(`${candidates.length} top roles saved to your radar queue.`);
+  const button = document.activeElement;
+  if (button && button.matches('button')) {
+    button.classList.add('btn-success-flash');
+    setTimeout(() => button.classList.remove('btn-success-flash'), 650);
+  }
+}
+
+function buildCareerOsActions(profile, jobs, study, strength) {
+  const topics = Array.isArray(profile.studyPlanTopics) ? profile.studyPlanTopics : [];
+  const missing = Array.isArray(profile.missingSkills) ? profile.missingSkills : [];
+  const applyCount = Math.max(1, Math.min(3, jobs.highFit.length || jobs.fresh.length || jobs.todo.length || 1));
+  const reviewCount = Math.max(5, Math.min(12, (missing.length || topics.length || 3) * 2));
+  const companyName = componentText((jobs.highFit[0] || jobs.fresh[0] || jobs.todo[0])?.company, 'target company');
+  const actions = [];
+
+  actions.push({
+    type: 'Apply',
+    title: `Apply to ${applyCount} high-fit role${applyCount === 1 ? '' : 's'}`,
+    detail: jobs.todo.length ? 'Use the radar board to move the best matches from review to applied.' : 'Run a scan first so your queue starts from fresh opportunities.',
+    actionLabel: jobs.todo.length ? 'View roles' : 'Scan',
+    action: jobs.todo.length ? "showPage('job_radar')" : 'triggerJobScan()',
+    priority: jobs.highFit.length ? 'high' : 'medium',
+    complete: jobs.submitted >= applyCount
+  });
+
+  actions.push({
+    type: 'Review',
+    title: `Review ${reviewCount} interview questions`,
+    detail: missing[0] ? `Lead with ${missing[0]} and turn it into a crisp answer.` : 'Refresh core Salesforce patterns before starting deep work.',
+    actionLabel: 'Review',
+    action: "showPage('questions')",
+    priority: missing.length ? 'high' : 'medium',
+    complete: study.todaySeconds >= 1800
+  });
+
+  actions.push({
+    type: 'Practice',
+    title: 'Practice 1 coding task',
+    detail: 'Keep one Apex, LWC, or JavaScript rep close to interview conditions.',
+    actionLabel: 'Code',
+    action: "showPage('code_practice')",
+    priority: strength >= 70 ? 'medium' : 'high',
+    complete: false
+  });
+
+  actions.push({
+    type: 'Brief',
+    title: 'Read 1 company brief',
+    detail: `Use ${companyName} as today\'s context for role fit and interview talking points.`,
+    actionLabel: 'Briefs',
+    action: "showPage('company_iq')",
+    priority: 'low',
+    complete: false
+  });
+
+  return actions;
+}
+
+function renderCareerOsActionQueue(actions) {
+  return actions.map((item, index) => `
+    <article class="career-os-action-item card-compact animate-reveal ${componentEscapeAttr(item.priority || 'medium')}" style="--reveal-index:${index + 4}">
+      <span class="career-os-check ${item.complete ? 'complete' : ''}" aria-hidden="true"></span>
+      <div class="career-os-action-meta">
+        <span>${componentEscapeHtml(item.type)}</span>
+        <b>${componentEscapeHtml(item.priority || 'medium')}</b>
+      </div>
+      <div class="career-os-action-copy">
+        <h4>${componentEscapeHtml(item.title)}</h4>
+        <p>${componentEscapeHtml(item.detail)}</p>
+      </div>
+      <button type="button" class="career-os-link-btn" onclick="${item.action}">${componentEscapeHtml(item.actionLabel)}</button>
+    </article>
+  `).join('');
+}
+
+function animateCountUpMetrics(root = document) {
+  const motionReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const nodes = Array.from(root.querySelectorAll('[data-countup="true"], [data-count-up]'));
+  nodes.forEach(node => {
+    if (node.dataset.countupStarted === 'true') return;
+    node.dataset.countupStarted = 'true';
+    const target = Number(node.dataset.countTarget || node.dataset.countUp || 0);
+    const suffix = node.dataset.countSuffix || '';
+    if (!Number.isFinite(target)) return;
+    if (motionReduced || target <= 0) {
+      node.textContent = `${Math.round(target)}${suffix}`;
+      return;
+    }
+    const duration = 1000;
+    const start = performance.now();
+    const step = now => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      node.textContent = `${Math.round(target * eased)}${suffix}`;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+function initCountUp(root = document) {
+  animateCountUpMetrics(root);
+}
+
+function initDashboardReveal(root = document) {
+  const nodes = Array.from(root.querySelectorAll('.animate-reveal'));
+  if (!nodes.length) return;
+  const motionReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (motionReduced || typeof IntersectionObserver === 'undefined') {
+    nodes.forEach(node => node.classList.add('is-revealed'));
+    return;
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-revealed');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -32px 0px' });
+
+  nodes.forEach((node, index) => {
+    if (!node.style.getPropertyValue('--reveal-index')) {
+      node.style.setProperty('--reveal-index', index);
+    }
+    observer.observe(node);
+  });
+}
+
 function renderProfileMatchPage(profile) {
   const contentDiv = document.getElementById('profileMatchContent');
   const syncCta = document.getElementById('syncCtaCards');
@@ -175,91 +602,166 @@ function renderProfileMatchPage(profile) {
     syncBadges += '<span class="badge badge-naukri">Naukri Synced</span>';
   }
 
-  let html = `<div class="content-card unified-career-intelligence">
-    <div class="career-summary-card">
-      <div class="card-icon-bg">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"></path><path d="M9 12H4s.55-3.03 2-5c1.62-2.2 5-3 5-3"></path><path d="M12 15v5s3.03-.55 5-2c2.2-1.62 3-5 3-5"></path></svg>
-      </div>
-      <div class="card-header-row">
-        <div>
-          <div class="eyebrow">CAREER PROFILE SUMMARY</div>
-          <div class="headline-sm">Career Readiness: ${strength > 80 ? 'Exceptional' : strength > 50 ? 'Strong' : 'Developing'}</div>
-        </div>
-        <button onclick="document.getElementById('syncCtaCards').style.display='grid';document.getElementById('profileSourceHeading').style.display='flex'" class="btn-ghost-sm">Update Profile</button>
-      </div>
-      <p class="card-desc">
-        Your profile successfully aggregates data from <b>${Object.values(platforms || {}).filter(p => p.synced).length}</b> platforms. 
-        We have identified <b>${skills.length} core competencies</b> and <b>${missing.length} strategic gaps</b>. 
-      </p>
-    </div>
+  const study = getCareerOsStudySnapshot(profile);
+  const jobs = getCareerOsJobSnapshot();
+  const focus = getCareerOsFocus(profile, jobs);
+  const actions = buildCareerOsActions(profile, jobs, study, strength);
+  const readinessLabel = strength > 80 ? 'Exceptional' : strength > 50 ? 'Strong' : 'Developing';
+  const targetRole = profile.targetRole || profile.targetDesignation || 'Salesforce Developer';
+  const currentRole = profile.currentRole || profile.currentDesignation || 'Salesforce Professional';
+  const platformCount = Object.values(platforms || {}).filter(p => p.synced).length;
+  const radarState = window.jobRadarCloudState || { status: 'idle', message: 'Ready', detail: '' };
+  const radarStatusClass = componentEscapeAttr(radarState.status || 'idle');
+  const firstMissing = missing.slice(0, 5);
+  const firstSkills = skills.slice(0, 8);
+  const displayName = getCareerOsDisplayName(profile);
+  const matchQuality = getCareerOsMatchQuality(jobs);
+  const lastScanLabel = getCareerOsLastScanLabel(jobs);
+  const prepCategories = getCareerOsPrepCategories(profile, strength);
+  const streakCount = Math.max(0, Number((typeof studyStreak !== 'undefined' && studyStreak?.current) || 0));
+  const primaryCta = jobs.jobs.length > 0
+    ? { label: 'Resume Interview Prep', action: "showPage('ai_interview')" }
+    : { label: 'Initiate Global Job Scan', action: 'triggerJobScan()' };
+  const pendingActions = actions.filter(action => !action.complete).length;
 
-    <div class="profile-grid profile-metrics-grid">
-      <div class="metric-card">
-        <div class="progress-ring">
-          <svg viewBox="0 0 36 36"><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="3" /><path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--blue)" stroke-width="3" stroke-dasharray="${strength}, 100" /></svg>
-          <div class="progress-val">${strength}%</div>
-        </div>
-        <div>
-          <div class="card-title-sm">Ready for ${profile.targetRole || 'Salesforce Developer'}</div>
-          <div class="card-sub-xs">Target Achievement</div>
-        </div>
-      </div>
-      
-      <div class="metric-card jc-sb">
-        <div class="min-w-0">
-          <div class="card-title-lg truncate">${profile.currentRole || 'Salesforce Professional'}</div>
-          <div class="card-sub-sm">${profile.experienceYears || 0} Years Exp &bull; ${certs.length} Certs</div>
-        </div>
-        <div class="badge-stack">
-          ${syncBadges}
+  let html = `<div class="career-os-shell" data-state="${radarStatusClass}">
+    <section class="career-os-hero today-focus career-os-panel card-featured animate-reveal" style="--reveal-index:0">
+      <div class="career-os-hero-copy">
+        <div class="career-os-kicker">Today's Focus</div>
+        <h2>Welcome back, ${componentEscapeHtml(displayName)}. ${componentEscapeHtml(focus.title)}</h2>
+        <p>${componentEscapeHtml(focus.detail)} ${componentEscapeHtml(careerOsFormatDate())} plan for applications, interview readiness, and Salesforce skill momentum.</p>
+        <div class="career-os-focus-strip career-os-summary-chips">
+          ${renderCareerOsMetric('Roles scanned', jobs.jobs.length, '', 'blue')}
+          ${renderCareerOsMetric('Readiness score', strength, '%', 'green')}
+          ${renderCareerOsMetric('Tasks pending', pendingActions, '', 'amber')}
         </div>
       </div>
-    </div>`;
+      <div class="career-os-identity">
+        <span>${componentEscapeHtml(focus.label)}</span>
+        <strong>${componentEscapeHtml(readinessLabel)}</strong>
+        <em>${componentEscapeHtml(currentRole)} · ${componentEscapeHtml(profile.experienceYears || 0)} yrs exp · ${certs.length} certs · ${platformCount} sources</em>
+        <button type="button" class="career-os-primary-btn" onclick="${primaryCta.action}">${componentEscapeHtml(primaryCta.label)}</button>
+        <button type="button" class="career-os-link-btn" onclick="document.getElementById('syncCtaCards')?.style.setProperty('display','grid');document.getElementById('profileSourceHeading')?.style.setProperty('display','flex')">Update Profile</button>
+      </div>
+    </section>
+
+    <div class="career-os-grid">
+      <section id="careerOsJobRadarSummary" class="career-os-panel job-radar-summary card-standard animate-reveal ${radarStatusClass}" style="--reveal-index:1">
+        <div class="career-os-section-head">
+          <div>
+            <span class="career-os-kicker">Job Radar Summary</span>
+            <h3>Pipeline and market signal</h3>
+          </div>
+          <span class="career-os-scan-state">${componentEscapeHtml(radarState.message || radarState.status || 'Ready')}</span>
+        </div>
+        <div class="career-os-metric-grid">
+          ${renderCareerOsMetric('New matches', jobs.fresh.length || jobs.todo.length, '', 'blue')}
+          ${renderCareerOsMetric('Match quality', matchQuality, '%', matchQuality >= 75 ? 'green' : 'amber')}
+          ${renderCareerOsInfoMetric('Last scan', lastScanLabel, 'violet')}
+          ${renderCareerOsMetric('High fit', jobs.highFit.length, '', 'green')}
+        </div>
+        <div id="careerOsJobIntelContent" class="career-os-job-intel" aria-live="polite">
+          <div class="career-os-skeleton">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="career-os-panel-actions">
+          <button type="button" class="career-os-link-btn" onclick="triggerJobScan()">Scan Now</button>
+          <button type="button" class="career-os-primary-btn" onclick="showPage('job_radar')">View Matches</button>
+          <button type="button" class="career-os-link-btn" onclick="careerOsSaveTopRoles()">Save Top Roles</button>
+        </div>
+      </section>
+
+      <section class="career-os-panel interview-prep-progress card-standard animate-reveal" style="--reveal-index:2">
+        <div class="career-os-section-head">
+          <div>
+            <span class="career-os-kicker">Interview Prep Progress</span>
+            <h3>Topic readiness and streak</h3>
+          </div>
+          <div class="career-os-ring" style="--ring-value:${strength}">
+            <svg viewBox="0 0 36 36" aria-hidden="true">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+              <path class="career-os-ring-value" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"></path>
+            </svg>
+            <strong data-countup="true" data-count-up="${strength}" data-count-target="${strength}" data-count-suffix="%">${strength}%</strong>
+          </div>
+        </div>
+        <div class="career-os-prep-bars">
+          ${renderCareerOsPrepBars(prepCategories)}
+        </div>
+        <div class="career-os-prep-footer">
+          <span class="career-os-streak" aria-label="${streakCount} day practice streak">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22c-3.2 0-6-2.4-6-6.2 0-2.6 1.5-4.6 3.2-6.5.4 1.5 1.3 2.4 2.5 3.1-.2-3.3 1.1-6.6 3.8-9.4.5 3.1 2.5 4.8 4 7.1.9 1.4 1.5 3 1.5 4.8 0 4.1-3 7.1-9 7.1Z" fill="currentColor"></path></svg>
+            <strong data-countup="true" data-count-up="${streakCount}" data-count-target="${streakCount}" data-count-suffix="">${streakCount}</strong>
+            <span>day streak</span>
+          </span>
+          <button type="button" class="career-os-primary-btn" onclick="showPage('ai_interview')">Continue Prep</button>
+        </div>
+        <div class="career-os-skill-columns">
+          <div>
+            <span class="career-os-mini-label">Core strengths</span>
+            ${firstSkills.length
+              ? `<div class="tag-cloud">${firstSkills.map(s => `<span class="tag tag-blue">${componentEscapeHtml(s)}</span>`).join('')}</div>`
+              : renderCareerOsEmptyState('No skills imported yet', 'Import your profile to build a real prep map.', 'Import Profile', "document.getElementById('syncCtaCards')?.style.setProperty('display','grid')")}
+          </div>
+          <div>
+            <span class="career-os-mini-label">Skill gaps</span>
+            ${firstMissing.length
+              ? `<div class="tag-cloud">${firstMissing.map(s => `<span class="tag tag-amber">${componentEscapeHtml(s)}</span>`).join('')}</div>`
+              : renderCareerOsEmptyState('No major gaps detected', 'Keep validating this against fresh job scans.', 'Open Tracker', "showPage('study_tracker')")}
+          </div>
+        </div>`;
 
   if (certs && certs.length > 0) {
-    html += `<div class="section-block">
-      <div class="section-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#facc15;"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg> Achievements & Certifications</div>
-      <div class="tag-cloud">${certs.map(c => `<span class="tag tag-gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> ${c}</span>`).join('')}</div>
-    </div>`;
+    html += `<div class="career-os-cert-strip">${certs.slice(0, 5).map(c => `<span class="tag tag-gold">${componentEscapeHtml(c)}</span>`).join('')}</div>`;
   }
 
-  html += `<div class="section-block">
-    <div class="section-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--pink);"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.04-2.44V7.5A2.5 2.5 0 0 1 7.5 5h2z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.04-2.44V7.5A2.5 2.5 0 0 0 16.5 5h-2z"></path></svg> Your Skills (${skills.length})</div>
-    <div class="tag-cloud">${skills.map(s => `<span class="tag tag-blue">${s}</span>`).join('')}</div>
-  </div>`;
+  html += `</section>
 
-  if (missing.length > 0) {
-    html += `<div class="section-block">
-      <div class="section-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--amber);"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg> Identified Skill Gaps (${missing.length})</div>
-      <div class="tag-cloud">${missing.map(s => `<span class="tag tag-amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"></polyline></svg> ${s}</span>`).join('')}</div>
+      <section class="career-os-panel action-queue card-standard animate-reveal" style="--reveal-index:3">
+        <div class="career-os-section-head">
+          <div>
+            <span class="career-os-kicker">Action Queue</span>
+            <h3>Daily missions</h3>
+          </div>
+          <span class="career-os-status-pill">${pendingActions} pending</span>
+        </div>
+        <div class="career-os-action-list">
+          ${renderCareerOsActionQueue(actions)}
+        </div>
+      </section>
     </div>`;
-  }
 
   if (topics.length > 0) {
-    html += `<div class="section-block">
-      <div class="section-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--blue);"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 20H20v2H6.5A2.5 2.5 0 0 1 4 17.5v-15A2.5 2.5 0 0 1 6.5 0z"></path></svg> AI Recommended Study Topics</div>
-      <div class="universal-grid">`;
-    topics.forEach(t => {
+    html += `<section class="career-os-panel roadmap-queue card-standard animate-reveal" style="--reveal-index:5">
+      <div class="career-os-section-head">
+        <div>
+          <span class="career-os-kicker">Roadmap Queue</span>
+          <h3>Recommended next study blocks</h3>
+        </div>
+      </div>
+      <div class="premium-roadmap-grid">`;
+    topics.forEach((t, index) => {
       const topicName = extractIndustrialTopicName(t) || 'Career Specialization';
       const rawPriority = (t.priority || 'medium').toLowerCase();
       const topicId = t.topicId || topicName.toLowerCase().replace(/\s+/g, '_');
-      html += `<div onclick="showPage('${topicId}')" class="roadmap-topic-card" data-priority="${rawPriority}">
+      html += `<div onclick="showPage('${topicId}')" class="roadmap-topic-card card-compact animate-reveal" style="--reveal-index:${index + 6}" data-priority="${rawPriority}">
         <div class="topic-card-head">
-          <span class="topic-name">${topicName}</span>
-          <span class="priority-badge">${rawPriority}</span>
+          <span class="topic-name">${componentEscapeHtml(topicName)}</span>
+          <span class="priority-badge">${componentEscapeHtml(rawPriority)}</span>
         </div>
-        <div class="topic-reason">${t.reason || t.desc || ''}</div>
+        <div class="topic-reason">${componentEscapeHtml(t.reason || t.desc || '')}</div>
         <div class="topic-meta">
           <span class="est-time"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> ${t.estimatedHours || 0}h est</span>
           <span class="start-prep">Start Prep <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
         </div>
       </div>`;
     });
-    html += `</div></div>`;
+    html += `</div></section>`;
   }
 
   if (profile.studyPlan) {
-    html += `<div class="study-plan-block">
+    html += `<section class="study-plan-block career-os-panel card-standard animate-reveal" style="--reveal-index:6">
       <div class="plan-header">
         <div class="plan-title-box">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
@@ -267,15 +769,15 @@ function renderProfileMatchPage(profile) {
           <span class="ai-pill">AI</span>
         </div>
       </div>
-      <div class="plan-content">${window.marked ? marked.parse(profile.studyPlan) : profile.studyPlan}</div>
+      <div class="plan-content">${window.marked ? marked.parse(profile.studyPlan) : componentEscapeHtml(profile.studyPlan)}</div>
       <div class="plan-refinement">
-        <div class="refine-title">🎯 Refine Your Roadmap</div>
+        <div class="refine-title">Refine Your Roadmap</div>
         <div class="refine-row">
           <input type="text" id="aiRoadmapTarget" placeholder="e.g. Senior LWC Developer with Data Cloud">
           <button id="btnRegenerateRoadmap" onclick="regenerateAIStudyPlan()" class="btn-primary-sm">Generate New Plan</button>
         </div>
       </div>
-    </div>`;
+    </section>`;
   }
 
   html += '<div id="premiumRoadmapMount" class="premium-roadmap-mount"><div class="premium-loading">Loading premium roadmap and release focus...</div></div>';
@@ -284,6 +786,8 @@ function renderProfileMatchPage(profile) {
   hydratePremiumSetupForm(profile);
   bindPremiumPreviewControls();
   applyUiMode(profile.uiMode || currentUiMode || 'modern');
+  initDashboardReveal(contentDiv);
+  initCountUp(contentDiv);
   
   loadPremiumRoadmap(true).then(data => {
     const mount = document.getElementById('premiumRoadmapMount');
@@ -879,6 +1383,31 @@ window.setMobileBoardStage = function(col) {
   document.querySelector('#job_radar .kanban-board-v3')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
 };
 
+function renderRadarEmptyState(col, message) {
+  if (col === 'todo') {
+    return renderEmptyState({
+      icon: 'briefcase',
+      title: 'No saved jobs yet',
+      description: 'Start your first scan to find matching Salesforce roles.',
+      actionLabel: 'Start Scan',
+      actionFn: 'triggerJobScan()'
+    });
+  }
+  const labels = {
+    applied: 'No applied roles yet',
+    interview: 'No interviews scheduled yet',
+    offer: 'No offers tracked yet',
+    rejected: 'No archived roles yet'
+  };
+  return renderEmptyState({
+    icon: 'briefcase',
+    title: labels[col] || 'No roles here yet',
+    description: message || 'Move matching roles here as your pipeline progresses.',
+    actionLabel: 'View Radar',
+    actionFn: "showPage('job_radar')"
+  });
+}
+
 function renderBoard() {
   const cols = ['todo', 'applied', 'interview', 'offer', 'rejected'];
   const searchTerm = (document.getElementById("boardSearch")?.value || '').toLowerCase();
@@ -926,7 +1455,7 @@ function renderBoard() {
       list.innerHTML = renderSkeletonCards(Math.floor(Math.random() * 2) + 2); // 2-3 skeleton cards per column
     } else {
       list.innerHTML = displayJobs.length === 0 ? 
-        `<div class="radar-empty-state">${componentEscapeHtml(emptyMessage)}</div>` :
+        `<div class="radar-empty-state">${renderRadarEmptyState(col, emptyMessage)}</div>` :
         displayJobs.map(job => renderJobCard(job)).join('');
     }
       

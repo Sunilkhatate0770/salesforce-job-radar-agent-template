@@ -562,6 +562,92 @@ table {
   pointer-events: none;
 }
 
+@media (max-width: 1180px) {
+  .career-os-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-identity {
+    justify-items: start !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .career-os-shell {
+    gap: 14px !important;
+  }
+
+  .career-os-panel {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  .career-os-section-head,
+  .career-os-now {
+    grid-template-columns: 1fr !important;
+    display: grid !important;
+  }
+
+  .career-os-section-head {
+    gap: 12px !important;
+  }
+
+  .career-os-status-pill,
+  .career-os-scan-state {
+    width: fit-content !important;
+    white-space: normal !important;
+    line-height: 1.25 !important;
+  }
+
+  .career-os-focus-strip,
+  .career-os-metric-grid,
+  .career-os-skill-columns {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .career-os-now .career-os-primary-btn {
+    grid-row: auto !important;
+    width: 100% !important;
+  }
+
+  .career-os-action-item {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .career-os-action-item .career-os-link-btn,
+  .career-os-panel-actions > button {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .career-os-focus-strip,
+  .career-os-metric-grid,
+  .career-os-skill-columns {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-hero h2 {
+    font-size: 1.45rem !important;
+  }
+
+  .career-os-ring {
+    width: 64px !important;
+    height: 64px !important;
+    flex-basis: 64px !important;
+  }
+
+  .career-os-ring svg {
+    width: 64px !important;
+    height: 64px !important;
+  }
+}
+
 #loginOverlay > div {
   box-sizing: border-box !important;
   max-width: min(440px, calc(100vw - 24px)) !important;
@@ -2131,6 +2217,302 @@ textarea:focus-visible,
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ============================================================
+   Career OS responsive polish (Task 6)
+   ============================================================ */
+@media (max-width: 767px) {
+  body {
+    font-size: 16px !important;
+  }
+
+  .page {
+    padding: 14px 14px max(84px, calc(72px + env(safe-area-inset-bottom, 0px))) !important;
+  }
+
+  #mainHeader {
+    padding-inline: 10px !important;
+  }
+
+  .career-os-shell,
+  .career-os-grid,
+  .dashboard-skeleton-state .career-os-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    max-width: 100% !important;
+  }
+
+  .career-os-hero,
+  .career-os-panel,
+  .job-radar-summary,
+  .interview-prep-progress,
+  .action-queue,
+  .roadmap-queue,
+  .study-plan-block {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+  }
+
+  .career-os-hero {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-4) !important;
+  }
+
+  .career-os-hero h2 {
+    font-size: 1.35rem !important;
+    line-height: 1.18 !important;
+  }
+
+  .career-os-hero p,
+  .career-os-lead,
+  .empty-state p,
+  .card-desc {
+    font-size: 16px !important;
+  }
+
+  .career-os-focus-strip,
+  .career-os-summary-chips,
+  .career-os-metric-grid,
+  .career-os-skill-columns,
+  .career-os-action-list,
+  .premium-roadmap-grid,
+  .skeleton-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-prep-footer,
+  .career-os-panel-actions,
+  .refine-row,
+  #ai_interview #interviewSetup > div,
+  #ai_interview #interviewInputArea > div {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-primary-btn,
+  .career-os-link-btn,
+  .empty-state-action,
+  .premium-primary-btn,
+  .premium-secondary-btn,
+  button,
+  .nav-item,
+  select,
+  input,
+  textarea {
+    min-height: 44px !important;
+    font-size: max(14px, 1rem) !important;
+  }
+
+  .career-os-identity .career-os-primary-btn,
+  .career-os-now .career-os-primary-btn,
+  .career-os-panel-actions > button,
+  .career-os-prep-footer > button,
+  .empty-state-action {
+    width: 100% !important;
+  }
+
+  .career-os-action-item {
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+    align-items: start !important;
+  }
+
+  .career-os-action-meta,
+  .career-os-action-item .career-os-link-btn {
+    grid-column: 2 !important;
+  }
+
+  .career-os-action-copy {
+    grid-column: 2 !important;
+  }
+
+  .career-os-metric {
+    padding: var(--space-4) !important;
+  }
+
+  .mobile-toggle {
+    display: inline-flex !important;
+  }
+
+  html body #sidebar {
+    width: min(360px, calc(100vw - 28px)) !important;
+    min-width: min(360px, calc(100vw - 28px)) !important;
+    max-width: calc(100vw - 28px) !important;
+    transform: translateX(calc(-100% - 24px)) !important;
+  }
+
+  html body #sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  html body #sidebar .nav-item,
+  html body #sidebar .nav-group-toggle {
+    min-height: 44px !important;
+  }
+
+  @media (hover: none) {
+    .card-compact:hover,
+    .card-standard:hover,
+    .card-featured:hover,
+    .career-os-panel:hover,
+    .career-os-action-item:hover,
+    .job-card:hover,
+    .roadmap-topic-card:hover {
+      transform: none !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .page {
+    padding: 18px 20px 88px !important;
+  }
+
+  .mobile-toggle {
+    display: none !important;
+  }
+
+  .career-os-shell {
+    max-width: 100% !important;
+  }
+
+  .career-os-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-grid,
+  .dashboard-skeleton-state .career-os-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .action-queue,
+  .roadmap-queue,
+  .study-plan-block {
+    grid-column: 1 / -1 !important;
+  }
+
+  .career-os-action-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .career-os-action-item {
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+  }
+
+  html body #sidebar {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    transform: none !important;
+    position: sticky !important;
+  }
+
+  html body #sidebar .sidebar-brand-title,
+  html body #sidebar .sidebar-brand-subtitle,
+  html body #sidebar .sync-status-indicator,
+  html body #sidebar .sidebar-header-row,
+  html body #sidebar #masterProfileStatus,
+  html body #sidebar #sidebarSignOutBtn,
+  html body #sidebar #sidebarSyncStatus,
+  html body #sidebar .search-wrap,
+  html body #sidebar .nav-group-label,
+  html body #sidebar .nav-group-desc,
+  html body #sidebar .nav-subsection-title,
+  html body #sidebar .nav-item-label,
+  html body #sidebar .nav-item .count,
+  html body #sidebar #scanStatusText,
+  html body #sidebar .scan-stage-progress,
+  html body #sidebar #revisionAlerts {
+    display: none !important;
+  }
+
+  html body #sidebar .nav-group-toggle,
+  html body #sidebar .nav-item {
+    width: 44px !important;
+    min-width: 44px !important;
+    justify-content: center !important;
+    margin-inline: auto !important;
+    padding-inline: 0 !important;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .page {
+    max-width: 1200px !important;
+    margin-inline: auto !important;
+  }
+
+  .career-os-shell {
+    max-width: 1200px !important;
+  }
+
+  .career-os-grid,
+  .dashboard-skeleton-state .career-os-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .action-queue {
+    grid-column: auto !important;
+  }
+
+  .career-os-action-item {
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+  }
+
+  html body.sidebar-collapsed {
+    --sidebar-w: 220px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar {
+    width: 220px !important;
+    min-width: 220px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-label,
+  html body.sidebar-collapsed #sidebar .nav-item-label,
+  html body.sidebar-collapsed #sidebar .nav-subsection-title,
+  html body.sidebar-collapsed #sidebar .nav-item .count {
+    display: inline-flex !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-desc,
+  html body.sidebar-collapsed #sidebar .nav-recent-panel {
+    display: none !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-toggle,
+  html body.sidebar-collapsed #sidebar .nav-item {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    padding-inline: 10px !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .page {
+    max-width: 1280px !important;
+    margin-inline: auto !important;
+  }
+
+  .career-os-shell {
+    max-width: 1280px !important;
+  }
+
+  .career-os-grid,
+  .dashboard-skeleton-state .career-os-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  .action-queue {
+    grid-column: auto !important;
+  }
+
+  .career-os-summary-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
 }
 
 /* Minimum touch target sizing */
