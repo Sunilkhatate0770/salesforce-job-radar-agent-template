@@ -39,7 +39,7 @@
       }
       return window._sfjrClientConfigPromise;
     };
-    window.handleCredentialResponse = function(response) { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById("loginOverlay").style.display = "none";
+    window.handleCredentialResponse = function(response) {
       document.getElementById('loginOverlay').style.display = 'none';
       window._pendingGAuth = response;
       if (typeof window.processGAuth === 'function') window.processGAuth(response);
@@ -127,9 +127,13 @@
       </div>
     </div>
     <p id="googleSignInStatus" hidden style="margin:0 0 1rem; color:#fca5a5; font-size:0.78rem; line-height:1.4;"></p>
-    
-    <div id="syncStatus" style="display:none; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span></div><div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">🔒 Sign in to enable cloud sync</span></div><div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;"><span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">?? Sign in to enable cloud sync</span></div>
+        <div id="syncStatus" style="display:none; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span>
+    </div>
+    <div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;">
+        <span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">🔒 Sign in to enable cloud sync</span>
+    </div>
   </div>
 </div>
 <!-- NO FLOATING PROFILE HERE (MOVED INSIDE MAIN) -->
