@@ -5321,6 +5321,14 @@ body.ui-classic .career-os-panel {
 }
 #toast.show { transform: translateX(-50%) translateY(0); }
 
+/* Use only the queued toast system; keep the legacy singleton hidden. */
+#toast,
+#toast.show {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .skeleton {
   background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
   background-size: 200% 100%;
@@ -6341,13 +6349,9 @@ button:active,
 
 /* --- INTERACTION FEEDBACK --- */
 .ripple {
-  position: fixed;
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.35);
-  transform: scale(0);
-  animation: ripple-animation 0.6s linear;
-  pointer-events: none;
-  z-index: var(--z-ripple);
+  display: none !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
 }
 
 @keyframes ripple-animation {
@@ -6503,4 +6507,73 @@ body.ui-classic .premium-roadmap-shell {
   border-radius: 4px !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+}
+
+.premium-modal-actions .premium-primary-btn,
+.premium-modal-actions .premium-secondary-btn,
+#submitAnswerBtn {
+  min-width: 148px !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.2 !important;
+}
+
+#interviewChat {
+  min-height: 260px !important;
+  max-height: min(54vh, 560px) !important;
+  overflow-y: auto !important;
+  scroll-behavior: smooth;
+}
+
+.tracker-stat-value,
+#totalStudyTime,
+#todayTime,
+.tracker-time {
+  font-family: "IBM Plex Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-variant-numeric: tabular-nums !important;
+  letter-spacing: 0 !important;
+}
+
+html[data-theme="light"] #sidebar,
+body.light-theme #sidebar {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-right-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme="light"] #sidebar .nav-recent-panel,
+html[data-theme="light"] #sidebar .nav-config-section,
+body.light-theme #sidebar .nav-recent-panel,
+body.light-theme #sidebar .nav-config-section {
+  background: #f8fafc !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme="light"] #sidebar .nav-item,
+html[data-theme="light"] #sidebar .nav-group-label,
+body.light-theme #sidebar .nav-item,
+body.light-theme #sidebar .nav-group-label {
+  color: #172033 !important;
+}
+
+#job_radar .pstat,
+#job_radar .pipe-stat,
+#job_radar .analytics-bar-v3 .pstat {
+  min-width: 128px !important;
+}
+
+#job_radar .pstat label,
+#job_radar .pstat span,
+#job_radar .pipe-stat label {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#addJobModal label,
+#addJobModal .form-label {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  white-space: normal !important;
 }

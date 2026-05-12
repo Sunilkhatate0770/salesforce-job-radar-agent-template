@@ -50,16 +50,29 @@
     bindEvents();
 
     if (!state.mounted) {
-      root.innerHTML = '<div class="cp-loading">Loading Code Practice workspace...</div>';
-      const profilePromise = loadProfile();
-      const codeMirrorPromise = loadCodeMirrorAssets();
-      await loadChallenges();
-      loadCustomChallenges();
-      await profilePromise;
-      await loadProgress();
-      await codeMirrorPromise;
-      chooseInitialChallenge();
-      state.mounted = true;
+      root.innerHTML = '<div class="cp-loading"><span class="loading-spinner sm" aria-hidden="true"></span> Loading Code Practice workspace...</div>';
+      const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Code Practice load timed out')), 5000));
+      try {
+        await Promise.race([(async () => {
+          const profilePromise = loadProfile();
+          const codeMirrorPromise = loadCodeMirrorAssets();
+          await loadChallenges();
+          loadCustomChallenges();
+          await profilePromise;
+          await loadProgress();
+          await codeMirrorPromise;
+          chooseInitialChallenge();
+          state.mounted = true;
+        })(), timeout]);
+      } catch (err) {
+        console.warn('[CodePractice] Load fallback:', err.message);
+        await loadChallenges().catch(() => {});
+        loadCustomChallenges();
+        state.progress = state.progress || readLocalProgress() || getDefaultProgress();
+        chooseInitialChallenge();
+        state.mounted = true;
+        root.innerHTML = '<div class="cp-empty">Code Practice loaded in fallback mode. <button type="button" class="cp-btn primary" onclick="window.CodePractice.refresh()">Retry</button></div>';
+      }
     }
 
     render();

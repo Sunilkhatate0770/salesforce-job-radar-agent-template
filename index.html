@@ -62,7 +62,9 @@
         }
         window.google.accounts.id.initialize({
           client_id: config.googleClientId,
-          callback: window.handleCredentialResponse
+          callback: window.handleCredentialResponse,
+          ux_mode: 'popup',
+          cancel_on_tap_outside: true
         });
         if (target) {
           target.innerHTML = '';
@@ -897,7 +899,7 @@
             <option value="Expert">Subject Matter Expert (Hard)</option>
           </select>
         </div>
-        <button onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; margin-top:1.5rem;">Start Session</button>
+        <button id="startInterviewBtn" onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; margin-top:1.5rem;">Start Session</button>
       </div>
     </div>
 
@@ -916,8 +918,9 @@
       <div style="display:flex; gap:10px;">
         <textarea id="userAnswerInput" placeholder="Type or speak your answer here..." style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:1rem; min-height:80px; font-family:inherit; resize:none;"></textarea>
         <button id="micBtn" onclick="toggleVoiceInput()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:0 1.5rem; border-radius:8px; cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center; transition: all 0.3s;" title="Use Voice to Answer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>
-        <button onclick="submitAnswer()" style="background:var(--green); color:black; border:none; padding:0 2rem; border-radius:8px; font-weight:700; cursor:pointer;">Submit<br>Answer</button>
+        <button id="submitAnswerBtn" onclick="submitAnswer()" style="background:var(--green); color:black; border:none; padding:0 2rem; border-radius:8px; font-weight:700; cursor:pointer; white-space:nowrap;">Submit Answer</button>
       </div>
+      <div id="answerValidation" style="display:none; color:var(--red); font-size:0.78rem; font-weight:700; margin-top:8px;">Type your answer before submitting.</div>
       <div style="font-size:0.7rem; color:var(--muted); margin-top:8px; display:flex; justify-content:space-between;">
         <span>Press Ctrl+Enter to submit</span>
         <span id="aiThinkingStatus" style="display:none; color:var(--blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;vertical-align:middle;margin-right:4px;"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg> AI is thinking...</span>

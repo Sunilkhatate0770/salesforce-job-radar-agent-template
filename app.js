@@ -497,24 +497,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- GLOBAL RIPPLE & ARTIFACT CLEANUP (v1416) ---
   document.addEventListener('mousedown', function(e) {
-    // 1. Create ripple
-  const target = e.target;
-  if (target instanceof Element && target.closest('button, a, input, textarea, select, [role="button"], .nav-item, .fd-item')) return;
-  const ripple = document.createElement('div');
-    ripple.className = 'ripple';
-    const size = 30;
-    ripple.style.width = ripple.style.height = size + 'px';
-    ripple.style.left = (e.clientX - size / 2) + 'px';
-    ripple.style.top = (e.clientY - size / 2) + 'px';
-    document.body.appendChild(ripple);
-    setTimeout(() => ripple.remove(), 600);
-
-    // 2. Cleanup suspicious dots (v1416)
-    // Any small absolute/fixed div created at click time is suspect
+    const target = e.target;
+    if (target instanceof Element && target.closest('button, a, input, textarea, select, [role="button"], .nav-item, .fd-item')) return;
     setTimeout(() => {
-      document.querySelectorAll('div').forEach(div => {
+      document.querySelectorAll('.ripple, div').forEach(div => {
         const bg = div.style.backgroundColor || '';
-        if (bg.includes('teal') || bg.includes('cyan') || bg.includes('rgb(0, 188, 212)')) {
+        if (div.classList.contains('ripple') || bg.includes('teal') || bg.includes('cyan') || bg.includes('rgb(0, 188, 212)')) {
           div.remove();
         }
       });
@@ -1131,6 +1119,30 @@ function getNavigationLabel(id) {
     }
   }
   return '';
+}
+
+function formatAppDateTime(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return String(value || '');
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (sameDay) return `Today at ${time}`;
+  return `${date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })} · ${time}`;
+}
+
+function formatIsoTimestampsIn(root) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const isoPattern = /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z\b/g;
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const value = node.nodeValue || '';
+    if (isoPattern.test(value)) {
+      node.nodeValue = value.replace(isoPattern, match => formatAppDateTime(match));
+    }
+  });
 }
 
 const NAV_ICON_PATHS = Object.freeze({
@@ -4209,21 +4221,16 @@ async function renderTimetable() {
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
-  // Calculate Progress
-  const startDay = 5 * 60; // 5 AM
-  const endDay = 22.5 * 60; // 10:30 PM
-  let progress = ((currentMinutes - startDay) / (endDay - startDay)) * 100;
-  progress = Math.max(0, Math.min(100, Math.round(progress)));
-  
   const progressBar = document.getElementById('dailyProgressBar');
   const progressText = document.getElementById('dailyProgressText');
-  if (progressBar) progressBar.style.width = progress + '%';
-  if (progressText) progressText.textContent = progress + '%';
 
   try {
     const data = await getStudyData();
     console.log(' [SCHEDULE] Data received:', data);
     const completedTasks = data.completedTasks || [];
+    const progress = Math.round((completedTasks.length / Math.max(1, SCHEDULE_DATA.length)) * 100);
+    if (progressBar) progressBar.style.width = progress + '%';
+    if (progressText) progressText.textContent = progress + '%';
 
     const html = `
       <div class="timetable-container">
@@ -4564,10 +4571,15 @@ async function showPage(id) {
   // UI Updates
   const headerTitle = document.getElementById('headerTitle');
   if (headerTitle) headerTitle.textContent = topicConfig[id]?.name || getNavigationLabel(id) || 'SF Prep Guide';
+  if (location.hash !== `#${id}`) {
+    history.replaceState({ page: id }, '', `#${encodeURIComponent(id)}`);
+  }
   trackRecentTopic(id);
   updateSidebarActiveState(id);
   const mainEl = document.getElementById('main');
   if (mainEl) mainEl.scrollTop = 0;
+  formatIsoTimestampsIn(page);
+  setTimeout(() => formatIsoTimestampsIn(page), 250);
   
   // Mobile Sidebar Close (guard against double-toggle)
   const sidebar = document.getElementById('sidebar');
@@ -4989,7 +5001,8 @@ document.addEventListener('visibilitychange', function() {
   const isAuthed = await checkAuth();
   if (!isAuthed) return;
 
-  const lastTab = getScopedItem('last_active_tab', 'schedule', 'last_active_tab');
+  const hashTab = decodeURIComponent(location.hash.replace(/^#/, ''));
+  const lastTab = hashTab || getScopedItem('last_active_tab', 'schedule', 'last_active_tab');
   showPage(lastTab);
   
   // Full dashboard sync on page reload — ensures timetable, daily summary,
@@ -5082,6 +5095,12 @@ async function startAIInterview() {
   document.getElementById('interviewInputArea').style.display = 'block';
   document.getElementById('interviewSetup').style.opacity = '0.5';
   document.getElementById('interviewSetup').style.pointerEvents = 'none';
+  const startBtn = document.getElementById('startInterviewBtn');
+  if (startBtn) {
+    startBtn.textContent = 'Session Active';
+    startBtn.disabled = true;
+    startBtn.style.opacity = '0.65';
+  }
 
   addChatMessage('ai', `Hello! I am your AI Interviewer. We will be discussing ${topic} at a ${difficulty} level today. Let's begin. <br><br><b>First Question:</b> Can you tell me about your experience with ${topic} and how you handle complex requirements in this area?`);
 }
@@ -5089,7 +5108,14 @@ async function startAIInterview() {
 async function submitAnswer() {
   const input = document.getElementById('userAnswerInput');
   const answer = input.value.trim();
-  if (!answer) return;
+  const validation = document.getElementById('answerValidation');
+  if (!answer) {
+    if (validation) validation.style.display = 'block';
+    input.focus();
+    showToast('Type your answer before submitting.', 'warning');
+    return;
+  }
+  if (validation) validation.style.display = 'none';
 
   addChatMessage('user', answer);
   input.value = '';
@@ -5141,6 +5167,7 @@ function addChatMessage(role, text) {
   msg.innerHTML = text;
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
+  msg.scrollIntoView({ block: 'end', behavior: 'smooth' });
   
   if (role === 'ai') {
     speakText(text);
@@ -5521,6 +5548,11 @@ window.addEventListener('resize', () => {
   closeCollapsedNavFlyout();
 });
 
+window.addEventListener('hashchange', () => {
+  const pageId = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (pageId) showPage(pageId);
+});
+
 function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
   const sidebar = document.getElementById('sidebar');
@@ -5627,6 +5659,18 @@ document.addEventListener('keydown', event => {
     window.closeCollapsedNavFlyout?.();
   }
 });
+
+document.addEventListener('click', event => {
+  const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+  if (!link) return;
+  try {
+    const url = new URL(link.getAttribute('href'), location.origin);
+    if (url.origin !== location.origin) {
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+    }
+  } catch (e) {}
+}, true);
 
 /* UI templates moved to components.js */
 
@@ -5951,7 +5995,7 @@ function openAddJobModal() {
 function submitCustomJob() {
   const company = document.getElementById('aj-company').value;
   const role = document.getElementById('aj-role').value;
-  if (!company || !role) return showToast('Fill required fields');
+  if (!company || !role) return showToast('Fill required fields', 'warning');
   const createdAt = new Date().toISOString();
   const newJob = {
     id: 'custom_' + Date.now(), company, role,
@@ -6065,7 +6109,8 @@ function showToast(msg, typeHint) {
   })();
 
   // Normalize type from legacy callers
-  let type = 'success';
+  const text = String(msg || '');
+  let type = /fail|failed|error|required|empty|paste|fill|invalid|cannot|unavailable|try again|sign in/i.test(text) ? 'error' : 'success';
   if (typeHint === true || typeHint === 'red' || typeHint === 'error') type = 'error';
   else if (typeHint === 'warning' || typeHint === 'amber') type = 'warning';
   else if (typeHint === 'blue' || typeHint === 'info') type = 'info';
@@ -6081,7 +6126,7 @@ function showToast(msg, typeHint) {
   toast.className = `toast-item toast-${type}`;
   toast.innerHTML = `
     <span class="toast-icon">${icons[type] || icons.info}</span>
-    <span class="toast-msg">${String(msg || '')}</span>
+    <span class="toast-msg">${escapeHtml(text)}</span>
     <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Dismiss">&times;</button>
   `;
   container.appendChild(toast);
@@ -6101,12 +6146,10 @@ function showToast(msg, typeHint) {
   const items = container.querySelectorAll('.toast-item');
   if (items.length > 4) items[0].remove();
 
-  // Legacy fallback for the old toast element
   const legacyToast = document.getElementById('toast');
   if (legacyToast) {
-    legacyToast.textContent = String(msg || '');
-    legacyToast.classList.add('show');
-    setTimeout(() => legacyToast.classList.remove('show'), 3500);
+    legacyToast.classList.remove('show');
+    legacyToast.textContent = '';
   }
 }
 

@@ -592,7 +592,13 @@ function renderProfileMatchPage(profile) {
   const missing = profile.missingSkills || [];
   const topics = profile.studyPlanTopics || [];
   const platforms = profile.platforms || {};
-  const strength = updateProfileStrengthMeter(skills.length, missing.length, profile);
+  const activityReadiness = Math.min(100, Math.round(
+    (skills.length * 6) +
+    ((window.userBookmarks || []).length * 3) +
+    ((window.globalStudyData?.sessions || []).length * 2) +
+    ((window.pipelineJobs || []).length ? 12 : 0)
+  ));
+  const strength = Math.max(updateProfileStrengthMeter(skills.length, missing.length, profile), activityReadiness);
 
   let syncBadges = '';
   if (platforms.linkedin && platforms.linkedin.synced) {
@@ -891,7 +897,7 @@ function renderReleaseCenterPage(data) {
       </div>
       <div class="premium-release-source-list">
         ${data?.previewMode ? '<span class="premium-badge">Curated Preview</span>' : ''}
-        ${(active.sources || []).map(url => `<a href="${url}" target="_blank" rel="noopener noreferrer">Official source</a>`).join('')}
+        ${Array.from(new Set(active.sources || [])).slice(0, 1).map(url => `<a href="${url}" target="_blank" rel="noopener noreferrer">Official source</a>`).join('')}
       </div>
     </div>
     <div class="premium-mini-panel" style="margin-bottom:16px;">
@@ -1090,6 +1096,16 @@ function componentScore(value) {
   return Math.max(0, Math.min(100, Number.isFinite(score) ? score : 0));
 }
 
+function componentStatusLabel(status) {
+  return {
+    todo: 'To Apply',
+    applied: 'Applied',
+    interview: 'Interview',
+    offer: 'Offer',
+    rejected: 'Rejected'
+  }[componentText(status, 'todo')] || componentText(status, 'To Apply');
+}
+
 function componentFindJob(jobId) {
   const target = String(jobId || '');
   return (window.pipelineJobs || []).find(job => String(job.id) === target || String(job.job_hash) === target);
@@ -1167,7 +1183,7 @@ function renderJobDetailsFlyout(job) {
         <div><span>Location</span><b>${componentEscapeHtml(location)}</b></div>
         <div><span>Experience</span><b>${componentEscapeHtml(experience)}</b></div>
         <div><span>Salary</span><b>${componentEscapeHtml(salary)}</b></div>
-        <div><span>Status</span><b>${componentEscapeHtml(status)}</b></div>
+        <div><span>Status</span><b>${componentEscapeHtml(componentStatusLabel(status))}</b></div>
       </div>
 
       <section class="job-flyout-section">
