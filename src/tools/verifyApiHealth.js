@@ -27,6 +27,17 @@ export const publicRouteProbes = [
         && Array.isArray(result.json?.challenges)
         && result.json.challenges.length > 0;
     }
+  },
+  {
+    name: 'client-config',
+    method: 'GET',
+    path: '/api/client-config',
+    validate(result) {
+      return result.status === 200
+        && result.json?.success === true
+        && typeof result.json?.authConfigured === 'boolean'
+        && !Object.prototype.hasOwnProperty.call(result.json || {}, 'secrets');
+    }
   }
 ];
 
@@ -101,6 +112,11 @@ function summarizePublicProbe(probe, result) {
         missingCore: result.json?.missingCore || [],
         missingRecommendedCloud: result.json?.missingRecommendedCloud || []
       }
+    : probe.name === 'client-config'
+      ? {
+          authConfigured: result.json?.authConfigured,
+          googleClientIdPresent: Boolean(result.json?.googleClientId)
+        }
     : {
         version: result.json?.version,
         challengeCount: Array.isArray(result.json?.challenges) ? result.json.challenges.length : 0

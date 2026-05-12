@@ -16,6 +16,7 @@ import {
   readSupabaseTrackerJobs
 } from '../src/jobs/dashboardJobs.js';
 import {
+  buildClientConfig,
   buildHealthPayload as buildRadarHealthPayload,
   buildJobsDegradedPayload,
   getRadarStatusStateKey
@@ -943,6 +944,10 @@ export default async function(req, res) {
         ...buildHealthPayload(),
         connectivity: await buildConnectivityDetails()
       });
+    }
+
+    if (path === 'client-config' && req.method === 'GET') {
+      return res.status(200).json(buildClientConfig(process.env));
     }
 
     // --- REQUIRE AUTH FOR DATA ROUTES ---

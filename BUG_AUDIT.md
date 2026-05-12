@@ -29,6 +29,7 @@
 | API health regression coverage | Public/private route behavior was manually checked but not repeatable. | Added `npm run api:verify` to confirm health/code-practice public access and 401 responses for critical private user routes without auth. | `package.json`, `src/tools/verifyApiHealth.js`, `test/apiHealthTool.test.js` |
 | Missing CSP header | Vercel had security headers but no Content Security Policy. | Added a compatibility CSP that supports Google Sign-In, Google Fonts, profile images, and the current code-practice runner while blocking object embeds and limiting base/frame behavior. | `vercel.json`, `test/vercelHeaders.test.js` |
 | No API burst guard | Public and private API routes had no rate-limit protection before database/auth work. | Added a dependency-free per-instance limiter with `X-RateLimit-*` and `Retry-After` headers, plus tests. | `api/router.js`, `src/api/rateLimit.js`, `test/rateLimit.test.js` |
+| Google Client ID hardcoded in HTML | `index.html` embedded one project-specific OAuth client ID, making Vercel environment changes brittle. | Added `/api/client-config`, initializes Google Sign-In from runtime config, and added regression coverage to keep the static shell free of hardcoded client IDs. | `index.html`, `api/router.js`, `src/webServer.js`, `src/api/radarContract.js`, `test/apiHealthTool.test.js`, `test/vercelRadarContract.test.js` |
 
 ## Large-File Review
 
@@ -60,9 +61,9 @@ The app still has several legacy monoliths. The safe split completed in this pas
 ## Verification Steps
 
 - `npm run check:syntax` — passed for 97 JavaScript files.
-- `npm test` — passed 61/61 tests.
+- `npm test` — passed 63/63 tests.
 - `npm run responsive:verify` — passed mobile 320/390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid 320px login fit, valid mobile drawer open/Escape close, 44px mobile touch targets, Job Radar flyout/search/filter/pagination checks, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
-- `npm run api:verify` — verifies `GET /api/health`, `GET /api/code-practice/challenges`, and unauthenticated 401 protection for sampled private job, profile, study, scan, save, and status routes.
+- `npm run api:verify` — verifies `GET /api/health`, `GET /api/code-practice/challenges`, `GET /api/client-config`, and unauthenticated 401 protection for sampled private job, profile, study, scan, save, and status routes.
 - Vercel header tests — verify the global Content Security Policy includes required Google/auth/font/profile-image allowances and blocks object embeds.
 - Rate-limit tests — verify normal public traffic is allowed, bursts are blocked, and windows reset.
 - `npm run release:pulse` — synced Summer '26 release center items with expected local Supabase fallback warning.
@@ -73,4 +74,4 @@ The app still has several legacy monoliths. The safe split completed in this pas
 - No bundler/build step means there is no automatic tree shaking or CSS pruning.
 - No lint script exists yet; adding ESLint should be a separate pass because the legacy app will need staged rule adoption.
 - Several files remain intentionally large until feature boundaries can be split safely with visual and API regression coverage.
-- Google Client ID is still documented as a hardcoded frontend limitation and should move to environment-injected config in a production hardening pass.
+- Google Client ID now loads from `/api/client-config`; it remains public browser configuration but is no longer hardcoded into `index.html`.

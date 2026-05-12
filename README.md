@@ -109,7 +109,8 @@ See `.env.example` for the complete list. Critical variables:
 2. Add all environment variables to Vercel project settings
 3. Deploy — Vercel auto-detects the static frontend + serverless API
 4. The `vercel.json` handles API routing, security headers, and the compatibility Content Security Policy
-5. Serverless API routes include a dependency-free burst limiter; use Upstash or Vercel Edge Middleware for distributed limits at higher traffic
+5. Browser auth configuration is served from `/api/client-config`, so `GOOGLE_CLIENT_ID` comes from the deployment environment
+6. Serverless API routes include a dependency-free burst limiter; use Upstash or Vercel Edge Middleware for distributed limits at higher traffic
 
 ## Project Structure
 
@@ -129,7 +130,7 @@ See `.env.example` for the complete list. Critical variables:
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (61 tests)
+├── test/                # Node.js test suite (63 tests)
 └── vercel.json          # Vercel deployment config
 ```
 
@@ -161,7 +162,7 @@ npm run test:opportunities
 - No TypeScript — the codebase is vanilla JavaScript (ESM)
 - No bundler/build step — files are served directly
 - `app.js`, `styles.css`, `src/styles/job-radar.css`, and `api/router.js` are still large legacy files — modularization must be feature-by-feature with regression checks
-- Google Client ID is currently hardcoded in `index.html` — should use env injection
+- Runtime Google Client ID now comes from `/api/client-config`; OAuth client IDs remain public browser configuration
 - Service worker caches aggressively — may need manual cache clear after deploys
 - No lint script yet — use `npm run check:syntax` and `npm test` until ESLint is introduced in a staged pass
 

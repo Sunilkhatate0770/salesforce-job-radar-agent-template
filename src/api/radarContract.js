@@ -100,6 +100,15 @@ export function buildHealthPayload({
   };
 }
 
+export function buildClientConfig(env = process.env) {
+  const googleClientId = String(env.GOOGLE_CLIENT_ID || '').trim();
+  return {
+    success: true,
+    googleClientId,
+    authConfigured: Boolean(googleClientId)
+  };
+}
+
 export function buildJobsDegradedPayload({
   env = process.env,
   mongoConnected = false,
@@ -140,5 +149,6 @@ export function isPublicApiPath(path, method = 'GET') {
   const verb = String(method || 'GET').toUpperCase();
   return normalizedPath === '/api/auth/google' ||
     normalizedPath === '/api/health' ||
+    (verb === 'GET' && normalizedPath === '/api/client-config') ||
     (verb === 'GET' && normalizedPath === '/api/code-practice/challenges');
 }

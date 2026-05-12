@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildClientConfig,
   buildHealthPayload,
   buildJobsDegradedPayload,
   getRadarStatusStateKey,
@@ -141,6 +142,20 @@ test("health reports Telegram notifications missing until chat id is configured"
   assert.equal(withChat.dependencies.notifications.configured, true);
 });
 
+test("client config exposes only public browser configuration", () => {
+  const config = buildClientConfig({
+    GOOGLE_CLIENT_ID: "google-client-id.apps.googleusercontent.com",
+    OPENAI_API_KEY: "secret-openai-key",
+    TELEGRAM_BOT_TOKEN: "secret-telegram-token"
+  });
+
+  assert.equal(config.success, true);
+  assert.equal(config.authConfigured, true);
+  assert.equal(config.googleClientId, "google-client-id.apps.googleusercontent.com");
+  assert.equal(Object.hasOwn(config, "OPENAI_API_KEY"), false);
+  assert.equal(Object.hasOwn(config, "TELEGRAM_BOT_TOKEN"), false);
+});
+
 test("radar status state keys are scoped per signed-in user", () => {
   assert.equal(
     getRadarStatusStateKey("  google-user-123  "),
@@ -150,6 +165,7 @@ test("radar status state keys are scoped per signed-in user", () => {
 
 test("Radar API contract keeps job data routes protected", () => {
   assert.equal(isPublicApiPath("/api/health", "GET"), true);
+  assert.equal(isPublicApiPath("/api/client-config", "GET"), true);
   assert.equal(isPublicApiPath("/api/code-practice/challenges", "GET"), true);
   assert.equal(isPublicApiPath("/api/jobs", "GET"), false);
   assert.equal(isPublicApiPath("/api/jobs/analytics", "GET"), false);

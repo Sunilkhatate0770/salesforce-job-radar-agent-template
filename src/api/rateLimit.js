@@ -21,6 +21,7 @@ function getPolicy(path = '', method = 'GET') {
   const verb = String(method || 'GET').toUpperCase();
   if (normalizedPath === 'auth/google') return { max: 30, windowMs: DEFAULT_WINDOW_MS };
   if (normalizedPath === 'health') return { max: 90, windowMs: DEFAULT_WINDOW_MS };
+  if (normalizedPath === 'client-config') return { max: 90, windowMs: DEFAULT_WINDOW_MS };
   if (normalizedPath === 'code-practice/challenges') return { max: 90, windowMs: DEFAULT_WINDOW_MS };
   if (verb === 'POST' || verb === 'PATCH' || verb === 'DELETE') return { max: 60, windowMs: DEFAULT_WINDOW_MS };
   return { max: DEFAULT_MAX_REQUESTS, windowMs: DEFAULT_WINDOW_MS };

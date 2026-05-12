@@ -19,6 +19,7 @@ import {
   readSupabaseTrackerJobs
 } from './jobs/dashboardJobs.js';
 import {
+  buildClientConfig,
   buildHealthPayload as buildRadarHealthPayload,
   buildJobsDegradedPayload,
   getRadarStatusStateKey,
@@ -636,6 +637,10 @@ export default async function handler(req, res) {
       if (url === '/api/health' && method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(buildHealthPayload(isMongoConnected)));
+      }
+      else if (url === '/api/client-config' && method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(buildClientConfig(process.env)));
       }
       else if (url === '/api/code-practice/challenges' && method === 'GET') {
         const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);

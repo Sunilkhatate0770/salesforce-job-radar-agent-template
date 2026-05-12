@@ -37,7 +37,7 @@
 ### Auth And Database Roadmap
 
 - Drop the old Mongo `job_hash_1` unique index manually if it already exists, then allow the new `{ userId: 1, job_hash: 1 }` sparse unique index to build.
-- Move Google Client ID out of `index.html` into environment-injected configuration.
+- Google Client ID now loads from `/api/client-config` instead of being hardcoded in `index.html`.
 - Add server-side schema validation helpers for every mutation route.
 - Add repository-level tests for cross-user update/delete rejection.
 - Consider replacing leaderboard with an opt-in anonymized aggregate if social ranking is needed later.
@@ -66,7 +66,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 
 | # | Category | Gap | Severity |
 |---|---|---|---|
-| 1 | **Security** | Google Client ID hardcoded in `index.html` instead of environment-injected | Medium |
+| 1 | **Security** | Google Client ID now runtime-configured through `/api/client-config`; future work can add build-time public config versioning | Low |
 | 2 | **Security** | Error responses leaked stack traces and internal errors in production | High ✅ Fixed |
 | 3 | **Security** | Missing CORS preflight handling | Medium ✅ Fixed |
 | 4 | **Security** | Missing security headers (HSTS, CSP, X-Frame-Options, etc.) | High ✅ Fixed |
@@ -83,7 +83,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 | 15 | **Frontend** | `var` declarations in global scope (legacy pattern) | Low |
 | 16 | **Frontend** | Console logging suppressed in production but RADAR_DEBUG check could be cleaner | Low |
 | 17 | **Deployment** | Service worker cache name is manually versioned | Low |
-| 18 | **Deployment** | PWA icons reference external img.icons8.com — should be self-hosted | Low |
+| 18 | **Deployment** | PWA icons are self-hosted in `assets/icons`; keep external icon dependencies out of manifest | Done |
 | 19 | **Documentation** | README was minimal — needed architecture docs, env guide, deployment steps | Medium ✅ Fixed |
 
 ---
@@ -143,7 +143,7 @@ Authentication is Google OAuth2 via ID tokens. AI features use OpenAI with deter
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Google Client ID in HTML is public | Low (OAuth client IDs are designed to be public, but better to use env injection for flexibility) | Move to build-time injection or serverless endpoint |
+| Google Client ID is public browser config | Low (OAuth client IDs are designed to be public) | Served from `/api/client-config`; keep secrets out of this endpoint |
 | CSP still requires legacy allowances | Medium (XSS protection) | Compatibility CSP is now in `vercel.json`; remove inline handlers and code-practice eval later so `'unsafe-inline'` and `'unsafe-eval'` can be removed |
 | Rate limiting is per serverless instance | Medium (abuse risk) | Dependency-free API rate limiter is now active; move to Vercel Edge Middleware or Upstash for distributed limits |
 | Service worker may cache stale versions | Low | Implement cache-busting with content hashing or use Vercel's automatic headers |
@@ -242,7 +242,7 @@ Gradually migrate to TypeScript:
 | Input sanitization | Medium | Medium | Add systematic sanitization for all user inputs |
 | CSRF protection | Low | Medium | Not critical for API-token auth, but consider for form submissions |
 | Dependency audit | Medium | Small | Run `npm audit fix` and update vulnerable packages |
-| Secrets management | Medium | Small | Move Google Client ID to env variable injection |
+| Secrets management | Partial | Small | Google Client ID moved to runtime config; keep migrating any future public config through safe endpoints and never expose secrets |
 
 ---
 
@@ -282,13 +282,13 @@ Gradually migrate to TypeScript:
 - [x] PWA manifest upgrade
 - [x] Add compatibility Content-Security-Policy header for Google Sign-In, fonts, profile images, and current code-practice execution
 - [x] Add dependency-free API burst limiter for public and private route protection
+- [x] Move Google Client ID from hardcoded HTML to `/api/client-config`
+- [x] Confirm PWA icons are self-hosted
 
 ### Short-term (1-2 Weeks)
 - [ ] Replace in-memory API limiter with distributed Upstash or Vercel Edge Middleware enforcement
 - [ ] Apply `sanitizeBody()` validation to all POST endpoints
-- [ ] Self-host PWA icons (remove img.icons8.com dependency)
 - [ ] Integrate loading skeletons into all async data sections
-- [ ] Move Google Client ID to environment variable
 
 ### Medium-term (1-2 Months)
 - [ ] Add Vite build pipeline for bundling and minification
