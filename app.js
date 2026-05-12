@@ -510,12 +510,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+function setSidebarCollapsedState(isCollapsed) {
+  const sidebar = document.getElementById('sidebar');
+  const collapsed = Boolean(isCollapsed);
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  if (sidebar) sidebar.classList.toggle('collapsed', collapsed);
+  setScopedItem('sidebar_collapsed', collapsed);
+  localStorage.setItem('job_radar_sidebar_collapsed', String(collapsed));
+  syncDesktopSidebarToggle(collapsed);
+}
+
 window.toggleSidebar = function() {
   const sidebar = document.getElementById('sidebar');
   if (!sidebar) return;
-  const isCollapsed = sidebar.classList.toggle('collapsed');
-  setScopedItem('sidebar_collapsed', isCollapsed);
-  
+  if (window.innerWidth <= 900) {
+    toggleMobileSidebar();
+    return;
+  }
+  setSidebarCollapsedState(!document.body.classList.contains('sidebar-collapsed'));
+
   // Re-render to adjust for potential layout shifts
   if (typeof renderBoard === 'function') renderBoard();
 };
@@ -1009,15 +1022,6 @@ function setScopedItem(key, value) {
 }
 
 const RECENT_TOPIC_LIMIT = 14;
-const SIDEBAR_CLUSTER_CONFIG = Object.freeze([
-  { id: 'dashboard', label: 'Dashboard', description: 'Daily plan, progress, history, and saved revision.' },
-  { id: 'jobs', label: 'Jobs', description: 'Job Radar, pipeline, applications, and role fit.' },
-  { id: 'interview-prep', label: 'Interview Prep', description: 'Salesforce topic banks and guided prep paths.' },
-  { id: 'practice', label: 'Practice', description: 'Coding reps, mock rooms, speaking, and behavioral drills.' },
-  { id: 'intelligence', label: 'Intelligence', description: 'Releases, companies, FDE, Agentforce, and Data Cloud.' },
-  { id: 'settings', label: 'Settings', description: 'Profile sources, display mode, and workspace preferences.' }
-]);
-
 function getRecentTopicItems() {
   const recentIds = readScopedJson('recentTopics', [], 'sf_recent_topics');
   if (!Array.isArray(recentIds)) return [];
@@ -1029,57 +1033,6 @@ function getRecentTopicItems() {
       name: topicConfig[id].name || topicConfigName(id),
       group: topicConfig[id].group || 'Topic'
     }));
-}
-
-function getSidebarClusterId(group = {}, item = {}) {
-  const groupId = String(group.id || '');
-  const itemId = String(item.id || '');
-
-  if (itemId === 'job_radar') return 'jobs';
-  if (itemId === 'code_practice') return 'practice';
-  if (itemId === 'salesforce_releases' || ['company-prep', 'fde-prep', 'agentforce-data-cloud'].includes(groupId)) return 'intelligence';
-  if (groupId === 'home-dashboard') return 'dashboard';
-  if (groupId === 'mock-communication') return 'practice';
-  return 'interview-prep';
-}
-
-function getSidebarClusteredGroups(sourceGroups = []) {
-  const clusters = SIDEBAR_CLUSTER_CONFIG.map(config => ({ ...config, items: [] }));
-  const byId = new Map(clusters.map(cluster => [cluster.id, cluster]));
-
-  (sourceGroups || []).forEach(group => {
-    (group.items || []).forEach(item => {
-      const clusterId = getSidebarClusterId(group, item);
-      const cluster = byId.get(clusterId) || byId.get('interview-prep');
-      cluster.items.push({
-        ...item,
-        section: group.label || item.section || 'Modules',
-        description: item.description || group.description || ''
-      });
-    });
-  });
-
-  return clusters;
-}
-
-function renderSidebarSettingsUtility() {
-  return `
-    <div class="nav-subsection nav-settings-utility" data-nav-subsection="Workspace">
-      <div class="nav-subsection-title">Workspace</div>
-      <button type="button" class="nav-item nav-utility-item" onclick="showPage('profile_match');document.getElementById('syncCtaCards')?.style.setProperty('display','grid');document.getElementById('profileSourceHeading')?.style.setProperty('display','flex')" title="Profile sources" aria-label="Profile sources">
-        ${renderNavIcon('user')}
-        <span class="nav-item-label">Profile Sources</span>
-      </button>
-      <button type="button" class="nav-item nav-utility-item" onclick="document.querySelector('[data-theme-toggle]')?.click()" title="Toggle theme" aria-label="Toggle theme">
-        ${renderNavIcon('settings')}
-        <span class="nav-item-label">Theme Mode</span>
-      </button>
-      <button type="button" class="nav-item nav-utility-item" onclick="toggleUiMode()" title="Toggle UI mode" aria-label="Toggle UI mode">
-        ${renderNavIcon('settings')}
-        <span class="nav-item-label">Classic / Modern</span>
-      </button>
-    </div>
-  `;
 }
 
 function getSidebarBadge(item) {
@@ -1235,8 +1188,7 @@ function renderSidebarNavigation(options = {}) {
   const host = document.getElementById('sidebarNavContent');
   if (!host) return;
   const shouldScrollActive = options.scrollActive === true;
-  const sourceGroups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
-  const groups = getSidebarClusteredGroups(sourceGroups);
+  const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
   const activeNavId = getScopedItem('last_active_tab', 'profile_match');
   const activeGroupIndex = groups.findIndex(group => (group.items || []).some(item => item.id === activeNavId));
   const openGroupIndex = activeGroupIndex >= 0 ? activeGroupIndex : 0;
@@ -1271,7 +1223,7 @@ function renderSidebarNavigation(options = {}) {
       const sectionId = `nav-group-${group.id}`;
       const groupIconKey = getNavGroupIconKey(group);
       const isOpen = groupIndex === openGroupIndex;
-      const groupCount = group.id === 'settings' ? 3 : (group.items || []).length;
+      const groupCount = (group.items || []).length;
       return `
         <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
           <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
@@ -1285,7 +1237,6 @@ function renderSidebarNavigation(options = {}) {
           </button>
           <div id="${sectionId}" class="nav-group-items" ${isOpen ? '' : 'hidden'}>
             ${renderSidebarNavSections(group.items)}
-            ${group.id === 'settings' ? renderSidebarSettingsUtility() : ''}
           </div>
         </section>
       `;
@@ -5358,13 +5309,11 @@ function toggleTheme() {
 
 // --- DESKTOP SIDEBAR COLLAPSE (v1414) ---
 function toggleDesktopSidebar() {
-  if (typeof toggleSidebar === 'function') {
-    toggleSidebar();
-  }
+  window.toggleSidebar?.();
 }
 
 function syncDesktopSidebarToggle(forceCollapsed) {
-  const button = document.querySelector('.desktop-sidebar-toggle');
+  const button = document.querySelector('#sidebarToggle, .desktop-sidebar-toggle');
   if (!button) return;
   const isCollapsed = typeof forceCollapsed === 'boolean'
     ? forceCollapsed
@@ -5375,10 +5324,8 @@ function syncDesktopSidebarToggle(forceCollapsed) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('job_radar_sidebar_collapsed') === 'true') {
-    document.body.classList.add('sidebar-collapsed');
-  }
-  syncDesktopSidebarToggle();
+  const storedCollapsed = getScopedItem('sidebar_collapsed', localStorage.getItem('job_radar_sidebar_collapsed') || 'false') === 'true';
+  setSidebarCollapsedState(storedCollapsed);
 });
 
 function toggleMobileSidebar(forceOpen) {

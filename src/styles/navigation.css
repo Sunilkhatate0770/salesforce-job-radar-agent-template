@@ -770,3 +770,202 @@
   border-top: 1px solid rgba(148, 163, 184, 0.12);
   padding-top: 8px;
 }
+
+/* Sidebar repair: keep the real menu groups visible and make collapse deterministic. */
+#sidebar .nav-config-section {
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+#sidebar .nav-config-section.is-open {
+  border-color: rgba(96, 165, 250, 0.16) !important;
+  background: rgba(15, 23, 42, 0.28) !important;
+}
+
+#sidebar .nav-group-toggle {
+  gap: 9px !important;
+  min-height: 46px !important;
+}
+
+#sidebar .nav-group-text {
+  min-width: 0;
+}
+
+#sidebar .nav-group-label {
+  color: var(--text, #f8fbff) !important;
+  font-size: 0.78rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.18 !important;
+  text-transform: none !important;
+}
+
+#sidebar .nav-group-desc {
+  display: none !important;
+}
+
+#sidebar .nav-subsection-title {
+  padding: 9px 8px 5px !important;
+  letter-spacing: 0.12em !important;
+}
+
+#sidebar .nav-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#sidebar .nav-recent-chip {
+  grid-template-columns: minmax(0, 1fr) minmax(58px, auto) !important;
+}
+
+#sidebar .nav-recent-chip span,
+#sidebar .nav-recent-chip b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  html body.sidebar-collapsed {
+    --sidebar-w: 80px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar {
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+    overflow-x: hidden !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .sidebar-branding,
+  html body.sidebar-collapsed #sidebar .sidebar-header {
+    min-height: 64px !important;
+    justify-content: center !important;
+    padding: 10px 8px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar #brandingContainer,
+  html body.sidebar-collapsed #sidebar .branding-container,
+  html body.sidebar-collapsed #sidebar .search-wrap,
+  html body.sidebar-collapsed #sidebar .sidebar-header-row,
+  html body.sidebar-collapsed #sidebar #masterProfileStatus,
+  html body.sidebar-collapsed #sidebar #sidebarSignOutBtn,
+  html body.sidebar-collapsed #sidebar .nav-recent-panel,
+  html body.sidebar-collapsed #sidebar #scanStatusText,
+  html body.sidebar-collapsed #sidebar .scan-stage-progress,
+  html body.sidebar-collapsed #sidebar #revisionAlerts,
+  html body.sidebar-collapsed #sidebar > div[style*="padding:0 1rem 1rem"],
+  html body.sidebar-collapsed #sidebar > div[style*="margin: 20px 15px"] {
+    display: none !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .desktop-sidebar-toggle,
+  html body.sidebar-collapsed #sidebar #sidebarToggle {
+    position: static !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .desktop-sidebar-toggle svg,
+  html body.sidebar-collapsed #sidebar #sidebarToggle svg {
+    transform: rotate(180deg) !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .sidebar-nav-dynamic {
+    gap: 10px !important;
+    padding: 12px 8px 18px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-config-section,
+  html body.sidebar-collapsed #sidebar .nav-config-section.is-open {
+    border-color: transparent !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-items {
+    display: none !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-toggle {
+    width: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: 1px solid rgba(125, 211, 252, 0.18) !important;
+    border-radius: 12px !important;
+    background: rgba(15, 23, 42, 0.64) !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-config-section.is-open .nav-group-toggle {
+    border-color: rgba(96, 165, 250, 0.48) !important;
+    background: rgba(37, 99, 235, 0.18) !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-label,
+  html body.sidebar-collapsed #sidebar .nav-group-text,
+  html body.sidebar-collapsed #sidebar .nav-group-count,
+  html body.sidebar-collapsed #sidebar .nav-subsection-title,
+  html body.sidebar-collapsed #sidebar .nav-item-label,
+  html body.sidebar-collapsed #sidebar .nav-item .count {
+    display: none !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-icon {
+    flex: 0 0 24px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  html body.sidebar-collapsed #sidebar .nav-group-chevron {
+    position: absolute !important;
+    right: -4px !important;
+    bottom: -4px !important;
+    width: 17px !important;
+    height: 17px !important;
+    display: inline-flex !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  html body #sidebar .nav-group-toggle {
+    overflow: hidden !important;
+  }
+
+  html body #sidebar .nav-group-chevron,
+  html body #sidebar .nav-group-count {
+    display: none !important;
+  }
+
+  html body #sidebar .nav-group-icon,
+  html body #sidebar .nav-item-icon {
+    flex: 0 0 22px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  html body #sidebar #btnScanJobs,
+  html body #sidebar > div[style*="margin: 20px 15px"] {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  html body #sidebar.collapsed {
+    width: min(360px, calc(100vw - 28px)) !important;
+    min-width: min(360px, calc(100vw - 28px)) !important;
+    max-width: calc(100vw - 28px) !important;
+  }
+}
