@@ -1032,6 +1032,135 @@ body:not(.sidebar-collapsed) #sidebar .sidebar-branding {
   }
 }
 
+@media (min-width: 768px) {
+  html body.sidebar-rail-active #sidebar,
+  html body.sidebar-rail-active #sidebar .sidebar-nav-dynamic,
+  html body.sidebar-rail-active #sidebar .nav-config-section {
+    overflow: visible !important;
+  }
+
+  html body.sidebar-rail-active #sidebar .nav-group-items {
+    display: none !important;
+  }
+
+  .collapsed-nav-flyout {
+    position: fixed;
+    left: calc(var(--sidebar-w, 80px) + 12px);
+    top: var(--collapsed-flyout-top, 96px);
+    z-index: 10050;
+    width: min(360px, calc(100vw - var(--sidebar-w, 80px) - 28px));
+    max-height: min(560px, calc(100vh - var(--collapsed-flyout-top, 96px) - 18px));
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    overflow: auto;
+    border: 1px solid rgba(96, 165, 250, 0.26);
+    border-radius: var(--radius-xl, 16px);
+    background: color-mix(in srgb, var(--color-surface, #09101e) 96%, transparent);
+    box-shadow: var(--shadow-lg, 0 24px 70px rgba(0, 0, 0, 0.5));
+    color: var(--color-text, #f8fbff);
+    backdrop-filter: blur(18px);
+  }
+
+  .collapsed-nav-flyout.is-open {
+    display: flex;
+    animation: navFlyoutIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .collapsed-nav-flyout[hidden] {
+    display: none !important;
+  }
+
+  .collapsed-nav-flyout .nav-flyout-title {
+    display: block !important;
+    padding: 2px 4px 10px !important;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.14) !important;
+    color: var(--color-text, #f8fbff) !important;
+    font-size: var(--text-sm, 14px) !important;
+    font-weight: 900 !important;
+    line-height: 1.25 !important;
+  }
+
+  .collapsed-nav-flyout .nav-subsection {
+    display: grid !important;
+    gap: 5px !important;
+  }
+
+  .collapsed-nav-flyout .nav-subsection-title {
+    display: block !important;
+    padding: 10px 4px 5px !important;
+    color: var(--color-primary, #7dd3fc) !important;
+    font-size: var(--text-xs, 12px) !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase !important;
+  }
+
+  .collapsed-nav-flyout .nav-item {
+    width: 100% !important;
+    min-height: 42px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    border: 0 !important;
+    border-left: 3px solid transparent !important;
+    border-radius: calc(var(--radius-lg, 12px) - 2px) !important;
+    background: transparent !important;
+    color: var(--color-text-muted, #bac8e6) !important;
+    font-size: var(--text-sm, 14px) !important;
+    text-align: left !important;
+  }
+
+  .collapsed-nav-flyout .nav-item:hover,
+  .collapsed-nav-flyout .nav-item:focus-visible {
+    background: rgba(59, 130, 246, 0.1) !important;
+    color: var(--color-text, #f8fbff) !important;
+  }
+
+  .collapsed-nav-flyout .nav-item.active {
+    border-left-color: var(--color-primary, #3b82f6) !important;
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.18), rgba(59, 130, 246, 0.04)) !important;
+    color: var(--color-text, #f8fbff) !important;
+    font-weight: 800 !important;
+  }
+
+  .collapsed-nav-flyout .nav-item-icon {
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .collapsed-nav-flyout .nav-item-label {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .collapsed-nav-flyout .nav-item .count {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+  }
+}
+
+@keyframes navFlyoutIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
 @media (min-width: 768px) and (max-width: 1023px) {
   html body #sidebar .nav-group-toggle {
     overflow: hidden !important;

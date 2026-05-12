@@ -519,6 +519,7 @@ function setSidebarCollapsedState(isCollapsed) {
   setScopedItem('sidebar_collapsed', collapsed);
   localStorage.setItem('job_radar_sidebar_collapsed', String(collapsed));
   syncDesktopSidebarToggle(collapsed);
+  syncSidebarRailFlyoutMode();
 }
 
 window.toggleSidebar = function() {
@@ -1230,7 +1231,7 @@ function renderSidebarNavigation(options = {}) {
       const groupCount = (group.items || []).length;
       return `
         <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
-          <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}')" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
+          <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}', event)" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
             ${renderNavIcon(groupIconKey, `nav-group-icon nav-group-icon-${groupIconKey}`)}
             <span class="nav-group-text">
               <span class="nav-group-label">${escapeHtml(group.label)}</span>
@@ -1258,8 +1259,33 @@ function renderRecentTopicsPanel() {
   renderSidebarNavigation();
 }
 
+function syncSidebarRailFlyoutMode() {
+  const sidebar = document.getElementById('sidebar');
+  const sidebarWidth = sidebar ? Math.round(sidebar.getBoundingClientRect().width) : 0;
+  const isTabletRail = window.innerWidth >= 768 && window.innerWidth <= 1023;
+  const isDesktopRail = document.body.classList.contains('sidebar-collapsed') && window.innerWidth >= 1280;
+  const isVisualRail = sidebarWidth > 0 && sidebarWidth <= 96;
+  const isRail = window.innerWidth >= 768 && (isTabletRail || isDesktopRail || isVisualRail);
+  document.body.classList.toggle('sidebar-rail-active', isRail);
+  if (sidebar) sidebar.classList.toggle('nav-rail-active', isRail);
+  return isRail;
+}
+
 function isSidebarRailCollapsed() {
-  return document.body.classList.contains('sidebar-collapsed') && window.innerWidth >= 768;
+  return syncSidebarRailFlyoutMode();
+}
+
+function ensureCollapsedNavFlyout() {
+  let flyout = document.getElementById('collapsedNavFlyout');
+  if (flyout) return flyout;
+  flyout = document.createElement('div');
+  flyout.id = 'collapsedNavFlyout';
+  flyout.className = 'collapsed-nav-flyout';
+  flyout.hidden = true;
+  flyout.setAttribute('role', 'menu');
+  flyout.setAttribute('aria-label', 'Collapsed navigation menu');
+  document.body.appendChild(flyout);
+  return flyout;
 }
 
 function closeCollapsedNavFlyout() {
@@ -1267,6 +1293,13 @@ function closeCollapsedNavFlyout() {
     section.classList.remove('is-flyout-open');
     section.style.removeProperty('--collapsed-flyout-top');
   });
+  const flyout = document.getElementById('collapsedNavFlyout');
+  if (flyout) {
+    flyout.classList.remove('is-open');
+    flyout.hidden = true;
+    flyout.innerHTML = '';
+    flyout.style.removeProperty('--collapsed-flyout-top');
+  }
 }
 
 window.closeCollapsedNavFlyout = closeCollapsedNavFlyout;
@@ -1279,6 +1312,21 @@ function positionCollapsedNavFlyout(section) {
   const maxTop = Math.max(12, window.innerHeight - 560);
   const top = Math.min(preferredTop, maxTop);
   section.style.setProperty('--collapsed-flyout-top', `${top}px`);
+  const flyout = document.getElementById('collapsedNavFlyout');
+  if (flyout) flyout.style.setProperty('--collapsed-flyout-top', `${top}px`);
+}
+
+function openCollapsedNavFlyout(section) {
+  const panel = section?.querySelector('.nav-group-items');
+  if (!panel) return;
+  const flyout = ensureCollapsedNavFlyout();
+  const label = section.querySelector('.nav-group-label')?.textContent?.trim() || 'Navigation';
+  flyout.innerHTML = panel.innerHTML;
+  flyout.setAttribute('aria-label', `${label} navigation`);
+  flyout.hidden = false;
+  flyout.classList.add('is-open');
+  positionCollapsedNavFlyout(section);
+  flyout.scrollTo?.({ top: 0 });
 }
 
 window.changeRecentPage = function(delta, event) {
@@ -1313,7 +1361,11 @@ window.changeRecentPage = function(delta, event) {
   requestAnimationFrame(restoreSidebarPosition);
 };
 
-window.toggleNavGroup = function(groupId) {
+window.toggleNavGroup = function(groupId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const section = document.querySelector(`[data-nav-group="${CSS.escape(String(groupId))}"]`);
   if (!section) return;
   if (isSidebarRailCollapsed()) {
@@ -1325,7 +1377,7 @@ window.toggleNavGroup = function(groupId) {
     }
     setOnlySidebarGroupOpen(section);
     section.classList.add('is-flyout-open');
-    positionCollapsedNavFlyout(section);
+    openCollapsedNavFlyout(section);
     section.querySelector('.nav-group-items')?.scrollTo?.({ top: 0 });
     return;
   }
@@ -5368,16 +5420,25 @@ function syncDesktopSidebarToggle(forceCollapsed) {
 document.addEventListener('DOMContentLoaded', () => {
   const storedCollapsed = getScopedItem('sidebar_collapsed', localStorage.getItem('job_radar_sidebar_collapsed') || 'false') === 'true';
   setSidebarCollapsedState(storedCollapsed);
+  syncSidebarRailFlyoutMode();
 });
 
 document.addEventListener('click', event => {
   if (!isSidebarRailCollapsed()) return;
   const target = event.target;
   if (target instanceof Element && target.closest('#sidebar .nav-config-section')) return;
+  if (target instanceof Element && target.closest('#collapsedNavFlyout')) return;
   closeCollapsedNavFlyout();
 });
 
-window.addEventListener('resize', closeCollapsedNavFlyout);
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') closeCollapsedNavFlyout();
+});
+
+window.addEventListener('resize', () => {
+  syncSidebarRailFlyoutMode();
+  closeCollapsedNavFlyout();
+});
 
 function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
