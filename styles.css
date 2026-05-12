@@ -1874,6 +1874,13 @@ pre.code .num {
   color: var(--green);
 }
 
+.sum-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap !important;
+}
+
 .stats-row {
   display: flex;
   gap: 1rem;
@@ -2385,6 +2392,7 @@ pre.code .num {
 
 .timetable-item.past {
   opacity: 0.6;
+  text-decoration: line-through;
 }
 
 .timetable-item.past::before {
@@ -2929,7 +2937,15 @@ pre.code .num {
   }
 
   .timetable-item {
+    margin-left: 2rem;
     padding: 1rem;
+  }
+  .timetable-item::before {
+    left: -1.6rem;
+  }
+  .timetable-item.past {
+    text-decoration: line-through;
+    opacity: 0.6;
   }
 }
 
@@ -4505,7 +4521,7 @@ body.ui-classic .premium-mini-panel {
   .premium-onboarding-grid,
   .premium-two-col,
   .profile-metrics-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   .premium-primary-btn,
@@ -5216,13 +5232,7 @@ body.ui-classic .career-os-panel {
 #sidebar.mobile-open ~ #main #mobileToggle .h-bar:nth-child(2) { opacity: 0; }
 #sidebar.mobile-open ~ #main #mobileToggle .h-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-@media (min-width: 769px) {
-  .mobile-toggle {
-    display: none !important;
-  }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 1279px) {
   .mobile-toggle {
     display: flex !important;
   }

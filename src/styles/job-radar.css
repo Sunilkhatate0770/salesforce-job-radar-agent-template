@@ -8,7 +8,7 @@
 
 /* Board Layout */
 .kanban-col {
-  flex: 0 0 320px;
+  flex: 0 0 280px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -92,9 +92,11 @@
 }
 
 .job-card-company {
- font-size: 0.8rem;
- color: var(--muted);
- margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 4px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .job-card-meta {
@@ -114,11 +116,25 @@
 }
 
 .job-card-actions {
- margin-top: 15px;
- padding-top: 12px;
- border-top: 1px dashed var(--border);
- display: flex;
- gap: 8px;
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.job-card-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-btn {

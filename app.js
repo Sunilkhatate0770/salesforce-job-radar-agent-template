@@ -1214,9 +1214,9 @@ function getNavGroupIconKey(group = {}) {
   return 'book';
 }
 
-function renderNavIcon(iconKey, className = 'nav-item-icon') {
+function renderNavIcon(iconKey, className = 'nav-item-icon', label = '') {
   const path = NAV_ICON_PATHS[iconKey] || NAV_ICON_PATHS.book;
-  return `<span class="${className}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+  return `<span class="${className}" aria-hidden="true" data-label="${escapeHtml(label)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
 }
 
 function renderNavGroupChevron() {
@@ -1252,7 +1252,7 @@ function renderSidebarNavItem(item) {
     : `closeCollapsedNavFlyout();showPage('${escapeHtml(item.id)}')`;
   return `
     <button type="button" class="nav-item" data-page-id="${escapeHtml(item.id)}" data-nav-search="${escapeHtml([item.label, item.description || '', item.section || '', ...(item.tags || [])].join(' '))}" onclick="${action}" title="${escapeHtml(item.label)}" aria-label="${escapeHtml(item.label)}">
-      ${renderNavIcon(getNavIconKey(item))}
+      ${renderNavIcon(getNavIconKey(item), 'nav-item-icon', item.label)}
       <span class="nav-item-label">${escapeHtml(item.label)}</span>
       ${badge ? `<span class="count">${escapeHtml(badge)}</span>` : ''}
     </button>
@@ -1322,7 +1322,7 @@ function renderSidebarNavigation(options = {}) {
       return `
         <section class="nav-parent-section nav-config-section ${isOpen ? 'is-open' : 'is-closed'}" data-nav-group="${escapeHtml(group.id)}">
           <button type="button" class="nav-parent-title nav-group-toggle" aria-expanded="${String(isOpen)}" aria-controls="${sectionId}" onclick="toggleNavGroup('${escapeHtml(group.id)}', event)" title="${escapeHtml(group.label)}" aria-label="${escapeHtml(group.label)}">
-            ${renderNavIcon(groupIconKey, `nav-group-icon nav-group-icon-${groupIconKey}`)}
+            ${renderNavIcon(groupIconKey, `nav-group-icon nav-group-icon-${groupIconKey}`, group.label)}
             <span class="nav-group-text">
               <span class="nav-group-label">${escapeHtml(group.label)}</span>
               <span class="nav-group-desc">${escapeHtml(group.description || `${(group.items || []).length} modules`)}</span>
@@ -1367,6 +1367,15 @@ function isSidebarRailCollapsed() {
 }
 
 function ensureCollapsedNavFlyout() {
+  let backdrop = document.getElementById('flyoutBackdrop');
+  if (!backdrop) {
+    backdrop = document.createElement('div');
+    backdrop.id = 'flyoutBackdrop';
+    backdrop.className = 'flyout-backdrop';
+    backdrop.onclick = closeCollapsedNavFlyout;
+    document.body.appendChild(backdrop);
+  }
+
   let flyout = document.getElementById('collapsedNavFlyout');
   if (flyout) return flyout;
   flyout = document.createElement('div');
@@ -1391,6 +1400,7 @@ function closeCollapsedNavFlyout() {
     flyout.innerHTML = '';
     flyout.style.removeProperty('--collapsed-flyout-top');
   }
+  document.getElementById('flyoutBackdrop')?.classList.remove('is-visible');
 }
 
 window.closeCollapsedNavFlyout = closeCollapsedNavFlyout;
@@ -1408,14 +1418,32 @@ function positionCollapsedNavFlyout(section) {
 }
 
 function openCollapsedNavFlyout(section) {
+  const groupId = section?.getAttribute('data-nav-group');
   const panel = section?.querySelector('.nav-group-items');
   if (!panel) return;
   const flyout = ensureCollapsedNavFlyout();
   const label = section.querySelector('.nav-group-label')?.textContent?.trim() || 'Navigation';
-  flyout.innerHTML = panel.innerHTML;
+  
+  if (groupId === 'home-dashboard') {
+    // Mega Menu: Show all groups
+    const groups = Array.isArray(window.SFJR_NAVIGATION) ? window.SFJR_NAVIGATION : [];
+    flyout.innerHTML = `
+      <div class="nav-flyout-title">All Navigation</div>
+      ${groups.map(group => `
+        <div class="nav-subsection">
+          <div class="nav-subsection-title">${escapeHtml(group.label)}</div>
+          ${(group.items || []).map(renderSidebarNavItem).join('')}
+        </div>
+      `).join('')}
+    `;
+  } else {
+    flyout.innerHTML = panel.innerHTML;
+  }
+  
   flyout.setAttribute('aria-label', `${label} navigation`);
   flyout.hidden = false;
   flyout.classList.add('is-open');
+  document.getElementById('flyoutBackdrop')?.classList.add('is-visible');
   positionCollapsedNavFlyout(section);
   flyout.scrollTo?.({ top: 0 });
 }
@@ -5572,6 +5600,7 @@ function toggleMobileSidebar(forceOpen) {
 
   if (!shouldOpen) {
     sidebar.classList.remove('mobile-open');
+    document.body.classList.remove('nav-open');
     syncA11y(false);
     if (overlay) {
       overlay.style.opacity = '0';
@@ -5585,6 +5614,7 @@ function toggleMobileSidebar(forceOpen) {
   } else {
     lastSidebarTrigger = document.activeElement;
     sidebar.classList.add('mobile-open');
+    document.body.classList.add('nav-open');
     syncA11y(true);
     if (overlay) {
       overlay.style.display = 'block';

@@ -594,23 +594,6 @@
   body.sidebar-collapsed #sidebar .nav-item-icon {
     display: inline-flex !important;
     flex-basis: 20px;
-    width: 20px;
-    height: 20px;
-    color: #93c5fd;
-  }
-
-  body.sidebar-collapsed #sidebar .nav-group-icon {
-    flex-basis: 34px;
-    width: 34px;
-    height: 34px;
-    color: #f8fbff;
-    border-radius: 10px;
-  }
-
-  body.sidebar-collapsed #sidebar .nav-group-icon svg,
-  body.sidebar-collapsed #sidebar .nav-item-icon svg {
-    width: 20px;
-    height: 20px;
   }
 
   body.sidebar-collapsed #sidebar .nav-group-icon svg {
@@ -921,17 +904,35 @@ body:not(.sidebar-collapsed) #sidebar .sidebar-branding {
     left: 92px !important;
     top: var(--collapsed-flyout-top, 96px) !important;
     width: min(340px, calc(100vw - 112px)) !important;
-    max-height: min(540px, calc(100vh - var(--collapsed-flyout-top, 96px) - 18px)) !important;
+    max-height: calc(100vh - var(--collapsed-flyout-top, 96px) - 24px) !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 8px !important;
     padding: 14px !important;
-    overflow: auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
     border: 1px solid rgba(96, 165, 250, 0.26) !important;
     border-radius: 16px !important;
     background: rgba(9, 16, 30, 0.98) !important;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(15, 23, 42, 0.9) !important;
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px) !important;
+    z-index: 10030 !important;
+  }
+
+  .flyout-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 10025;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .flyout-backdrop.is-visible {
+    display: block;
+    opacity: 1;
   }
 
   html body.sidebar-collapsed #sidebar .nav-config-section.is-flyout-open .nav-flyout-title {
