@@ -140,24 +140,18 @@
 
 <!-- SIDEBAR -->
 <aside id="sidebar" role="dialog" aria-modal="true" aria-label="Salesforce preparation navigation">
-  <!-- AGENT DASHBOARD BRANDING (v1378) -->
-  <div class="sidebar-header" style="position:relative;">
-    <button onclick="toggleDesktopSidebar()" class="desktop-sidebar-toggle" aria-label="Toggle Sidebar Collapse" title="Collapse Sidebar" style="position:absolute; right:16px; top:20px; background:transparent; border:none; color:var(--muted); cursor:pointer; padding:4px; border-radius:6px; transition:0.2s;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><path d="M15 18l-6-6 6-6"/></svg>
-    </button>
-    <div class="sidebar-brand-subtitle">Agent Dashboard</div>
-    <h2 class="sidebar-brand-title">
-      Salesforce & FDE<br>
-      <span style="color:var(--blue)">Master Prep Guide</span>
-    </h2>
-    <div class="sync-status-indicator">
-      <div class="sync-dot"></div>
-      <span>Data Layer Synced</span>
+    <div class="sidebar-branding">
+      <div id="brandingContainer" class="branding-container">
+        <h1 id="appTitle">Job Radar AI</h1>
+        <p id="appSubtitle">Salesforce Intelligence</p>
+      </div>
+      <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Toggle navigation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Close navigation" onclick="toggleMobileSidebar(false)">
+        <span aria-hidden="true">&times;</span>
+      </button>
     </div>
-    <button type="button" id="sidebarCloseBtn" class="sidebar-close-btn" aria-label="Close navigation" onclick="toggleMobileSidebar(false)">
-      <span aria-hidden="true">&times;</span>
-    </button>
-  </div>
 
   <div class="search-wrap">
     <div style="position:relative; width:100%;">
@@ -173,6 +167,7 @@
         <div style="overflow:hidden; flex:1;">
           <div id="userName" style="font-weight:700; font-size:0.8rem; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
           <div id="userEmail" style="font-size:0.55rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+          <button onclick="showPage('profile_match')" style="background:transparent; border:none; padding:0; color:var(--blue); font-size:0.65rem; font-weight:700; cursor:pointer; text-decoration:underline; margin-top:2px;">View Profile</button>
         </div>
       </div>
   </div>

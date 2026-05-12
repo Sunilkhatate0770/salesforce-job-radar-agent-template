@@ -476,7 +476,41 @@ document.addEventListener('DOMContentLoaded', () => {
       themeBtn.setAttribute('aria-pressed', !isLight ? 'true' : 'false');
     });
   }
+
+  // --- GLOBAL RIPPLE & ARTIFACT CLEANUP (v1416) ---
+  document.addEventListener('mousedown', function(e) {
+    // 1. Create ripple
+    const ripple = document.createElement('div');
+    ripple.className = 'ripple';
+    const size = 30;
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - size / 2) + 'px';
+    ripple.style.top = (e.clientY - size / 2) + 'px';
+    document.body.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 600);
+
+    // 2. Cleanup suspicious dots (v1416)
+    // Any small absolute/fixed div created at click time is suspect
+    setTimeout(() => {
+      document.querySelectorAll('div').forEach(div => {
+        const bg = div.style.backgroundColor || '';
+        if (bg.includes('teal') || bg.includes('cyan') || bg.includes('rgb(0, 188, 212)')) {
+          div.remove();
+        }
+      });
+    }, 50);
+  });
 });
+
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  setScopedItem('sidebar_collapsed', isCollapsed);
+  
+  // Re-render to adjust for potential layout shifts
+  if (typeof renderBoard === 'function') renderBoard();
+};
 
 function hydratePremiumSetupForm(profile = {}) {
   const hydratedProfile = mergePremiumDraftProfile(profile);
@@ -4230,8 +4264,11 @@ async function ensurePageLoaded(pageId) {
 // Update showPage to include extreme telemetry
 let isNavigating = false;
 async function showPage(id) {
-  if (isNavigating) return;
+  if (isNavigating && id !== 'topic_viewer') return; 
   isNavigating = true;
+  
+  // Set a safety timeout to reset isNavigating (v1416)
+  const navTimeout = setTimeout(() => { isNavigating = false; }, 3500);
   console.log(`%c [TAB SWITCH] -> ${id}`, 'background: #3b82f6; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold;');
   try {
   
@@ -4412,6 +4449,7 @@ async function showPage(id) {
   } catch (err) {
     console.error('[NAV] showPage() error:', err);
   } finally {
+    clearTimeout(navTimeout);
     isNavigating = false;
   }
 }
@@ -5312,11 +5350,9 @@ function toggleTheme() {
 
 // --- DESKTOP SIDEBAR COLLAPSE (v1414) ---
 function toggleDesktopSidebar() {
-  const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
-  localStorage.setItem('job_radar_sidebar_collapsed', isCollapsed ? 'true' : 'false');
-  syncDesktopSidebarToggle(isCollapsed);
-  // Dispatch a resize event to ensure any charts or Kanban boards adjust to the new width
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+  if (typeof toggleSidebar === 'function') {
+    toggleSidebar();
+  }
 }
 
 function syncDesktopSidebarToggle(forceCollapsed) {
