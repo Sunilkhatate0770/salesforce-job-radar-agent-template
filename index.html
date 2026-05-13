@@ -93,14 +93,14 @@
   <!-- app.js moved to bottom for performance and DOM stability -->
 </head>
 <body>
-<a href="#main" class="skip-to-content" style="position:absolute;left:-9999px;top:0;z-index:999999;padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:0.85rem;border-radius:0 0 8px 0;transition:left 0.2s;" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to main content</a>
+<a id="skipToContent" href="#loginOverlay" class="skip-to-content" style="position:absolute;left:-9999px;top:0;z-index:999999;padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:0.85rem;border-radius:0 0 8px 0;transition:left 0.2s;" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to main content</a>
 
 <!-- SIDEBAR OVERLAY -->
 <div id="sidebarOverlay" aria-hidden="true"></div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle at 0% 0%, hsla(222, 100%, 15%, 1) 0%, hsla(222, 55%, 6%, 1) 50%, hsla(280, 100%, 10%, 1) 100%); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; backdrop-filter: blur(20px);">
-  <div style="background: hsla(222, 47%, 12%, 0.6); backdrop-filter: blur(30px); padding: 3rem 2rem; border-radius: 40px; border: 1px solid hsla(222, 100%, 50%, 0.15); text-align: center; max-width: 440px; width: 92%; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(59, 130, 246, 0.1); position: relative; overflow: hidden;">
+  <div class="login-card" style="background: hsla(222, 47%, 12%, 0.6); backdrop-filter: blur(30px); padding: 3rem 2rem; border-radius: 40px; border: 1px solid hsla(222, 100%, 50%, 0.15); text-align: center; max-width: 440px; width: 92%; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(59, 130, 246, 0.1); position: relative; overflow: hidden;">
     <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, hsla(222, 100%, 50%, 0.1), transparent 70%); filter: blur(20px);"></div>
     <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 20px; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4); animation: float 6s ease-in-out infinite;">
       <svg viewBox="0 0 24 24" fill="white" style="width: 36px; height: 36px;"><path d="M13 10V3L4 14H11V21L20 10H13Z"/></svg>
@@ -123,7 +123,7 @@
       </div>
     </div>
 	    
-    <div style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
+    <div class="google-signin-wrap" style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
       <div id="googleSignInButton" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
         <div class="loading-spinner sm"></div>
       </div>
@@ -141,7 +141,7 @@
 <!-- NO FLOATING PROFILE HERE (MOVED INSIDE MAIN) -->
 
 <!-- SIDEBAR -->
-<aside id="sidebar" role="dialog" aria-modal="true" aria-label="Salesforce preparation navigation">
+<dialog id="sidebar" aria-modal="false" aria-label="Salesforce preparation navigation" inert>
     <div class="sidebar-branding sidebar-header">
       <div id="brandingContainer" class="branding-container">
         <h1 id="appTitle">Job Radar AI</h1>
@@ -210,7 +210,7 @@
     <!-- REVISION ALERTS (v1342) -->
     <div id="revisionAlerts" style="margin-top:20px;"></div>
   </div>
-</aside>
+</dialog>
 
 <!-- FLOATING TIMER -->
 <div id="floatingTimer">
@@ -308,6 +308,7 @@
   <!-- MASTER VIEWPORT HEADER (v1344) -->
   <header id="mainHeader">
     <div class="header-zone-left">
+      <button type="button" id="sidebarOpenBtn" aria-label="Open navigation" aria-controls="sidebar">☰</button>
       <button type="button" class="mobile-toggle" onclick="toggleSidebar()" id="mobileToggle" title="Toggle Navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
         <span class="h-bar"></span>
         <span class="h-bar"></span>
@@ -557,7 +558,7 @@
       <span>Daily Goal Progress</span>
       <span id="dailyProgressText">0%</span>
     </div>
-    <div style="width:100%;height:8px;background:var(--card);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+    <div style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
       <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
     </div>
   </div>
@@ -951,7 +952,7 @@
 
 <!-- ULTRA-COMPACT PREMIUM FOOTER -->
 
-<footer style="width: 100% !important; position: relative !important; margin-top: auto !important; height: 60px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border);">
+<footer class="footer-status" style="width: 100% !important; position: relative !important; margin-top: auto !important; height: 60px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border);">
   <div style="font-size: 0.65rem; color: var(--muted); display: flex; align-items: center; gap: 6px; opacity: 0.6;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px; opacity:0.3;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     <span style="letter-spacing: 0.5px; font-weight: 600;">Salesforce Career Intelligence</span>

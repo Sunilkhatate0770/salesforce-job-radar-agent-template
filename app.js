@@ -253,6 +253,7 @@ window.processGAuth = async function(response) {
       loadUserScopedClientState();
       const overlay = document.getElementById('loginOverlay');
       if (overlay) overlay.style.display = 'none';
+      setAuthenticatedLayoutState(true);
       const syncStatus = document.getElementById('syncStatus');
       if (syncStatus) syncStatus.style.display = 'flex';
       const syncStatusPreLogin = document.getElementById('syncStatusPreLogin');
@@ -470,6 +471,12 @@ window.toggleUiMode = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  setAuthenticatedLayoutState(false);
+  syncSidebarDisplayMode();
+  bindSidebarDialogControls();
+  if (document.getElementById('schedule')?.classList.contains('active')) {
+    renderTimetable().catch(err => console.warn('[SCHEDULE] Initial render failed:', err.message));
+  }
   const scanBtn = document.getElementById('btnScanJobs');
   if (scanBtn) {
     scanBtn.addEventListener('click', triggerJobScan);
@@ -525,6 +532,86 @@ function setSidebarCollapsedState(isCollapsed) {
     headerToggle.setAttribute('aria-expanded', String(!collapsed));
     headerToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
     headerToggle.title = collapsed ? 'Expand navigation' : 'Collapse navigation';
+  }
+}
+
+function setAuthenticatedLayoutState(isAuthenticated) {
+  const sidebar = document.getElementById('sidebar');
+  const skipLink = document.getElementById('skipToContent');
+  document.body.classList.toggle('is-authenticated', Boolean(isAuthenticated));
+  document.body.classList.toggle('login-active', !isAuthenticated);
+  if (skipLink) {
+    skipLink.href = isAuthenticated ? '#main' : '#loginOverlay';
+    skipLink.style.display = isAuthenticated ? '' : 'none';
+  }
+  if (!sidebar) return;
+  if (isAuthenticated) {
+    sidebar.removeAttribute('inert');
+    sidebar.querySelectorAll('[data-prelogin-tabindex]').forEach(el => {
+      const original = el.getAttribute('data-prelogin-tabindex');
+      if (original === '') el.removeAttribute('tabindex');
+      else el.setAttribute('tabindex', original);
+      el.removeAttribute('data-prelogin-tabindex');
+    });
+    syncSidebarDisplayMode();
+    return;
+  }
+  sidebar.setAttribute('inert', '');
+  sidebar.querySelectorAll('a, button, input, select, textarea, [tabindex], [role="button"]').forEach(el => {
+    if (!el.hasAttribute('data-prelogin-tabindex')) {
+      el.setAttribute('data-prelogin-tabindex', el.getAttribute('tabindex') || '');
+    }
+    el.setAttribute('tabindex', '-1');
+  });
+}
+
+function bindSidebarDialogControls() {
+  const sidebar = document.getElementById('sidebar');
+  const openBtn = document.getElementById('sidebarOpenBtn');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (openBtn && !openBtn.dataset.sidebarBound) {
+    openBtn.dataset.sidebarBound = 'true';
+    openBtn.addEventListener('click', () => toggleMobileSidebar(true));
+  }
+  if (sidebar && !sidebar.dataset.backdropBound) {
+    sidebar.dataset.backdropBound = 'true';
+    sidebar.addEventListener('click', event => {
+      if (window.innerWidth >= 768 || event.target !== sidebar) return;
+      toggleMobileSidebar(false);
+    });
+    sidebar.addEventListener('cancel', event => {
+      event.preventDefault();
+      toggleMobileSidebar(false);
+    });
+  }
+  if (overlay && !overlay.dataset.sidebarBound) {
+    overlay.dataset.sidebarBound = 'true';
+    overlay.addEventListener('click', () => toggleMobileSidebar(false));
+  }
+}
+
+function syncSidebarDisplayMode() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar || sidebar.hasAttribute('inert')) return;
+  const isMobile = window.innerWidth < 768;
+  sidebar.setAttribute('aria-modal', isMobile && sidebar.classList.contains('mobile-open') ? 'true' : 'false');
+  if (!isMobile) {
+    if (!sidebar.open && typeof sidebar.show === 'function') {
+      try { sidebar.show(); } catch (e) { sidebar.setAttribute('open', ''); }
+    } else {
+      sidebar.setAttribute('open', '');
+    }
+    sidebar.classList.remove('mobile-open');
+    document.body.classList.remove('nav-open');
+    document.body.style.overflow = '';
+    const overlay = document.getElementById('sidebarOverlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.style.opacity = '0';
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+  } else if (!sidebar.classList.contains('mobile-open') && sidebar.open) {
+    sidebar.close();
   }
 }
 
@@ -1347,6 +1434,7 @@ function renderRecentTopicsPanel() {
   if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
   if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
   renderSidebarNavigation();
+  if (!currentUser) setAuthenticatedLayoutState(false);
 }
 
 function syncSidebarRailFlyoutMode() {
@@ -2212,6 +2300,7 @@ async function checkAuth() {
   const token = localStorage.getItem('google_auth_token');
   if (!token) {
     syncLoginUiModeControls(currentUiMode);
+    setAuthenticatedLayoutState(false);
     document.getElementById('loginOverlay').style.display = 'flex';
     return false;
   }
@@ -2228,6 +2317,7 @@ async function checkAuth() {
       localStorage.removeItem('google_auth_token');
       GSI_TOKEN = null;
       syncLoginUiModeControls(currentUiMode);
+      setAuthenticatedLayoutState(false);
       document.getElementById('loginOverlay').style.display = 'flex';
       return false;
     }
@@ -2240,12 +2330,14 @@ async function checkAuth() {
       loadUserScopedClientState();
       renderUserProfile(currentUser);
       document.getElementById('loginOverlay').style.display = 'none';
+      setAuthenticatedLayoutState(true);
       return true;
     }
   } catch (e) {
     console.warn('Auth check failed (network error):', e.message);
     // On network failure, show login overlay so user can re-authenticate
     syncLoginUiModeControls(currentUiMode);
+    setAuthenticatedLayoutState(false);
     const overlay = document.getElementById('loginOverlay');
     if (overlay) overlay.style.display = 'flex';
   }
@@ -4253,6 +4345,12 @@ async function renderTimetable() {
   const progressText = document.getElementById('dailyProgressText');
 
   try {
+    if (!Array.isArray(SCHEDULE_DATA) || SCHEDULE_DATA.length === 0) {
+      container.innerHTML = '<div class="content-card empty-state">No schedule data available.</div>';
+      if (progressBar) progressBar.style.width = '0%';
+      if (progressText) progressText.textContent = '0%';
+      return;
+    }
     const data = await getStudyData();
     console.log(' [SCHEDULE] Data received:', data);
     const completedTasks = data.completedTasks || [];
@@ -4656,6 +4754,7 @@ window.addEventListener('DOMContentLoaded', () => {
   ensureNavigationTopicConfig();
   refreshSearchIndex();
   renderRecentTopicsPanel();
+  if (!currentUser) setAuthenticatedLayoutState(false);
   syncSidebarStickyOffset();
   window.addEventListener('resize', syncSidebarStickyOffset);
   const overlay = document.getElementById('sidebarOverlay');
@@ -5574,6 +5673,7 @@ document.addEventListener('keydown', event => {
 window.addEventListener('resize', () => {
   syncSidebarRailFlyoutMode();
   closeCollapsedNavFlyout();
+  syncSidebarDisplayMode();
 });
 
 window.addEventListener('hashchange', () => {
@@ -5585,11 +5685,16 @@ function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  const toggle = document.getElementById('mobileToggle');
+  const toggle = document.getElementById('sidebarOpenBtn') || document.getElementById('mobileToggle');
   if (!sidebar) return;
   
   const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('mobile-open');
   const syncA11y = open => {
+    document.querySelectorAll('#sidebarOpenBtn, #mobileToggle').forEach(btn => {
+      if (!btn) return;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    });
     if (toggle) {
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
@@ -5600,6 +5705,9 @@ function toggleMobileSidebar(forceOpen) {
 
   if (!shouldOpen) {
     sidebar.classList.remove('mobile-open');
+    if (typeof sidebar.close === 'function' && sidebar.open && window.innerWidth < 768) {
+      sidebar.close();
+    }
     document.body.classList.remove('nav-open');
     syncA11y(false);
     if (overlay) {
@@ -5613,6 +5721,16 @@ function toggleMobileSidebar(forceOpen) {
     }
   } else {
     lastSidebarTrigger = document.activeElement;
+    if (window.innerWidth < 768 && typeof sidebar.showModal === 'function') {
+      try {
+        if (sidebar.open) sidebar.close();
+        sidebar.showModal();
+      } catch (e) {
+        sidebar.setAttribute('open', '');
+      }
+    } else if (!sidebar.open && typeof sidebar.show === 'function') {
+      try { sidebar.show(); } catch (e) { sidebar.setAttribute('open', ''); }
+    }
     sidebar.classList.add('mobile-open');
     document.body.classList.add('nav-open');
     syncA11y(true);
