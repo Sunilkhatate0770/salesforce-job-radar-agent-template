@@ -3012,6 +3012,14 @@ body.login-active #sidebarOverlay {
   visibility: hidden !important;
 }
 
+/* Ensure main is visible after authentication even if inert removal races */
+body.authenticated #main,
+body.is-authenticated #main {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
 body.login-active #floatingTimer {
   display: none !important;
 }
