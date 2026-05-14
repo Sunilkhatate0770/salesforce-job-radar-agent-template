@@ -19,10 +19,13 @@ test('Vercel security headers include a compatible CSP', () => {
   assert.ok(csp, 'Content-Security-Policy header is missing');
   assert.match(csp, /default-src 'self'/);
   assert.match(csp, /script-src[^;]*https:\/\/accounts\.google\.com/);
+  assert.match(csp, /script-src[^;]*https:\/\/cdnjs\.cloudflare\.com/);
   assert.match(csp, /style-src[^;]*https:\/\/fonts\.googleapis\.com/);
   assert.match(csp, /style-src[^;]*https:\/\/api\.fontshare\.com/);
   assert.match(csp, /style-src[^;]*https:\/\/accounts\.google\.com/);
+  assert.match(csp, /style-src[^;]*https:\/\/cdnjs\.cloudflare\.com/);
   assert.match(csp, /style-src-elem[^;]*https:\/\/accounts\.google\.com/);
+  assert.match(csp, /style-src-elem[^;]*https:\/\/cdnjs\.cloudflare\.com/);
   assert.match(csp, /font-src[^;]*https:\/\/fonts\.gstatic\.com/);
   assert.match(csp, /font-src[^;]*https:\/\/cdn\.fontshare\.com/);
   assert.match(csp, /img-src[^;]*https:\/\/lh3\.googleusercontent\.com/);

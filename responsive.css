@@ -265,11 +265,15 @@ body.login-active #sidebarOverlay {
 
 @media (max-width: 767px) {
   #sidebarOpenBtn {
-    display: inline-flex !important;
+    display: none !important;
   }
 
   #mobileToggle {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   #sidebar[open] {
@@ -3221,32 +3225,52 @@ body.is-authenticated #loginOverlay {
 }
 
 #mainHeader {
-  display: flex !important;
-  flex-direction: row !important;
+  display: grid !important;
+  grid-template-columns: minmax(44px, auto) minmax(0, 1fr) minmax(0, auto) !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  flex-wrap: nowrap !important;
   gap: 8px !important;
   padding: 0 16px !important;
   height: 48px !important;
   width: 100% !important;
+  max-width: 100vw !important;
+  overflow: hidden !important;
   box-sizing: border-box !important;
 }
 
-#mainHeader .header-zone-left,
-#mainHeader .header-zone-right {
-  flex: 0 0 auto !important;
+#mainHeader .header-zone-left {
+  min-width: 44px !important;
+  width: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
 }
 
 #mainHeader .header-zone-center {
-  flex: 1 1 auto !important;
   min-width: 0 !important;
+  width: 100% !important;
+  overflow: hidden !important;
+}
+
+#mainHeader .header-zone-right {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  overflow: hidden !important;
 }
 
 #sidebarOpenBtn {
-  order: 0 !important;
-  flex-shrink: 0 !important;
-  margin-right: 8px !important;
+  display: none !important;
+}
+
+#mobileToggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
 }
 
 #themeToggleBtn {
@@ -3266,6 +3290,37 @@ body.is-authenticated #loginOverlay {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+}
+
+@media (max-width: 767px) {
+  #mainHeader {
+    grid-template-columns: 44px minmax(0, 1fr) minmax(0, auto) !important;
+    padding-inline: 10px !important;
+  }
+
+  #mainHeader .header-zone-right {
+    gap: 6px !important;
+  }
+
+  #mainHeader #themeToggleBtn {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+
+  #mainHeader #uiModeToggle {
+    min-width: 60px !important;
+    max-width: 64px !important;
+    height: 30px !important;
+    margin-right: 0 !important;
+    font-size: 0.62rem !important;
+  }
+
+  #mainHeader .floating-profile {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
 }
 
 #dailyProgressBar {
@@ -3437,11 +3492,15 @@ body.is-authenticated #loginOverlay {
 
 @media (max-width: 767px) {
   #sidebarOpenBtn {
-    display: inline-flex !important;
+    display: none !important;
   }
 
   #mobileToggle {
-    display: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
   }
 
   #sidebar[open] {

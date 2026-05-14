@@ -50,6 +50,24 @@ async function hideLoginOverlay(page) {
   });
 }
 
+async function unlockAuthenticatedShell(page) {
+  await page.evaluate(() => {
+    document.body.classList.remove('login-active');
+    document.body.classList.add('authenticated', 'is-authenticated');
+    const main = document.getElementById('main');
+    if (main) main.removeAttribute('inert');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.removeAttribute('inert');
+    if (typeof window.syncSidebarDisplayMode === 'function') window.syncSidebarDisplayMode();
+  });
+  await page.waitForFunction(() => {
+    const main = document.getElementById('main');
+    if (!main) return false;
+    const style = getComputedStyle(main);
+    return style.visibility !== 'hidden' && Number(style.opacity || 1) > 0.9;
+  }, { timeout: 4000 });
+}
+
 async function verifyLoginOverlay(page) {
   return page.evaluate(() => {
     const login = document.getElementById('loginOverlay');
@@ -102,6 +120,21 @@ async function getOverflowReport(page) {
   });
 }
 
+async function verifyHeaderFit(page) {
+  return page.evaluate(() => {
+    const header = document.getElementById('mainHeader');
+    if (!header) return { exists: false, fits: true };
+    const rect = header.getBoundingClientRect();
+    return {
+      exists: true,
+      fits: header.scrollWidth <= header.clientWidth + 3 && rect.right <= innerWidth + 1,
+      width: Math.round(rect.width),
+      scrollWidth: header.scrollWidth,
+      clientWidth: header.clientWidth
+    };
+  });
+}
+
 async function verifyTouchTargets(page, viewport) {
   if (viewport.width > 640) return { skipped: 'non-phone viewport' };
   return page.evaluate(() => {
@@ -140,7 +173,9 @@ async function verifySidebar(page, viewport) {
       const style = getComputedStyle(el);
       return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
     }).catch(() => false);
-    if (!mobileToggleVisible) return { skipped: 'mobile toggle hidden at this breakpoint' };
+    if (!mobileToggleVisible) {
+      return { open: false, expanded: null, failure: 'mobile toggle hidden at this breakpoint' };
+    }
 
     await page.click('#mobileToggle');
     await page.waitForFunction(() => document.getElementById('sidebar')?.classList.contains('mobile-open'), { timeout: 4000 });
@@ -342,14 +377,16 @@ async function run() {
       await waitForApp(page);
       const login = await verifyLoginOverlay(page);
       await hideLoginOverlay(page);
+      await unlockAuthenticatedShell(page);
 
       const overflow = await getOverflowReport(page);
+      const header = await verifyHeaderFit(page);
       const sidebar = await verifySidebar(page, viewport);
       const radar = await verifyJobRadar(page, viewport);
       const touchTargets = await verifyTouchTargets(page, viewport);
       const postRadarOverflow = await getOverflowReport(page);
 
-      const result = { viewport, login, overflow, sidebar, radar, touchTargets, postRadarOverflow, consoleErrors };
+      const result = { viewport, login, overflow, header, sidebar, radar, touchTargets, postRadarOverflow, consoleErrors };
       results.push(result);
 
       if (viewport.width <= 320 && (!login.exists || !login.fits)) {
@@ -357,6 +394,12 @@ async function run() {
       }
       if (overflow.hasHorizontalOverflow || postRadarOverflow.hasHorizontalOverflow) {
         failures.push(`${viewport.name}: horizontal overflow detected`);
+      }
+      if (!header.fits) {
+        failures.push(`${viewport.name}: header content overflows its container`);
+      }
+      if (viewport.width < 901 && sidebar.failure) {
+        failures.push(`${viewport.name}: ${sidebar.failure}`);
       }
       if (viewport.width <= 640) {
         if (!radar.hasMobileStageSelect || radar.optionCount < 5 || radar.visibleColumns.length !== 1 || radar.selectedStage !== 'applied') {
