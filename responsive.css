@@ -24,6 +24,16 @@ body {
   letter-spacing: 0 !important;
 }
 
+#loginOverlay .login-google-shell {
+  max-width: min(268px, calc(100vw - 72px)) !important;
+}
+
+#loginOverlay .login-google-button,
+#loginOverlay .login-google-button > div,
+#loginOverlay .login-google-button iframe {
+  max-width: 100% !important;
+}
+
 #main,
 .page,
 .content-card,
@@ -331,6 +341,10 @@ table {
 
   #loginOverlay .login-mode-panel {
     padding: 12px !important;
+  }
+
+  #loginOverlay .login-google-shell {
+    max-width: min(252px, calc(100vw - 64px)) !important;
   }
 
   #job_radar {

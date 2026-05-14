@@ -24,8 +24,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260514-shell-repair">
-<link rel="stylesheet" href="responsive.css?v=20260514-shell-repair">
+<link rel="stylesheet" href="styles.css?v=20260514-google-login">
+<link rel="stylesheet" href="responsive.css?v=20260514-google-login">
 <link rel="stylesheet" href="src/styles/navigation.css?v=20260514-shell-repair">
   <script>
     window._sfjrClientConfigPromise = null;
@@ -68,13 +68,15 @@
         });
         if (target) {
           target.innerHTML = '';
+          var buttonWidth = Math.min(268, Math.max(220, Math.floor(target.getBoundingClientRect().width || 268)));
           window.google.accounts.id.renderButton(target, {
             type: 'standard',
             shape: 'pill',
-            theme: 'filled_blue',
+            theme: 'filled_black',
             text: 'signin_with',
             size: 'large',
-            logo_alignment: 'left'
+            logo_alignment: 'left',
+            width: buttonWidth
           });
         }
         if (status) status.hidden = true;
@@ -123,8 +125,8 @@
       </div>
     </div>
 	    
-    <div style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
-      <div id="googleSignInButton" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+    <div class="login-google-shell">
+      <div id="googleSignInButton" class="login-google-button" aria-label="Google Sign-In">
         <div class="loading-spinner sm"></div>
       </div>
     </div>

@@ -34,6 +34,9 @@ test('login shell reads Google Client ID from runtime client config', () => {
   const html = fs.readFileSync('index.html', 'utf8');
   assert.match(html, /\/api\/client-config/);
   assert.match(html, /google\.accounts\.id\.initialize/);
+  assert.match(html, /theme:\s*'filled_black'/);
+  assert.match(html, /width:\s*buttonWidth/);
+  assert.match(html, /class="login-google-shell"/);
   assert.doesNotMatch(html, /data-client_id="[^"]+\.apps\.googleusercontent\.com/);
   assert.doesNotMatch(html, /991931034479-q2jgdjf3r2fo8j95mnacmgp19t2mnrge/);
 });
