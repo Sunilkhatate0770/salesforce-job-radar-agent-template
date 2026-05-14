@@ -20,7 +20,11 @@ test('Vercel security headers include a compatible CSP', () => {
   assert.match(csp, /default-src 'self'/);
   assert.match(csp, /script-src[^;]*https:\/\/accounts\.google\.com/);
   assert.match(csp, /style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+  assert.match(csp, /style-src[^;]*https:\/\/api\.fontshare\.com/);
+  assert.match(csp, /style-src[^;]*https:\/\/accounts\.google\.com/);
+  assert.match(csp, /style-src-elem[^;]*https:\/\/accounts\.google\.com/);
   assert.match(csp, /font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+  assert.match(csp, /font-src[^;]*https:\/\/cdn\.fontshare\.com/);
   assert.match(csp, /img-src[^;]*https:\/\/lh3\.googleusercontent\.com/);
   assert.match(csp, /object-src 'none'/);
   assert.match(csp, /base-uri 'self'/);

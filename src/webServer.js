@@ -43,10 +43,10 @@ const dataCache = new Map();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-function buildHealthPayload(isMongoConnected = false) {
+function buildHealthPayload(mongoConnected = false) {
   return buildRadarHealthPayload({
     env: process.env,
-    mongoConnected: isMongoConnected,
+    mongoConnected,
     runtime: process.env.VERCEL ? 'vercel' : 'local'
   });
 }
@@ -522,7 +522,8 @@ async function connectDB() {
 // THE HANDLER (Exported for Vercel)
 export default async function handler(req, res) {
   const db = await connectDB();
-  const isMongoConnected = !!db;
+  const mongoConnected = !!db;
+  const isMongoConnected = () => mongoConnected;
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const url = parsedUrl.pathname;
@@ -593,12 +594,16 @@ export default async function handler(req, res) {
           lastLogin: new Date()
         };
 
-        if (isMongoConnected) {
-          user = await User.findOneAndUpdate(
-            { googleId },
-            user,
-            { upsert: true, new: true }
-          );
+        if (isMongoConnected()) {
+          try {
+            user = await User.findOneAndUpdate(
+              { googleId },
+              user,
+              { upsert: true, new: true }
+            );
+          } catch (mongoErr) {
+            console.warn('[AUTH] Mongo user sync failed but continuing:', mongoErr.message);
+          }
         }
         
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -623,7 +628,7 @@ export default async function handler(req, res) {
     try {
       if (url === '/api/health' && method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(buildHealthPayload(isMongoConnected)));
+        res.end(JSON.stringify(buildHealthPayload(isMongoConnected())));
       }
       else if (url === '/api/client-config' && method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -647,7 +652,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true }));
       }
       else if (url === '/api/study/tasks' && method === 'GET') {
-        if (!isMongoConnected) {
+        if (!isMongoConnected()) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ completedTasks: [] }));
           return;
@@ -664,9 +669,9 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: false, error: 'index or taskId is required' }));
           return;
         }
-        const existing = isMongoConnected ? await TaskStatus.findOne({ userId, index: taskIndex }).lean() : null;
+        const existing = isMongoConnected() ? await TaskStatus.findOne({ userId, index: taskIndex }).lean() : null;
         const nextCompleted = typeof payload.completed === 'boolean' ? payload.completed : !existing?.completed;
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           await TaskStatus.findOneAndUpdate(
             { userId, index: taskIndex },
             { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
@@ -681,7 +686,7 @@ export default async function handler(req, res) {
         }
       }
       else if (url === '/api/study/reset' && method === 'POST') {
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           await StudySession.deleteMany({ userId });
           await TaskStatus.deleteMany({ userId });
           await UserProfile.findOneAndUpdate(
@@ -741,7 +746,7 @@ export default async function handler(req, res) {
           applicationTracker: trackerJobs.length,
           mongo: 0
         };
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           const mongoJobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean();
           sourceCounts.mongo = mongoJobs.length;
           const mergedJobs = mergeDashboardJobs(
@@ -786,7 +791,7 @@ export default async function handler(req, res) {
       }
       else if (url === '/api/jobs/analytics' && method === 'GET') {
         const [mongoJobs, trackerJobs, alertJobs] = await Promise.all([
-          isMongoConnected ? JobRecord.find({ userId }).lean() : [],
+          isMongoConnected() ? JobRecord.find({ userId }).lean() : [],
           readSupabaseTrackerJobs(),
           readSupabaseJobAlertRows(180)
         ]);
@@ -827,7 +832,7 @@ export default async function handler(req, res) {
         }));
       }
       else if (url.includes('summary/all')) {
-        if (!isMongoConnected) {
+        if (!isMongoConnected()) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({}));
           return;
@@ -838,7 +843,7 @@ export default async function handler(req, res) {
       }
       else if (url.includes('summary/daily')) {
         let sessions = null;
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean();
         }
         const summaries = generateDailySummary(sessions);
@@ -896,7 +901,7 @@ export default async function handler(req, res) {
         }));
       }
       else if (url === '/api/study/leaderboard' && method === 'GET') {
-        if (!isMongoConnected) {
+        if (!isMongoConnected()) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, leaderboard: [] }));
           return;
@@ -928,7 +933,7 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: false, error: 'topicId and stats are required' }));
           return;
         }
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           const profile = await UserProfile.findOne({ userId }).lean();
           const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
           const index = topics.findIndex(t => t.topicId === topicId);
@@ -956,7 +961,7 @@ export default async function handler(req, res) {
 
         // Fetch existing for merging
         let existing = null;
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           existing = await UserProfile.findOne({ userId }).lean();
         }
 
@@ -972,7 +977,7 @@ export default async function handler(req, res) {
         if (profileData.platform === 'LinkedIn') { rawExtraction.linkedinSkills = profileData.skills; rawExtraction.linkedinCerts = profileData.certifications; }
         if (profileData.platform === 'Naukri') { rawExtraction.naukriSkills = profileData.skills; rawExtraction.naukriCerts = profileData.certifications; }
 
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           const normalizedProfile = {
             ...profileData,
             userId,
@@ -1024,7 +1029,7 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: false, error: 'Profile text is required' }));
           return;
         }
-        const existing = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const existing = isMongoConnected() ? await UserProfile.findOne({ userId }).lean() : null;
         const { _id, __v, createdAt, ...existingBase } = existing || {};
         const nextProfile = {
           ...existingBase,
@@ -1043,7 +1048,7 @@ export default async function handler(req, res) {
         const intelligence = buildPremiumRoadmap(nextProfile);
         nextProfile.roadmapSnapshot = intelligence.roadmap;
         nextProfile.releaseFocus = intelligence.releaseFocus;
-        if (isMongoConnected) await UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true });
+        if (isMongoConnected()) await UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true });
         else {
           fs.mkdirSync(CACHE_DIR, { recursive: true });
           fs.writeFileSync(path.join(CACHE_DIR, 'profile-sync.json'), JSON.stringify(nextProfile, null, 2));
@@ -1052,14 +1057,14 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, extractedData: extracted, intelligence }));
       }
       else if (url === '/api/roadmap' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected() ? await UserProfile.findOne({ userId }).lean() : null;
         const fallbackPath = path.join(CACHE_DIR, 'profile-sync.json');
         const fallbackProfile = !profile && fs.existsSync(fallbackPath) ? JSON.parse(fs.readFileSync(fallbackPath, 'utf8')) : {};
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, ...buildPremiumRoadmap(profile || fallbackProfile) }));
       }
       else if (url === '/api/releases/current' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected() ? await UserProfile.findOne({ userId }).lean() : null;
         const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
         const allReleases = await readReleaseCenterPayload(fallbackReleases);
         const intelligence = buildPremiumRoadmap(profile || {});
@@ -1115,7 +1120,7 @@ export default async function handler(req, res) {
         }));
       }
       else if (url === '/api/code-practice/progress' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected() ? await UserProfile.findOne({ userId }).lean() : null;
         const codingPractice = profile?.codingPractice || readLocalCodePracticeProgress(userId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, codingPractice }));
@@ -1128,7 +1133,7 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: false, error: 'Challenge not found' }));
           return;
         }
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected() ? await UserProfile.findOne({ userId }).lean() : null;
         const current = profile?.codingPractice || readLocalCodePracticeProgress(userId);
         const score = Math.max(0, Math.min(100, Math.round(Number(body.score || body.correctnessPercent || 0))));
         const attempt = {
@@ -1157,7 +1162,7 @@ export default async function handler(req, res) {
             updatedAt: new Date()
           }
         };
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           await UserProfile.findOneAndUpdate(
             { userId },
             { userId, codingPractice, updatedAt: new Date() },
@@ -1170,7 +1175,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, codingPractice }));
       }
       else if (url.includes('profile/data') && method === 'GET') {
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           const profile = await UserProfile.findOne({ userId }).lean();
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ exists: !!profile, profile }));
@@ -1189,7 +1194,7 @@ export default async function handler(req, res) {
       }
       else if (url.includes('profile/match') && method === 'GET') {
         let profile = null;
-        if (isMongoConnected) {
+        if (isMongoConnected()) {
           profile = await UserProfile.findOne({ userId }).lean();
         } else {
           const cachePath = path.join(CACHE_DIR, 'profile-sync.json');
@@ -1264,7 +1269,7 @@ export default async function handler(req, res) {
   if (url.includes('summary/all') && method === 'GET') {
     try {
       let sessions = null;
-      if (isMongoConnected) {
+      if (isMongoConnected()) {
         sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
       }
       const summaries = generateDailySummary(sessions);

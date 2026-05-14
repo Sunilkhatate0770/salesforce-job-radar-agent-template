@@ -235,11 +235,20 @@ window.handleCredentialResponse = function(response) {
 
 window.processGAuth = async function(response) {
   const token = response.credential;
+  const overlay = document.getElementById('loginOverlay');
+  const status = document.getElementById('googleSignInStatus');
+  const signInButton = document.getElementById('googleSignInButton');
   const loginMode = getLoginUiModeIntent() || currentUiMode || 'modern';
   sessionStorage.setItem('sf_login_ui_mode_intent', loginMode);
   applyUiMode(loginMode);
   localStorage.setItem('google_auth_token', token);
   GSI_TOKEN = token;
+  if (status) {
+    status.hidden = false;
+    status.textContent = 'Signing you in...';
+    status.style.color = '#bfdbfe';
+  }
+  if (signInButton) signInButton.setAttribute('aria-busy', 'true');
   
   try {
     const res = await fetch('/api/auth/google', {
@@ -247,13 +256,14 @@ window.processGAuth = async function(response) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (data.success) {
       currentUser = data.user;
       loadUserScopedClientState();
-      const overlay = document.getElementById('loginOverlay');
       if (overlay) overlay.style.display = 'none';
       setAuthenticatedLayoutState(true);
+      if (status) status.hidden = true;
+      if (signInButton) signInButton.removeAttribute('aria-busy');
       const syncStatus = document.getElementById('syncStatus');
       if (syncStatus) syncStatus.style.display = 'flex';
       const syncStatusPreLogin = document.getElementById('syncStatusPreLogin');
@@ -263,12 +273,32 @@ window.processGAuth = async function(response) {
       syncDashboard();
       showPage(loginMode === 'classic' ? 'schedule' : 'profile_match');
     } else {
+      localStorage.removeItem('google_auth_token');
+      GSI_TOKEN = null;
+      setAuthenticatedLayoutState(false);
+      if (overlay) overlay.style.display = 'flex';
+      if (status) {
+        status.hidden = false;
+        status.style.color = '#fca5a5';
+        status.textContent = 'Authentication failed. Please try again.';
+      }
       showToast('Authentication failed: ' + (data.error || 'Check Google Client ID'), true);
     }
   } catch (e) {
     if (e.message && e.message.includes('BLOCKED_BY_CLIENT')) return;
+    localStorage.removeItem('google_auth_token');
+    GSI_TOKEN = null;
+    setAuthenticatedLayoutState(false);
+    if (overlay) overlay.style.display = 'flex';
+    if (status) {
+      status.hidden = false;
+      status.style.color = '#fca5a5';
+      status.textContent = 'Login service unavailable. Please retry.';
+    }
     console.error('Auth Error:', e);
     showToast('Login Service Unavailable', true);
+  } finally {
+    if (signInButton) signInButton.removeAttribute('aria-busy');
   }
 };
 
