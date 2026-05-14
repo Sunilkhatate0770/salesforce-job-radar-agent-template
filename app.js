@@ -477,6 +477,34 @@ document.addEventListener('DOMContentLoaded', () => {
   setAuthenticatedLayoutState(false);
   syncSidebarDisplayMode();
   bindSidebarDialogControls();
+  const loginSwitch = document.getElementById('loginPremiumMode');
+  if (loginSwitch && !loginSwitch.dataset.ariaSwitchBound) {
+    loginSwitch.dataset.ariaSwitchBound = 'true';
+    loginSwitch.addEventListener('change', function() {
+      this.setAttribute('aria-checked', this.checked ? 'true' : 'false');
+    });
+  }
+  const uiModeBtn = document.getElementById('uiModeToggle');
+  if (uiModeBtn && !uiModeBtn.hasAttribute('aria-pressed')) {
+    uiModeBtn.setAttribute('aria-pressed', 'false');
+  }
+  const sidebarNavContent = document.getElementById('sidebarNavContent');
+  if (sidebarNavContent && !sidebarNavContent.dataset.activeClickBound) {
+    sidebarNavContent.dataset.activeClickBound = 'true';
+    sidebarNavContent.addEventListener('click', event => {
+      const btn = event.target instanceof Element ? event.target.closest('button') : null;
+      if (!btn || !sidebarNavContent.contains(btn)) return;
+      sidebarNavContent.querySelectorAll('button').forEach(item => item.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem('progress') || '{}');
+    const done = Object.values(saved).filter(Boolean).length;
+    updateProgress(done, getTotalTopicsCount());
+  } catch (e) {
+    updateProgress(0, getTotalTopicsCount());
+  }
   if (document.getElementById('schedule')?.classList.contains('active')) {
     renderTimetable().catch(err => console.warn('[SCHEDULE] Initial render failed:', err.message));
   }
@@ -552,6 +580,8 @@ function setAuthenticatedLayoutState(isAuthenticated) {
   }
   if (sidebarOpenBtn) {
     sidebarOpenBtn.style.display = isAuthenticated && window.innerWidth < 768 ? 'flex' : 'none';
+    sidebarOpenBtn.disabled = !isAuthenticated;
+    sidebarOpenBtn.tabIndex = isAuthenticated ? 0 : -1;
     if (isAuthenticated) sidebarOpenBtn.removeAttribute('aria-hidden');
     else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
   }
@@ -611,6 +641,8 @@ function syncSidebarDisplayMode() {
   if (sidebarOpenBtn) {
     const authed = document.body.classList.contains('authenticated');
     sidebarOpenBtn.style.display = authed && window.innerWidth < 768 ? 'flex' : 'none';
+    sidebarOpenBtn.disabled = !authed;
+    sidebarOpenBtn.tabIndex = authed ? 0 : -1;
     if (authed) sidebarOpenBtn.removeAttribute('aria-hidden');
     else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
   }
@@ -2555,6 +2587,21 @@ async function toggleTask(index) {
   } catch(e) { console.error('[Cloud] Toggle Error:', e); }
 }
 
+function getTotalTopicsCount() {
+  if (Array.isArray(SCHEDULE_DATA) && SCHEDULE_DATA.length) return SCHEDULE_DATA.length;
+  return 0;
+}
+
+function updateProgress(done, total) {
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  const fill = document.getElementById('dailyProgressFill');
+  const text = document.getElementById('dailyProgressText');
+  const bar = document.getElementById('dailyProgressBar');
+  if (fill) fill.style.width = pct + '%';
+  if (text) text.textContent = pct + '%';
+  if (bar) bar.setAttribute('aria-valuenow', String(pct));
+}
+
 // =============================================
 // TIMER with PAUSE / PLAY
 // =============================================
@@ -4363,22 +4410,16 @@ async function renderTimetable() {
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
-  const progressBar = document.getElementById('dailyProgressBar');
-  const progressText = document.getElementById('dailyProgressText');
-
   try {
     if (!Array.isArray(SCHEDULE_DATA) || SCHEDULE_DATA.length === 0) {
       container.innerHTML = '<div class="content-card empty-state"><p>No timetable available. Complete your setup to generate your schedule.</p></div>';
-      if (progressBar) progressBar.style.width = '0%';
-      if (progressText) progressText.textContent = '0%';
+      updateProgress(0, 0);
       return;
     }
     const data = await getStudyData();
     console.log(' [SCHEDULE] Data received:', data);
     const completedTasks = data.completedTasks || [];
-    const progress = Math.round((completedTasks.length / Math.max(1, SCHEDULE_DATA.length)) * 100);
-    if (progressBar) progressBar.style.width = progress + '%';
-    if (progressText) progressText.textContent = progress + '%';
+    updateProgress(completedTasks.length, SCHEDULE_DATA.length);
 
     const html = `
       <div class="timetable-container">

@@ -65,7 +65,9 @@
           client_id: config.googleClientId,
           callback: window.handleCredentialResponse,
           ux_mode: 'popup',
-          cancel_on_tap_outside: true
+          auto_select: false,
+          cancel_on_tap_outside: true,
+          itp_support: true
         });
         if (target) {
           target.innerHTML = '';
@@ -75,20 +77,21 @@
             theme: 'filled_blue',
             text: 'signin_with',
             size: 'large',
-            logo_alignment: 'left'
+            logo_alignment: 'left',
+            width: 240
           });
           var iframe = target.querySelector('iframe');
           if (iframe) {
-            iframe.addEventListener('load', function() { target.classList.remove('loading'); }, { once: true });
+            iframe.addEventListener('load', function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); }, { once: true });
           } else {
             var observer = new MutationObserver(function() {
               var renderedFrame = target.querySelector('iframe');
               if (!renderedFrame) return;
-              renderedFrame.addEventListener('load', function() { target.classList.remove('loading'); }, { once: true });
+              renderedFrame.addEventListener('load', function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); }, { once: true });
               observer.disconnect();
             });
             observer.observe(target, { childList: true, subtree: true });
-            setTimeout(function() { target.classList.remove('loading'); observer.disconnect(); }, 2500);
+            setTimeout(function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); observer.disconnect(); }, 2500);
           }
         }
         if (status) status.hidden = true;
@@ -340,7 +343,7 @@
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
         <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path></svg>
       </button>
-      <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
+      <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-pressed="false" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
         <span id="uiModeToggleLabel">Modern</span>
       </button>
       <div class="floating-profile" onclick="toggleFloatingDropdown(event)">
@@ -562,19 +565,19 @@
     <div class="page-title">Daily Study Schedule</div>
     <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
   </div>
-  <div class="summary-bar">
-    <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
-    <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
-    <div class="sum-chip"><b>30 min</b>Job applications</div>
-    <div class="sum-chip"><b>285 hrs</b>Total in 30 days</div>
+  <div class="summary-bar stats-grid">
+    <div class="sum-chip stat-item"><b>9.5 hrs</b>Study/day</div>
+    <div class="sum-chip stat-item"><b>1.5 hrs</b>Communication</div>
+    <div class="sum-chip stat-item"><b>30 min</b>Job applications</div>
+    <div class="sum-chip stat-item"><b>285 hrs</b>Total in 30 days</div>
   </div>
-  <div style="margin-bottom:2rem;">
-    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;font-family:'IBM Plex Mono',monospace;">
+  <div id="progressBarWrapper">
+    <div id="progressBarTop">
       <span>Daily Goal Progress</span>
       <span id="dailyProgressText">0%</span>
     </div>
-    <div style="width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
-      <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
+    <div id="dailyProgressBar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+      <div id="dailyProgressFill"></div>
     </div>
   </div>
   <div id="timetableContainer">
@@ -971,13 +974,10 @@
 
 <!-- ULTRA-COMPACT PREMIUM FOOTER -->
 
-<footer class="footer-status" style="width: 100% !important; position: relative !important; margin-top: auto !important; height: 60px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border);">
-  <div style="font-size: 0.65rem; color: var(--muted); display: flex; align-items: center; gap: 6px; opacity: 0.6;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px; opacity:0.3;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    <span style="letter-spacing: 0.5px; font-weight: 600;">Salesforce Career Intelligence</span>
-    <span style="opacity: 0.2;">&bull;</span>
-    <span style="letter-spacing: 0.5px;">Private study workspace</span>
-  </div>
+<footer id="appFooter" class="footer-status">
+  <span>Salesforce Career Intelligence</span>
+  <span aria-hidden="true" class="footer-sep">•</span>
+  <span>Private study workspace</span>
 </footer>
 
 <!-- ADD JOB MODAL -->
