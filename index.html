@@ -47,6 +47,7 @@
     window.initializeGoogleSignIn = async function() {
       var status = document.getElementById('googleSignInStatus');
       var target = document.getElementById('googleSignInButton');
+      if (target) target.classList.add('loading');
       if (!target && document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', window.initializeGoogleSignIn, { once: true });
         return;
@@ -76,9 +77,23 @@
             size: 'large',
             logo_alignment: 'left'
           });
+          var iframe = target.querySelector('iframe');
+          if (iframe) {
+            iframe.addEventListener('load', function() { target.classList.remove('loading'); }, { once: true });
+          } else {
+            var observer = new MutationObserver(function() {
+              var renderedFrame = target.querySelector('iframe');
+              if (!renderedFrame) return;
+              renderedFrame.addEventListener('load', function() { target.classList.remove('loading'); }, { once: true });
+              observer.disconnect();
+            });
+            observer.observe(target, { childList: true, subtree: true });
+            setTimeout(function() { target.classList.remove('loading'); observer.disconnect(); }, 2500);
+          }
         }
         if (status) status.hidden = true;
       } catch (err) {
+        if (target) target.classList.remove('loading');
         if (status) {
           status.hidden = false;
           status.textContent = 'Google Sign-In is not configured. Check GOOGLE_CLIENT_ID in the deployment environment.';
@@ -111,7 +126,7 @@
     <div class="login-mode-panel">
       <div class="login-mode-heading">Choose Login Experience</div>
       <label class="login-mode-toggle" for="loginPremiumMode">
-        <input id="loginPremiumMode" type="checkbox" checked onchange="setLoginUiModeFromCheckbox(this)">
+        <input id="loginPremiumMode" type="checkbox" role="switch" aria-checked="true" aria-label="Enable Premium UI mode" checked onchange="setLoginUiModeFromCheckbox(this)">
         <span class="login-mode-switch"></span>
         <span class="login-mode-copy">
           <strong id="loginModeTitle">New Premium UI</strong>
@@ -124,7 +139,7 @@
     </div>
 	    
     <div class="google-signin-wrap" style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
-      <div id="googleSignInButton" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+      <div id="googleSignInButton" class="loading" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
         <div class="loading-spinner sm"></div>
       </div>
     </div>
@@ -133,7 +148,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span>
     </div>
-    <div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;">
+    <div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:8px; border-top:none; align-items:center; justify-content:center; gap:8px;">
         <span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">🔒 Sign in to enable cloud sync</span>
     </div>
   </div>
@@ -304,11 +319,11 @@
     </div>
 </div>
 
-<div id="main">
+<div id="main" inert>
   <!-- MASTER VIEWPORT HEADER (v1344) -->
   <header id="mainHeader">
     <div class="header-zone-left">
-      <button type="button" id="sidebarOpenBtn" aria-label="Open navigation" aria-controls="sidebar">☰</button>
+      <button type="button" id="sidebarOpenBtn" aria-label="Open navigation" aria-controls="sidebar" aria-hidden="true" style="display:none;">☰</button>
       <button type="button" class="mobile-toggle" onclick="toggleSidebar()" id="mobileToggle" title="Toggle Navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
         <span class="h-bar"></span>
         <span class="h-bar"></span>
@@ -562,7 +577,11 @@
       <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
     </div>
   </div>
-  <div id="timetableContainer"></div>
+  <div id="timetableContainer">
+    <div class="content-card empty-state">
+      <p>No timetable available. Complete your setup to generate your schedule.</p>
+    </div>
+  </div>
 </div>
 
 <!-- APEX PAGE -->

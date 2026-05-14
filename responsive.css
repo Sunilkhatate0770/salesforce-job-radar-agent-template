@@ -2952,6 +2952,25 @@ select,
   box-sizing: border-box;
 }
 
+:focus-visible {
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}
+
+#skipToContent:focus {
+  position: fixed !important;
+  top: 8px !important;
+  left: 8px !important;
+  background: #6366f1 !important;
+  color: white !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  z-index: 999999 !important;
+  text-decoration: none !important;
+  font-size: 14px !important;
+}
+
 html,
 body {
   max-width: 100vw !important;
@@ -2976,20 +2995,49 @@ body.login-active #sidebarOverlay {
   display: none !important;
 }
 
+#main[inert] {
+  pointer-events: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+body.login-active #floatingTimer {
+  display: none !important;
+}
+
+#sidebar {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+body.authenticated #sidebar[open] {
+  display: flex !important;
+  visibility: visible !important;
+}
+
 #loginOverlay {
+  width: 100vw !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
-  min-height: 100vh !important;
+  min-height: 100dvh !important;
   height: 100dvh !important;
-  padding: max(16px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px 16px !important;
+  box-sizing: border-box !important;
 }
 
 #loginOverlay .login-card,
 #loginOverlay > div {
-  width: min(480px, 90vw) !important;
-  max-width: min(480px, 90vw) !important;
+  width: min(480px, calc(100vw - 32px)) !important;
+  max-width: min(480px, calc(100vw - 32px)) !important;
   margin: auto !important;
   box-sizing: border-box !important;
+  min-height: 320px !important;
+  padding-bottom: 28px !important;
+  transition: none !important;
 }
 
 .google-signin-wrap {
@@ -3005,12 +3053,48 @@ body.login-active #sidebarOverlay {
   max-width: 100% !important;
 }
 
+#googleSignInButton {
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#googleSignInButton.loading::before {
+  content: "" !important;
+  display: block !important;
+  width: min(240px, 100%) !important;
+  height: 44px !important;
+  background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 75%) !important;
+  background-size: 200% 100% !important;
+  border-radius: 22px !important;
+  animation: shimmer 1.4s ease infinite !important;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
 .login-mode-toggle {
   min-width: 44px !important;
   min-height: 44px !important;
   display: flex !important;
   align-items: center !important;
   cursor: pointer !important;
+}
+
+#loginModeDescription {
+  min-height: 44px !important;
+}
+
+#loginModeTitle {
+  min-height: 28px !important;
+}
+
+#syncStatusPreLogin {
+  border-top: none !important;
+  padding-top: 8px !important;
 }
 
 #syncStatusPreLogin span,
@@ -3063,11 +3147,15 @@ body.login-active #sidebarOverlay {
 
 #mainHeader {
   display: flex !important;
+  flex-direction: row !important;
   align-items: center !important;
   justify-content: space-between !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   gap: 8px !important;
-  padding: 8px 16px !important;
+  padding: 0 16px !important;
+  height: 48px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 #mainHeader .header-zone-left,
@@ -3080,8 +3168,29 @@ body.login-active #sidebarOverlay {
   min-width: 0 !important;
 }
 
+#sidebarOpenBtn {
+  order: 0 !important;
+  flex-shrink: 0 !important;
+  margin-right: 8px !important;
+}
+
+#themeToggleBtn {
+  order: 2 !important;
+  flex-shrink: 0 !important;
+}
+
+#uiModeToggle {
+  order: 3 !important;
+  flex-shrink: 0 !important;
+}
+
 #headerTitle {
+  order: 1 !important;
+  flex: 1 1 auto !important;
   min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 #dailyProgressBar {
@@ -3221,5 +3330,6 @@ body.login-active #sidebarOverlay {
   #loginOverlay {
     align-items: center !important;
     justify-content: flex-start !important;
+    padding-top: 16px !important;
   }
 }

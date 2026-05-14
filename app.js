@@ -413,7 +413,10 @@ function syncLoginUiModeControls(mode = currentUiMode) {
   const checkbox = document.getElementById('loginPremiumMode');
   const title = document.getElementById('loginModeTitle');
   const desc = document.getElementById('loginModeDescription');
-  if (checkbox) checkbox.checked = normalized !== 'classic';
+  if (checkbox) {
+    checkbox.checked = normalized !== 'classic';
+    checkbox.setAttribute('aria-checked', String(checkbox.checked));
+  }
   if (title) title.textContent = normalized === 'classic' ? '🔁 Legacy / Classic UI' : '✅ New Premium UI';
   if (desc) {
     desc.textContent = normalized === 'classic'
@@ -537,9 +540,21 @@ function setSidebarCollapsedState(isCollapsed) {
 
 function setAuthenticatedLayoutState(isAuthenticated) {
   const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main');
   const skipLink = document.getElementById('skipToContent');
+  const sidebarOpenBtn = document.getElementById('sidebarOpenBtn');
+  document.body.classList.toggle('authenticated', Boolean(isAuthenticated));
   document.body.classList.toggle('is-authenticated', Boolean(isAuthenticated));
   document.body.classList.toggle('login-active', !isAuthenticated);
+  if (main) {
+    if (isAuthenticated) main.removeAttribute('inert');
+    else main.setAttribute('inert', '');
+  }
+  if (sidebarOpenBtn) {
+    sidebarOpenBtn.style.display = isAuthenticated && window.innerWidth < 768 ? 'flex' : 'none';
+    if (isAuthenticated) sidebarOpenBtn.removeAttribute('aria-hidden');
+    else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
+  }
   if (skipLink) {
     skipLink.href = isAuthenticated ? '#main' : '#loginOverlay';
     skipLink.style.display = isAuthenticated ? '' : 'none';
@@ -592,6 +607,13 @@ function bindSidebarDialogControls() {
 
 function syncSidebarDisplayMode() {
   const sidebar = document.getElementById('sidebar');
+  const sidebarOpenBtn = document.getElementById('sidebarOpenBtn');
+  if (sidebarOpenBtn) {
+    const authed = document.body.classList.contains('authenticated');
+    sidebarOpenBtn.style.display = authed && window.innerWidth < 768 ? 'flex' : 'none';
+    if (authed) sidebarOpenBtn.removeAttribute('aria-hidden');
+    else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
+  }
   if (!sidebar || sidebar.hasAttribute('inert')) return;
   const isMobile = window.innerWidth < 768;
   sidebar.setAttribute('aria-modal', isMobile && sidebar.classList.contains('mobile-open') ? 'true' : 'false');
@@ -4346,7 +4368,7 @@ async function renderTimetable() {
 
   try {
     if (!Array.isArray(SCHEDULE_DATA) || SCHEDULE_DATA.length === 0) {
-      container.innerHTML = '<div class="content-card empty-state">No schedule data available.</div>';
+      container.innerHTML = '<div class="content-card empty-state"><p>No timetable available. Complete your setup to generate your schedule.</p></div>';
       if (progressBar) progressBar.style.width = '0%';
       if (progressText) progressText.textContent = '0%';
       return;
