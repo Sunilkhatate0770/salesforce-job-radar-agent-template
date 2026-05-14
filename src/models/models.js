@@ -112,6 +112,12 @@ const userProfileSchema = new mongoose.Schema({
     lastWorkspace: mongoose.Schema.Types.Mixed,
     completedChallengeIds: [String]
   },
+  questionAttempts: [mongoose.Schema.Types.Mixed],
+  mockInterviewSessions: [mongoose.Schema.Types.Mixed],
+  releaseStudyActions: [mongoose.Schema.Types.Mixed],
+  dailyStudyPlan: mongoose.Schema.Types.Mixed,
+  userSettings: mongoose.Schema.Types.Mixed,
+  notes: [mongoose.Schema.Types.Mixed],
   // AI-identified gaps
   missingSkills: [String],                       // Skills the AI found missing
   // Study plan

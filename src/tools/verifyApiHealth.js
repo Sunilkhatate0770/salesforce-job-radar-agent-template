@@ -46,11 +46,15 @@ export const privateRouteProbes = [
   { name: 'jobs-analytics', method: 'GET', path: '/api/jobs/analytics' },
   { name: 'jobs-list', method: 'GET', path: '/api/jobs/list' },
   { name: 'profile-data', method: 'GET', path: '/api/profile/data' },
+  { name: 'dashboard-summary', method: 'GET', path: '/api/dashboard/summary' },
+  { name: 'release-study-actions', method: 'GET', path: '/api/releases/study-actions' },
+  { name: 'mock-interview-history', method: 'GET', path: '/api/mock-interview/session' },
   { name: 'study-history', method: 'GET', path: '/api/study/history' },
   { name: 'study-stats', method: 'GET', path: '/api/study/stats' },
   { name: 'study-tasks', method: 'GET', path: '/api/study/tasks' },
   { name: 'jobs-scan', method: 'POST', path: '/api/jobs/scan', body: {} },
   { name: 'profile-save', method: 'POST', path: '/api/profile/save', body: { targetRole: 'Salesforce Developer' } },
+  { name: 'mock-interview-save', method: 'POST', path: '/api/mock-interview/session', body: { role: 'Salesforce Developer', questions: [], answers: [] } },
   { name: 'job-status-update', method: 'PATCH', path: '/api/jobs/api-health-probe/status', body: { status: 'applied' } }
 ];
 

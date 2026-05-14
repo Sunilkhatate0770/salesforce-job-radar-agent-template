@@ -21,11 +21,15 @@ test('API health verification covers public and private route expectations', () 
     'GET /api/jobs/analytics',
     'GET /api/jobs/list',
     'GET /api/profile/data',
+    'GET /api/dashboard/summary',
+    'GET /api/releases/study-actions',
+    'GET /api/mock-interview/session',
     'GET /api/study/history',
     'GET /api/study/stats',
     'GET /api/study/tasks',
     'POST /api/jobs/scan',
     'POST /api/profile/save',
+    'POST /api/mock-interview/session',
     'PATCH /api/jobs/api-health-probe/status'
   ].forEach(route => assert.ok(privateRoutes.includes(route), `Missing probe for ${route}`));
 });

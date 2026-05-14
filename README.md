@@ -21,13 +21,15 @@ Industrial-grade Salesforce career intelligence platform with job tracking, inte
 ## Features
 
 - **Job Radar Dashboard** — Kanban board for Salesforce job tracking with status overrides
+- **Today Command Center** — user-specific study focus, weak topics, job actions, release actions, and a next-seven-days plan
 - **AI Profile Matching** — Resume skill extraction and job market intelligence
 - **Career Roadmap** — Experience-based study plan with designation targeting
 - **Interview Prep** — 40+ topic modules (Apex, LWC, Integration, Security, etc.)
 - **Structured Content Bank** — searchable Salesforce Developer, FDE, Agentforce, Data Cloud, architecture, company, and manager-round interview content
-- **Code Practice** — Browser-based coding challenges with static + AI review
+- **Code Practice** — Browser-based challenges plus custom single-file HTML, JavaScript, Apex class, and Apex trigger practice
+- **Mock Interview History** — role/company/topic interview sessions saved per user with local fallback
 - **Study Tracker** — Time tracking, leaderboard, spaced repetition
-- **Release Center** — Personalized Salesforce release intelligence
+- **Release Center** — Personalized Salesforce release intelligence with study-action prompts
 - **Platform Sync** — LinkedIn/Naukri profile import (text-based, no credentials)
 - **PWA** — Installable progressive web app with offline support
 
@@ -36,6 +38,8 @@ Industrial-grade Salesforce career intelligence platform with job tracking, inte
 Authenticated app data is private per Google user. Browser persistence uses namespaced keys such as `sfjr:${userId}:bookmarks`, `sfjr:${userId}:progress`, `sfjr:${userId}:pipelineJobs`, and `sfjr:${userId}:activityLog`. Legacy generic keys are migrated once into the signed-in user's namespace.
 
 Public/system job feeds may be shared as opportunity recommendations, but user actions on those jobs such as status, notes, saved state, and analytics must remain scoped to the authenticated user. Server routes should derive identity from the Google token and not trust a client-provided `userId`.
+
+The current private profile model also supports `codingPractice`, `questionAttempts`, `mockInterviewSessions`, `releaseStudyActions`, `dailyStudyPlan`, `userSettings`, and `notes`. Local-only fallbacks follow the same `sfjr:${userId}:featureName` pattern.
 
 ## Demo Mode vs Real User Mode
 

@@ -368,22 +368,26 @@ window.solve = solve;`
     if (type === 'html') {
       checks.push(
         { id: 'custom-html-structure', label: 'Uses semantic HTML structure', file: '*', regex: '<(main|section|article|form|header|button|h1)\\b', weight: 12 },
-        { id: 'custom-html-viewport', label: 'Includes responsive viewport when using a full document', file: '*', regex: 'viewport|<(main|section|article|form|button)\\b', weight: 8 }
+        { id: 'custom-html-viewport', label: 'Includes responsive viewport when using a full document', file: '*', regex: 'viewport|<(main|section|article|form|button)\\b', weight: 8 },
+        { id: 'custom-html-accessibility', label: 'Includes an accessibility signal such as label, aria, alt, or semantic button text', file: '*', regex: '\\b(label|aria-|alt=)|<button\\b[^>]*>\\s*\\w+', weight: 8 }
       );
     } else if (type === 'js') {
       checks.push(
         { id: 'custom-js-function', label: 'Defines executable JavaScript logic', file: '*', regex: '\\b(function|const|let|=>)\\b', weight: 12 },
-        { id: 'custom-js-no-alert-only', label: 'Does more than only alert/log output', file: '*', negativeRegex: '^\\s*(alert|console\\.log)\\s*\\(', weight: 8 }
+        { id: 'custom-js-no-alert-only', label: 'Does more than only alert/log output', file: '*', negativeRegex: '^\\s*(alert|console\\.log)\\s*\\(', weight: 8 },
+        { id: 'custom-js-input-guard', label: 'Handles missing or invalid input safely', file: '*', regex: '\\b(if|try|\\?|typeof|Array\\.isArray|Number\\.isFinite)\\b', weight: 8 }
       );
     } else if (type === 'apex') {
       checks.push(
         { id: 'custom-apex-class', label: 'Declares an Apex class', file: '*', regex: '\\bclass\\s+\\w+', weight: 14 },
-        { id: 'custom-apex-sharing', label: 'Considers sharing context', file: '*', regex: '\\b(with|without|inherited)\\s+sharing\\b', weight: 8 }
+        { id: 'custom-apex-sharing', label: 'Considers sharing context', file: '*', regex: '\\b(with|without|inherited)\\s+sharing\\b', weight: 8 },
+        { id: 'custom-apex-security', label: 'Shows a security-aware pattern for CRUD/FLS or user-mode thinking', file: '*', regex: 'stripInaccessible|WITH SECURITY_ENFORCED|USER_MODE|AccessLevel\\.USER_MODE|Schema\\.sObjectType|with\\s+sharing|inherited\\s+sharing', weight: 8 }
       );
     } else if (type === 'trigger') {
       checks.push(
         { id: 'custom-trigger-declaration', label: 'Declares a Salesforce trigger', file: '*', regex: '\\btrigger\\s+\\w+\\s+on\\s+\\w+\\s*\\(', weight: 14 },
-        { id: 'custom-trigger-context', label: 'Uses Trigger context variables', file: '*', regex: '\\bTrigger\\.(new|old|newMap|oldMap|isInsert|isUpdate|isBefore|isAfter)\\b', weight: 8 }
+        { id: 'custom-trigger-context', label: 'Uses Trigger context variables', file: '*', regex: '\\bTrigger\\.(new|old|newMap|oldMap|isInsert|isUpdate|isBefore|isAfter)\\b', weight: 8 },
+        { id: 'custom-trigger-handler', label: 'Keeps trigger logic lightweight or delegates to a handler', file: '*', regex: '\\bHandler\\b|\\bservice\\b|Trigger\\.(new|old)', weight: 8 }
       );
     }
     return checks;
@@ -611,7 +615,8 @@ window.solve = solve;`
     if (challenge.custom) {
       saveCustomAttempt(challenge);
       saveLocalWorkspace();
-      showToast('Custom practice attempt saved locally.');
+      persistCustomAttemptToCloud(challenge).catch(() => {});
+      showToast('Custom practice attempt saved.');
       render();
       return;
     }
@@ -643,6 +648,33 @@ window.solve = solve;`
     } finally {
       state.busy = '';
       render();
+    }
+  }
+
+  async function persistCustomAttemptToCloud(challenge) {
+    const response = await safeApiFetch('/api/code-practice/attempt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        custom: true,
+        challengeId: challenge.id,
+        title: challenge.title,
+        languageTrack: challenge.track,
+        files: state.files,
+        score: state.evaluation?.score || 0,
+        correctnessPercent: state.evaluation?.correctnessPercent || state.evaluation?.score || 0,
+        passedChecks: state.evaluation?.passedChecks || [],
+        failedChecks: state.evaluation?.failedChecks || [],
+        improvements: state.evaluation?.improvements || []
+      })
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    if (data.codingPractice) {
+      state.progress = data.codingPractice;
+      try {
+        localStorage.setItem(getScopedPracticeKey('progress'), JSON.stringify(state.progress));
+      } catch (err) {}
     }
   }
 
@@ -1436,6 +1468,7 @@ window.solve = solve;`
             <div class="cp-subtle">Deterministic ${Number(state.evaluation.deterministicScore ?? score)}%${state.evaluation.aiScore !== null && state.evaluation.aiScore !== undefined ? ` / AI ${Number(state.evaluation.aiScore)}%` : ''}</div>
           </div>
         </div>
+        ${renderQualityResultCards(passed, failed)}
         <div class="cp-result-card" style="padding:12px;">
           <div class="cp-section-title">Passed Checks</div>
           <div class="cp-check-list" style="margin-top:8px;">${passed.length ? passed.map(check => renderCheck(check, true)).join('') : '<div class="cp-subtle">No checks passed yet.</div>'}</div>
@@ -1450,6 +1483,35 @@ window.solve = solve;`
           ${renderReviewList('Improvements', state.evaluation.improvements)}
           ${renderReviewList('Next Topics', state.evaluation.nextPracticeTopics)}
         </div>
+      </div>
+    `;
+  }
+
+  function renderQualityResultCards(passed, failed) {
+    const categories = [
+      { id: 'structure', label: 'Structure', match: /structure|semantic|class|trigger declaration|source file|function|declaration/i },
+      { id: 'syntax', label: 'Syntax', match: /syntax|balanced|braces|parentheses|brackets/i },
+      { id: 'access', label: 'A11y / Security', match: /accessibility|aria|label|security|sharing|CRUD|FLS|user-mode|input/i },
+      { id: 'best', label: 'Best Practice', match: /SOQL|DML|loop|handler|bulk|Trigger context|test|assertion/i }
+    ];
+    const allChecks = [
+      ...passed.map(check => ({ ...check, passed: true })),
+      ...failed.map(check => ({ ...check, passed: false }))
+    ];
+    return `
+      <div class="cp-quality-grid" aria-label="Syntax and logic check summary">
+        ${categories.map(category => {
+          const related = allChecks.filter(check => category.match.test(`${check.id || ''} ${check.label || ''}`));
+          const passedCount = related.filter(check => check.passed).length;
+          const status = related.length && passedCount === related.length ? 'pass' : related.length ? 'warn' : 'idle';
+          return `
+            <div class="cp-quality-card ${status}">
+              <span>${escapeHtml(category.label)}</span>
+              <strong>${related.length ? `${passedCount}/${related.length}` : 'Ready'}</strong>
+              <small>${status === 'pass' ? 'Looks clean' : status === 'warn' ? 'Review failed checks' : 'Run checks'}</small>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
   }

@@ -30,6 +30,11 @@ import {
   readReleaseCenterPayload,
   selectPersonalizedReleaseItems
 } from './releases/releaseCenter.js';
+import {
+  buildDashboardSummary,
+  buildReleaseStudyActions,
+  createMockInterviewSession
+} from './services/dashboardSummary.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -847,6 +852,30 @@ export default async function handler(req, res) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(summary));
       }
+      else if (url === '/api/dashboard/summary' && method === 'GET') {
+        const [profile, mongoJobs, trackerJobs, alertJobs, studySessions] = await Promise.all([
+          isMongoConnected ? UserProfile.findOne({ userId }).lean() : null,
+          isMongoConnected ? JobRecord.find({ userId }).sort({ updatedAt: -1, createdAt: -1 }).limit(220).lean() : [],
+          readSupabaseTrackerJobs(),
+          readSupabaseJobAlertRows(180),
+          isMongoConnected ? StudySession.find({ userId }).sort({ startTime: -1 }).limit(120).lean() : []
+        ]);
+        const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+        const allReleases = await readReleaseCenterPayload(fallbackReleases);
+        const jobs = applyJobStatusOverrides(
+          mergeDashboardJobs(mongoJobs, trackerJobs, alertJobs),
+          await getJobStatusOverrides(userId)
+        );
+        const summary = buildDashboardSummary({
+          profile: profile || { userId },
+          jobs,
+          studySessions,
+          releases: allReleases,
+          activityLog: []
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(summary));
+      }
       else if (url === '/api/profile/sync' && method === 'POST') {
         const { platform } = await readJsonRequest(req);
 
@@ -1075,6 +1104,53 @@ export default async function handler(req, res) {
           designation: intelligence.designation
         }));
       }
+      else if (url === '/api/releases/study-actions' && method === 'GET') {
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+        const allReleases = await readReleaseCenterPayload(fallbackReleases);
+        const intelligence = buildPremiumRoadmap(profile || {});
+        const studyActions = buildReleaseStudyActions({
+          ...allReleases,
+          personalizedItems: selectPersonalizedReleaseItems(allReleases.items || [], intelligence)
+        });
+        if (isMongoConnected) {
+          await UserProfile.findOneAndUpdate(
+            { userId },
+            { userId, releaseStudyActions: studyActions, updatedAt: new Date() },
+            { upsert: true, new: true }
+          );
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, generatedAt: new Date().toISOString(), studyActions }));
+      }
+      else if (url === '/api/mock-interview/session' && method === 'GET') {
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const fallbackPath = path.join(CACHE_DIR, `mock-interviews-${userId}.json`);
+        const fallbackSessions = !profile && fs.existsSync(fallbackPath)
+          ? JSON.parse(fs.readFileSync(fallbackPath, 'utf8'))
+          : [];
+        const sessions = Array.isArray(profile?.mockInterviewSessions) ? profile.mockInterviewSessions : fallbackSessions;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, sessions: sessions.slice(0, 50) }));
+      }
+      else if (url === '/api/mock-interview/session' && method === 'POST') {
+        const body = await readJsonRequest(req);
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const session = createMockInterviewSession(body, userId);
+        const mockInterviewSessions = [session, ...(profile?.mockInterviewSessions || [])].slice(0, 50);
+        if (isMongoConnected) {
+          await UserProfile.findOneAndUpdate(
+            { userId },
+            { userId, mockInterviewSessions, updatedAt: new Date() },
+            { upsert: true, new: true }
+          );
+        } else {
+          fs.mkdirSync(CACHE_DIR, { recursive: true });
+          fs.writeFileSync(path.join(CACHE_DIR, `mock-interviews-${userId}.json`), JSON.stringify(mockInterviewSessions, null, 2));
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, session, sessions: mockInterviewSessions }));
+      }
       else if (url === '/api/code-practice/evaluate' && method === 'POST') {
         const body = await readJsonRequest(req);
         const challenge = getCodePracticeChallenge(body.challengeId);
@@ -1122,7 +1198,11 @@ export default async function handler(req, res) {
       }
       else if (url === '/api/code-practice/attempt' && method === 'POST') {
         const body = await readJsonRequest(req);
-        const challenge = getCodePracticeChallenge(body.challengeId);
+        const challenge = getCodePracticeChallenge(body.challengeId) || (body.custom ? {
+          id: String(body.challengeId || `custom_${Date.now()}`).slice(0, 80),
+          title: String(body.title || 'Custom single-file practice').slice(0, 120),
+          track: body.languageTrack || 'custom'
+        } : null);
         if (!challenge) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Challenge not found' }));

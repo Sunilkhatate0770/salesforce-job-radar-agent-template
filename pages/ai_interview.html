@@ -6,7 +6,15 @@
 <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; height:600px; display:flex; flex-direction:column; overflow:hidden;">
   <!-- Interview Config -->
   <div id="interviewSetup" style="padding:1.5rem; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02);">
-    <div style="display:flex; gap:20px; align-items:center;">
+    <div class="interview-setup-grid" style="display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:16px; align-items:end;">
+      <div style="min-width:0;">
+        <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Target Role</label>
+        <input id="interviewRole" type="text" value="Salesforce Developer" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+      </div>
+      <div style="min-width:0;">
+        <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Company Context</label>
+        <input id="interviewCompany" type="text" value="General" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
+      </div>
       <div style="flex:1;">
         <label style="display:block; font-size:0.75rem; color:var(--muted); margin-bottom:5px;">Pick Interview Topic</label>
         <select id="interviewTopic" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:0.6rem; border-radius:6px;">
@@ -24,7 +32,7 @@
           <option value="Expert">Subject Matter Expert (Hard)</option>
         </select>
       </div>
-      <button onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; margin-top:1.5rem;">Start Session</button>
+      <button id="startInterviewBtn" onclick="startAIInterview()" style="background:var(--blue); color:white; border:none; padding:0.8rem 1.2rem; border-radius:8px; font-weight:700; cursor:pointer;">Start Session</button>
     </div>
   </div>
 
@@ -43,6 +51,7 @@
       <textarea id="userAnswerInput" placeholder="Type or speak your answer here..." style="flex:1; background:var(--bg); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:1rem; min-height:80px; font-family:inherit; resize:none;"></textarea>
       <button id="micBtn" onclick="toggleVoiceInput()" style="background:var(--card); color:var(--text); border:1px solid var(--border); padding:0 1.5rem; border-radius:8px; cursor:pointer; font-size:1.5rem; display:flex; align-items:center; justify-content:center; transition: all 0.3s;" title="Use Voice to Answer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:24px;height:24px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></button>
       <button onclick="submitAnswer()" style="background:var(--green); color:black; border:none; padding:0 2rem; border-radius:8px; font-weight:700; cursor:pointer;">Submit<br>Answer</button>
+      <button onclick="saveInterviewSession()" style="background:transparent; color:var(--text); border:1px solid var(--border); padding:0 1.2rem; border-radius:8px; font-weight:700; cursor:pointer;">Finish<br>& Save</button>
     </div>
     <div style="font-size:0.7rem; color:var(--muted); margin-top:8px; display:flex; justify-content:space-between;">
       <span>Press Ctrl+Enter to submit</span>
@@ -50,3 +59,16 @@
     </div>
   </div>
 </div>
+
+<section class="interview-history-panel" style="margin-top:16px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:1rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <div>
+      <div class="premium-eyebrow">Mock Interview History</div>
+      <h3 style="margin:4px 0 0;">Your saved sessions</h3>
+    </div>
+    <button type="button" onclick="loadMockInterviewHistory()" class="empty-state-action">Refresh</button>
+  </div>
+  <div id="mockInterviewHistory" style="margin-top:12px;">
+    <div class="premium-empty">No mock interviews yet. Start your first session.</div>
+  </div>
+</section>

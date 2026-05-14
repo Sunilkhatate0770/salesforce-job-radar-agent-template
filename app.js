@@ -3572,6 +3572,9 @@ function getProbabilityMeta(probability) {
 }
 
 function getJobBoardSortTime(job) {
+  if (window.SFJR_CAREER_INTELLIGENCE?.jobTimestamp) {
+    return window.SFJR_CAREER_INTELLIGENCE.jobTimestamp(job);
+  }
   const candidates = [
     job.first_seen_at,
     job.firstSeenAt,
@@ -3596,6 +3599,27 @@ function getJobBoardSortTime(job) {
   return 0;
 }
 
+function jobMatchesBoardFilter(job, filter) {
+  const normalized = String(filter || 'all').toLowerCase();
+  if (window.SFJR_CAREER_INTELLIGENCE?.getJobFilterPredicate) {
+    return window.SFJR_CAREER_INTELLIGENCE.getJobFilterPredicate(normalized)(job);
+  }
+  const prob = normalizeProbability(job.prob || job.probability, job.score);
+  if (normalized === 'all') return true;
+  if (['high', 'medium', 'stretch'].includes(normalized)) return prob === normalized;
+  const location = `${job.loc || ''} ${job.location || ''}`.toLowerCase();
+  if (normalized === 'remote') return location.includes('remote') || location.includes('wfh');
+  if (normalized === 'pune') return location.includes('pune');
+  if (normalized === 'india') return /india|pune|mumbai|bangalore|bengaluru|hyderabad|remote/.test(location);
+  if (normalized === 'fresh') return getJobBoardSortTime(job) > Date.now() - (2 * 86400000);
+  if (normalized === 'resume_ready') return Array.isArray(job.resume_actions) && job.resume_actions.length > 0;
+  if (normalized === 'needs_review') return Array.isArray(job.missing_skills) && job.missing_skills.length > 0;
+  if (normalized === 'followup') return Boolean(getFollowUpStatus(job));
+  if (normalized === 'high_fit') return Number(job.score || job.match_score || 0) >= 80;
+  return true;
+}
+window.jobMatchesBoardFilter = jobMatchesBoardFilter;
+
 function sortBoardJobs(a, b) {
   const dateDelta = getJobBoardSortTime(b) - getJobBoardSortTime(a);
   if (dateDelta !== 0) return dateDelta;
@@ -3617,7 +3641,7 @@ function getBoardColumnJobs(col) {
   const filter = window.currentBoardFilter || 'all';
   return (window.pipelineJobs || [])
     .filter(j => mapRecordStatusToBoardStatus(j.status) === col)
-    .filter(j => filter === 'all' || normalizeProbability(j.prob || j.probability, j.score) === filter)
+    .filter(j => jobMatchesBoardFilter(j, filter))
     .filter(j => jobMatchesBoardSearch(j, searchTerm))
     .sort(sortBoardJobs);
 }
@@ -3727,6 +3751,13 @@ async function fetchJobsList() {
         addedCount += 1;
       }
     });
+
+    if (window.SFJR_CAREER_INTELLIGENCE?.sortJobsNewestFirst) {
+      window.pipelineJobs = window.SFJR_CAREER_INTELLIGENCE.sortJobsNewestFirst(window.pipelineJobs || []);
+      pipelineJobs = window.pipelineJobs;
+    } else {
+      pipelineJobs.sort(sortBoardJobs);
+    }
 
     clampBoardPages();
     savePipeline();
@@ -4568,7 +4599,7 @@ async function showPage(id) {
 	          });
 	        }
 	    }
-	    if (id === 'interview_room') {
+	    if (id === 'interview_room' || id === 'ai_interview') {
 	        console.log('🎙️ [NAV] Hydrating Interview Room...');
 	        hydrateInterviewRoom();
 	    }
@@ -4745,20 +4776,32 @@ function filterSidebar(val) {
 function searchContent(val) {
   if (!val || val.length < 2) { document.getElementById('searchPage').style.display = 'none'; return; }
   var lower = val.toLowerCase();
-  var contentResults = (window.SFJR_SALESFORCE_CONTENT?.getAllQuestions?.() || [])
-    .filter(function(q) {
-      return [
-        q.question,
-        q.shortAnswer,
-        q.detailedAnswer,
-        q.scenario,
-        q.difficulty,
-        q.sectionTitle,
-        ...(q.tags || []),
-        ...(q.relatedTopics || [])
-      ].join(' ').toLowerCase().indexOf(lower) !== -1;
-    })
-    .slice(0, 24);
+  var contentResults = window.SFJR_CAREER_INTELLIGENCE?.searchCareerContent
+    ? window.SFJR_CAREER_INTELLIGENCE.searchCareerContent(lower, { content: window.SFJR_SALESFORCE_CONTENT || {} }).slice(0, 24)
+    : (window.SFJR_SALESFORCE_CONTENT?.getAllQuestions?.() || [])
+      .filter(function(q) {
+        return [
+          q.question,
+          q.shortAnswer,
+          q.detailedAnswer,
+          q.scenario,
+          q.difficulty,
+          q.sectionTitle,
+          ...(q.tags || []),
+          ...(q.relatedTopics || [])
+        ].join(' ').toLowerCase().indexOf(lower) !== -1;
+      })
+      .slice(0, 24)
+      .map(q => ({
+        type: 'question',
+        sectionId: q.sectionId,
+        questionId: q.id,
+        title: q.question,
+        preview: q.shortAnswer,
+        difficulty: q.difficulty,
+        tags: q.tags || [],
+        sectionTitle: q.sectionTitle
+      }));
   var results = searchData.filter(function(d) { return d.question.toLowerCase().indexOf(lower) !== -1 || (d.answerEl.textContent||'').toLowerCase().indexOf(lower) !== -1; });
   var container = document.getElementById('searchResults');
   var sp = document.getElementById('searchPage');
@@ -4767,14 +4810,19 @@ function searchContent(val) {
   sp.style.display = 'block'; sp.classList.add('active');
   if (!results.length && !contentResults.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No interview content found for "'+escapeHtml(val)+'". Try Apex, Agentforce, Data Cloud, Integration, or FDE.</p>'; return; }
   const contentHtml = contentResults.map(function(q) {
+    const questionText = q.title || q.question || '';
+    const encodedQuestion = encodeInlineArg(questionText);
+    const encodedSection = encodeInlineArg(q.sectionId || 'study_tracker');
     return `<div class="search-result-item rich-search-result">
-      <div class="sr-q">${escapeHtml(q.question)}</div>
-      <div class="sr-section">${escapeHtml(q.sectionTitle)} • ${escapeHtml(q.difficulty)} • ${(q.tags || []).slice(0, 3).map(escapeHtml).join(', ')}</div>
-      <p>${escapeHtml(q.shortAnswer)}</p>
+      <div class="sr-type">${escapeHtml(q.type || 'question')}</div>
+      <div class="sr-q">${escapeHtml(questionText)}</div>
+      <div class="sr-section">${escapeHtml(q.sectionTitle || q.sectionId || 'Salesforce content')} • ${escapeHtml(q.difficulty || 'Mixed')} • ${(q.tags || []).slice(0, 3).map(escapeHtml).join(', ')}</div>
+      <p>${escapeHtml(q.preview || q.shortAnswer || '')}</p>
       <div class="search-actions">
-        <button type="button" onclick="showPage('${escapeHtml(q.sectionId)}')">Open Q&A</button>
-        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId)}','revised')">Mark revised</button>
-        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId)}','mastered')">Mark mastered</button>
+        <button type="button" onclick="showPage('${escapeHtml(q.sectionId || 'study_tracker')}')">Open Q&A</button>
+        <button type="button" onclick="toggleBookmark(decodeURIComponent('${encodedQuestion}'), decodeURIComponent('${encodedSection}'))">Bookmark</button>
+        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId || 'study_tracker')}','revised')">Mark revised</button>
+        <button type="button" onclick="markContentProgress('${escapeHtml(q.sectionId || 'study_tracker')}','mastered')">Mark mastered</button>
       </div>
     </div>`;
   }).join('');
@@ -5102,21 +5150,31 @@ window.switchRadarSubTab = function(tabId) {
 };
 // AI INTERVIEW SYSTEM
 let interviewMessages = [];
+let currentInterviewSession = null;
 
 function hydrateInterviewRoom() {
   const topicEl = document.getElementById('interviewTopic');
   const diffEl = document.getElementById('interviewDifficulty');
+  const roleEl = document.getElementById('interviewRole');
+  const companyEl = document.getElementById('interviewCompany');
   if (topicEl) topicEl.value = getScopedItem('last_interview_topic', 'Apex & Technical');
   if (diffEl) diffEl.value = getScopedItem('last_interview_difficulty', 'Senior');
+  if (roleEl) roleEl.value = getScopedItem('last_interview_role', cachedUserProfile?.targetRole || cachedUserProfile?.targetDesignation || 'Salesforce Developer');
+  if (companyEl) companyEl.value = getScopedItem('last_interview_company', 'General');
+  loadMockInterviewHistory().catch(err => console.warn('[INTERVIEW] History unavailable:', err.message));
 }
 
 async function startAIInterview() {
   const topic = document.getElementById('interviewTopic').value;
   const difficulty = document.getElementById('interviewDifficulty').value;
+  const role = document.getElementById('interviewRole')?.value || 'Salesforce Developer';
+  const company = document.getElementById('interviewCompany')?.value || 'General';
   
   // Persist selections so they don't reset on tab switch
   setScopedItem('last_interview_topic', topic);
   setScopedItem('last_interview_difficulty', difficulty);
+  setScopedItem('last_interview_role', role);
+  setScopedItem('last_interview_company', company);
   
   const chatContainer = document.getElementById('interviewChat');
   chatContainer.innerHTML = '';
@@ -5130,7 +5188,18 @@ async function startAIInterview() {
     startBtn.style.opacity = '0.65';
   }
 
-  addChatMessage('ai', `Hello! I am your AI Interviewer. We will be discussing ${topic} at a ${difficulty} level today. Let's begin. <br><br><b>First Question:</b> Can you tell me about your experience with ${topic} and how you handle complex requirements in this area?`);
+  const firstQuestion = `Can you tell me about your experience with ${topic} for a ${role} role${company && company !== 'General' ? ` at ${company}` : ''}, and how you handle complex requirements in this area?`;
+  currentInterviewSession = {
+    role,
+    company,
+    topic,
+    difficulty,
+    questions: [{ id: 'q1', question: firstQuestion }],
+    answers: [],
+    startedAt: new Date().toISOString()
+  };
+  interviewMessages = [];
+  addChatMessage('ai', `Hello! I am your AI Interviewer. We will be discussing ${escapeHtml(topic)} at a ${escapeHtml(difficulty)} level today. Let's begin. <br><br><b>First Question:</b> ${escapeHtml(firstQuestion)}`);
 }
 
 async function submitAnswer() {
@@ -5146,6 +5215,15 @@ async function submitAnswer() {
   if (validation) validation.style.display = 'none';
 
   addChatMessage('user', answer);
+  if (currentInterviewSession) {
+    const question = currentInterviewSession.questions[currentInterviewSession.questions.length - 1];
+    currentInterviewSession.answers.push({
+      questionId: question?.id || `q${currentInterviewSession.answers.length + 1}`,
+      question: question?.question || '',
+      answerText: answer,
+      answeredAt: new Date().toISOString()
+    });
+  }
   input.value = '';
   
   const statusEl = document.getElementById('aiThinkingStatus');
@@ -5154,9 +5232,11 @@ async function submitAnswer() {
   try {
     const topic = document.getElementById('interviewTopic').value;
     const difficulty = document.getElementById('interviewDifficulty').value;
+    const role = document.getElementById('interviewRole')?.value || 'Salesforce Developer';
+    const company = document.getElementById('interviewCompany')?.value || 'General';
     
     const systemPrompt = `You are a Senior Salesforce Technical Interviewer. 
-Topic: ${topic}. Difficulty: ${difficulty}.
+Role: ${role}. Company context: ${company}. Topic: ${topic}. Difficulty: ${difficulty}.
 Conduct a realistic interview. Ask one technical question at a time. 
 When the user answers, provide brief feedback (Score 1-10) and then ask the next follow-up question.
 Be professional and challenging. 
@@ -5165,12 +5245,103 @@ User Input: ${answer}`;
     const responseText = await callAi('interview', { topic, difficulty, answer, prompt: systemPrompt });
     statusEl.style.display = 'none';
     addChatMessage('ai', responseText);
+    if (currentInterviewSession) {
+      currentInterviewSession.questions.push({
+        id: `q${currentInterviewSession.questions.length + 1}`,
+        question: stripHtml(responseText).slice(0, 500)
+      });
+    }
     
   } catch (e) {
     statusEl.style.display = 'none';
     addChatMessage('ai', 'AI interview feedback is unavailable right now. Please try again after the server connection recovers.');
     console.error('AI Interview Error:', e);
   }
+}
+
+async function saveInterviewSession() {
+  if (!currentInterviewSession || !currentInterviewSession.answers.length) {
+    showToast('Answer at least one question before saving.', 'warning');
+    return;
+  }
+  const payload = {
+    ...currentInterviewSession,
+    completedAt: new Date().toISOString()
+  };
+  try {
+    const response = await apiFetch('/api/mock-interview/session', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error('Cloud save failed');
+    const data = await response.json();
+    writeScopedJson('mockInterviewSessions', data.sessions || [data.session]);
+    renderMockInterviewHistory(data.sessions || [data.session]);
+    showToast('Mock interview saved to your profile.');
+  } catch (err) {
+    const localSessions = readScopedJson('mockInterviewSessions', [], 'sf_mock_interviews');
+    const session = window.SFJR_CAREER_INTELLIGENCE?.createMockInterviewSession
+      ? window.SFJR_CAREER_INTELLIGENCE.createMockInterviewSession(payload)
+      : { ...payload, id: `mock_${Date.now()}`, score: 0, createdAt: new Date().toISOString() };
+    const sessions = [session, ...localSessions].slice(0, 50);
+    writeScopedJson('mockInterviewSessions', sessions);
+    renderMockInterviewHistory(sessions);
+    showToast('Mock interview saved locally.');
+  }
+}
+
+async function loadMockInterviewHistory() {
+  const mount = document.getElementById('mockInterviewHistory');
+  if (!mount) return;
+  let sessions = readScopedJson('mockInterviewSessions', [], 'sf_mock_interviews');
+  try {
+    const response = await apiFetch('/api/mock-interview/session');
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data.sessions)) {
+        sessions = data.sessions;
+        writeScopedJson('mockInterviewSessions', sessions);
+      }
+    }
+  } catch (err) {
+    // Local history remains useful without cloud connectivity.
+  }
+  renderMockInterviewHistory(sessions);
+}
+
+function renderMockInterviewHistory(sessions) {
+  const mount = document.getElementById('mockInterviewHistory');
+  if (!mount) return;
+  const summary = window.SFJR_CAREER_INTELLIGENCE?.summarizeMockInterviewSessions
+    ? window.SFJR_CAREER_INTELLIGENCE.summarizeMockInterviewSessions(sessions)
+    : { sessions: sessions || [], averageScore: 0 };
+  if (!summary.sessions.length) {
+    mount.innerHTML = '<div class="premium-empty">No mock interviews yet. Start your first session.</div>';
+    return;
+  }
+  mount.innerHTML = `
+    <div class="mock-history-summary">
+      <span>${summary.total} session${summary.total === 1 ? '' : 's'}</span>
+      <strong>${summary.averageScore}% avg score</strong>
+    </div>
+    <div class="mock-history-list">
+      ${summary.sessions.slice(0, 6).map(session => `
+        <article class="mock-history-card">
+          <div>
+            <strong>${escapeHtml(session.role || 'Salesforce Developer')}</strong>
+            <span>${escapeHtml(session.company || 'General')} · ${escapeHtml(session.topic || 'Interview')}</span>
+          </div>
+          <b>${Number(session.score || 0)}%</b>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function stripHtml(value) {
+  const div = document.createElement('div');
+  div.innerHTML = String(value || '');
+  return div.textContent || div.innerText || '';
 }
 
 function addChatMessage(role, text) {
@@ -5192,7 +5363,7 @@ function addChatMessage(role, text) {
     msg.style.color = 'white';
   }
   
-  msg.innerHTML = text;
+  msg.innerHTML = role === 'user' ? escapeHtml(text) : text;
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
   msg.scrollIntoView({ block: 'end', behavior: 'smooth' });

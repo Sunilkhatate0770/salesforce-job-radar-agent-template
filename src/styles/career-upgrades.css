@@ -1,0 +1,403 @@
+/* Career Intelligence upgrade layer. Kept separate from large global CSS files. */
+
+.career-upgrade-panel {
+  margin: 18px 0;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid color-mix(in srgb, var(--border, #24344f), transparent 8%);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(37, 99, 235, 0.1), transparent 46%),
+    color-mix(in srgb, var(--card, #111827), transparent 3%);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+}
+
+.career-upgrade-head,
+.career-seven-day-title,
+.release-study-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.career-upgrade-head h3,
+.career-command-card h4,
+.release-study-card h4 {
+  margin: 4px 0 0;
+  color: var(--text, #f8fbff);
+}
+
+.career-upgrade-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.career-upgrade-metrics span,
+.freshness-badge,
+.job-source-health-item,
+.release-study-card strong {
+  border: 1px solid var(--border, #24344f);
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--muted, #9fb7d8);
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
+.career-upgrade-metrics b {
+  color: var(--text, #f8fbff);
+}
+
+.career-command-grid,
+.release-study-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.career-command-card,
+.release-study-card,
+.career-day-card,
+.career-track-card {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--border, #24344f), transparent 10%);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.54);
+  color: var(--text, #f8fbff);
+}
+
+.career-command-card {
+  padding: 14px;
+}
+
+.career-command-card span,
+.career-day-card span,
+.career-track-card span,
+.release-study-card span {
+  color: var(--blue, #3b82f6);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.career-command-card p {
+  min-height: 42px;
+  margin: 8px 0 14px;
+  color: var(--muted, #9fb7d8);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.career-seven-day-plan {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--border, #24344f), transparent 18%);
+}
+
+.career-roadmap-tracks {
+  margin-top: 18px;
+}
+
+.career-seven-day-grid,
+.career-track-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.career-seven-day-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.career-track-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.career-day-card,
+.career-track-card {
+  min-height: 104px;
+  padding: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.career-day-card strong {
+  display: block;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.career-day-card em {
+  color: var(--muted, #9fb7d8);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.career-track-card {
+  border: 1px solid color-mix(in srgb, var(--border, #24344f), transparent 10%);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.42);
+  color: var(--text, #f8fbff);
+}
+
+.career-track-card.needs-work {
+  border-color: rgba(59, 130, 246, 0.34);
+}
+
+.career-track-card span,
+.career-track-card em {
+  display: block;
+}
+
+.career-track-card strong {
+  display: block;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.career-track-card em {
+  color: var(--muted, #9fb7d8);
+  font-size: 0.7rem;
+  font-style: normal;
+}
+
+.freshness-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  padding: 5px 8px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.freshness-badge.new {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.freshness-badge.updated,
+.freshness-badge.active {
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.28);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.freshness-badge.stale {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.freshness-badge.review {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.job-source-health {
+  display: grid;
+  grid-template-columns: repeat(4, max-content) minmax(180px, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.job-source-health-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 12px;
+}
+
+.job-source-health-item strong {
+  color: var(--text, #f8fbff);
+}
+
+.job-source-health-note {
+  min-width: 0;
+  color: var(--muted, #9fb7d8);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.release-study-actions {
+  margin-bottom: 18px;
+}
+
+.release-study-card {
+  padding: 14px;
+}
+
+.release-study-card ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--muted, #9fb7d8);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.cp-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cp-quality-card {
+  padding: 12px;
+  border: 1px solid var(--border, #24344f);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.cp-quality-card span,
+.cp-quality-card small {
+  display: block;
+  color: var(--muted, #9fb7d8);
+  font-size: 0.72rem;
+}
+
+.cp-quality-card strong {
+  display: block;
+  margin: 6px 0;
+  color: var(--text, #f8fbff);
+  font-size: 1rem;
+}
+
+.cp-quality-card.pass {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.cp-quality-card.warn {
+  border-color: rgba(245, 158, 11, 0.36);
+}
+
+.mock-history-summary,
+.mock-history-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mock-history-summary {
+  color: var(--muted, #9fb7d8);
+  font-size: 0.8rem;
+  margin-bottom: 10px;
+}
+
+.mock-history-summary strong {
+  color: var(--text, #f8fbff);
+}
+
+.mock-history-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mock-history-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border, #24344f);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.mock-history-card strong,
+.mock-history-card span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mock-history-card span {
+  margin-top: 4px;
+  color: var(--muted, #9fb7d8);
+  font-size: 0.72rem;
+}
+
+.mock-history-card b {
+  color: var(--green, #10b981);
+}
+
+[data-theme="light"] .career-command-card,
+[data-theme="light"] .release-study-card,
+[data-theme="light"] .career-day-card,
+[data-theme="light"] .career-track-card,
+[data-theme="light"] .job-source-health,
+[data-theme="light"] .cp-quality-card {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="light"] .mock-history-card {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+@media (max-width: 1100px) {
+  .career-command-grid,
+  .release-study-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .career-seven-day-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .career-track-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .job-source-health {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mock-history-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .career-upgrade-head,
+  .career-seven-day-title,
+  .release-study-card-head {
+    flex-direction: column;
+  }
+
+  .career-command-grid,
+  .release-study-grid,
+  .career-seven-day-grid,
+  .career-track-grid,
+  .cp-quality-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .career-day-card {
+    min-height: 0;
+  }
+
+  .job-source-health {
+    grid-template-columns: 1fr;
+  }
+
+  .interview-setup-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mock-history-list {
+    grid-template-columns: 1fr;
+  }
+}

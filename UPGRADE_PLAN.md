@@ -3,6 +3,18 @@
 **Generated:** 2026-05-06  
 **Codebase Version:** v1412 → v1413 (post-audit + big upgrade)
 
+## 2026-05-14 Career Intelligence Upgrade Addendum
+
+- Added `src/data/careerIntelligence.js` for browser-side job freshness, source health, Today Command Center, study-roadmap, release-study, content-search, and mock-interview helpers.
+- Added `src/services/dashboardSummary.js` so API routes can produce dashboard summary, release study actions, job source health, and mock-session records without trusting client `userId` values.
+- Added dashboard UI for Today Command Center, Next 7 Days Plan, and Apex/LWC/Integration/Security/Agentforce/Data Cloud roadmap tracks.
+- Upgraded Job Radar with newest-first helper sorting, `New today` / `Updated` / `Stale` / `Needs review` badges, source health metrics, and filters for Remote, Pune, India, Fresh, Resume Ready, and Follow-up.
+- Added `/api/dashboard/summary`, `/api/releases/study-actions`, and `/api/mock-interview/session` to both Vercel and local server paths.
+- Added mock interview role/company/topic setup, save flow, cloud/local persistence, and user-specific session history.
+- Upgraded Code Practice single-file attempts with richer result categories and cloud persistence for custom HTML/JS/Apex class/trigger practice when signed in.
+- Added `src/styles/career-upgrades.css` instead of increasing `styles.css` or `responsive.css`.
+- Added `test/careerIntelligence.test.js` to verify job ordering/freshness, source health, release actions, mock sessions, and user-scoped dashboard summary behavior.
+
 ## 2026-05-08 Best-Practices Addendum
 
 - Removed stale desktop sidebar collapse overrides from `styles.css` and consolidated active sidebar/collapsed-menu ownership into `src/styles/navigation.css`.

@@ -3,6 +3,18 @@
 **Audit date:** 2026-05-08  
 **Scope:** local vanilla HTML/CSS/JS app, Vercel API router, local web server, data/content files, tests, and deployment support files.
 
+## 2026-05-14 Upgrade Pass
+
+| Area | Finding | Fix Applied | Files |
+|---|---|---|---|
+| Career dashboard | Command-center logic was embedded in the profile renderer and could not be reused by API tests. | Added a shared career-intelligence helper and dashboard summary service, then surfaced Today Command Center, Next 7 Days Plan, and track-level roadmap cards with real local/user data and empty-safe fallbacks. | `src/data/careerIntelligence.js`, `src/services/dashboardSummary.js`, `src/components.js`, `src/styles/career-upgrades.css` |
+| Job Radar freshness | Cards were sorted mostly by local merge behavior and did not show whether a role was fresh, updated, stale, or incomplete. | Added newest-first sorting helpers, freshness badges, source health metrics, and expanded filters for remote/Pune/India/fresh/resume-ready/follow-up. | `app.js`, `src/components.js`, `pages/job_radar.html`, `src/data/careerIntelligence.js` |
+| Activity log exposure risk | The activity log DOM is global, so renderer calls from non-radar tabs could repopulate hidden log content. | Hardened `renderLog()` to close/hide the panel unless Job Radar is active and escaped log text before rendering. | `src/components.js` |
+| Interview mode persistence | AI interview sessions were chat-only and did not persist user attempts. | Added role/company/topic setup, finish-and-save action, user-scoped local fallback, cloud `/api/mock-interview/session` persistence, and a mock interview history panel. | `pages/ai_interview.html`, `app.js`, `api/router.js`, `src/webServer.js`, `src/models/models.js` |
+| Code practice custom files | Single-file practice existed but custom attempts stayed local-only. | Added richer structure/syntax/accessibility/security/best-practice result cards and allowed custom single-file attempts to persist through the existing code-practice endpoint. | `code-practice.js`, `api/router.js`, `src/webServer.js`, `src/styles/career-upgrades.css` |
+| Release intelligence | Release cards lacked a structured study-action mapping. | Added Admin/Developer/Agentforce/Data Cloud/Security/Flow study-action cards and a `/api/releases/study-actions` endpoint. | `src/components.js`, `api/router.js`, `src/webServer.js`, `src/services/dashboardSummary.js` |
+| User data model | New upgrade entities were not explicitly represented on the profile model. | Added profile fields for `questionAttempts`, `mockInterviewSessions`, `releaseStudyActions`, `dailyStudyPlan`, `userSettings`, and `notes`. | `src/models/models.js` |
+
 ## Current App Structure
 
 - `index.html` is the SPA shell and loads global scripts/styles directly.

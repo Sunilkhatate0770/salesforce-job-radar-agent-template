@@ -265,6 +265,92 @@ function getCareerOsJobSnapshot() {
   };
 }
 
+function getCareerIntelligence() {
+  return window.SFJR_CAREER_INTELLIGENCE || {};
+}
+
+function renderCareerUpgradeCommandCenter(profile, jobs, study) {
+  const intelligence = getCareerIntelligence();
+  if (typeof intelligence.buildTodayCommandCenter !== 'function') return '';
+  const command = intelligence.buildTodayCommandCenter({
+    profile,
+    jobs: jobs?.jobs || [],
+    progress: (typeof globalStudyData !== 'undefined' ? globalStudyData : window.globalStudyData) || {},
+    bookmarks: (typeof userBookmarks !== 'undefined' ? userBookmarks : window.userBookmarks) || [],
+    releases: (typeof premiumReleaseCache !== 'undefined' ? premiumReleaseCache : window.premiumReleaseCache) || {},
+    content: window.SFJR_SALESFORCE_CONTENT || {}
+  });
+  const roadmapTracks = typeof intelligence.buildStudyRoadmap === 'function'
+    ? intelligence.buildStudyRoadmap({
+      content: window.SFJR_SALESFORCE_CONTENT || {},
+      progress: (typeof globalStudyData !== 'undefined' ? globalStudyData : window.globalStudyData) || {},
+      bookmarks: (typeof userBookmarks !== 'undefined' ? userBookmarks : window.userBookmarks) || []
+    })
+    : [];
+  const metrics = command.metrics || {};
+  return `
+    <section class="career-upgrade-panel today-command-center card-standard animate-reveal" style="--reveal-index:1">
+      <div class="career-upgrade-head">
+        <div>
+          <span class="career-os-kicker">Today Command Center</span>
+          <h3>One balanced plan for study, jobs, profile, and releases</h3>
+        </div>
+        <div class="career-upgrade-metrics" aria-label="Today command center metrics">
+          <span><b>${componentEscapeHtml(metrics.highFitJobs || 0)}</b> high fit</span>
+          <span><b>${componentEscapeHtml(metrics.freshJobs || 0)}</b> fresh</span>
+          <span><b>${componentEscapeHtml(metrics.bookmarks || 0)}</b> saved Q&A</span>
+        </div>
+      </div>
+      <div class="career-command-grid">
+        ${(command.actions || []).map(action => {
+          const target = action.type === 'jobs' ? 'job_radar'
+            : action.type === 'release' ? 'salesforce_releases'
+            : action.type === 'profile' ? 'profile_match'
+            : 'study_tracker';
+          return `
+            <article class="career-command-card ${componentEscapeAttr(action.type || 'study')}">
+              <span>${componentEscapeHtml(action.type || 'focus')}</span>
+              <h4>${componentEscapeHtml(action.title)}</h4>
+              <p>${componentEscapeHtml(action.detail)}</p>
+              <button type="button" class="career-os-link-btn" onclick="showPage('${componentEscapeJsArg(target)}')">${componentEscapeHtml(action.cta || 'Open')}</button>
+            </article>
+          `;
+        }).join('')}
+      </div>
+      <div class="career-seven-day-plan" aria-label="Next seven days study plan">
+        <div class="career-seven-day-title">
+          <span class="career-os-kicker">Next 7 Days Plan</span>
+          <strong>${componentEscapeHtml(command.targetRole || 'Salesforce Developer')}</strong>
+        </div>
+        <div class="career-seven-day-grid">
+          ${(command.nextSevenDays || []).map(day => `
+            <button type="button" class="career-day-card" onclick="showPage('study_tracker')">
+              <span>${componentEscapeHtml(day.label)}</span>
+              <strong>${componentEscapeHtml(day.topic)}</strong>
+              <em>${componentEscapeHtml(day.focus)}</em>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+      <div class="career-roadmap-tracks" aria-label="Study roadmap by track">
+        <div class="career-seven-day-title">
+          <span class="career-os-kicker">Study Roadmap</span>
+          <strong>Core and scenario readiness</strong>
+        </div>
+        <div class="career-track-grid">
+          ${roadmapTracks.map(track => `
+            <button type="button" class="career-track-card${track.weak ? ' needs-work' : ''}" onclick="showPage('study_tracker')">
+              <span>${componentEscapeHtml(track.label)}</span>
+              <strong>${componentEscapeHtml(track.nextTopic)}</strong>
+              <em>${componentEscapeHtml(track.coreSections)} core · ${componentEscapeHtml(track.scenarioSections)} scenario · ${componentEscapeHtml(track.mastered)} mastered</em>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function getCareerOsFocus(profile, jobs) {
   const topics = Array.isArray(profile.studyPlanTopics) ? profile.studyPlanTopics : [];
   const missing = Array.isArray(profile.missingSkills) ? profile.missingSkills : [];
@@ -651,6 +737,8 @@ function renderProfileMatchPage(profile) {
       </div>
     </section>
 
+    ${renderCareerUpgradeCommandCenter(profile, jobs, study)}
+
     <div class="career-os-grid">
       <section id="careerOsJobRadarSummary" class="career-os-panel job-radar-summary card-standard animate-reveal ${radarStatusClass}" style="--reveal-index:1">
         <div class="career-os-section-head">
@@ -887,6 +975,9 @@ function renderReleaseCenterPage(data) {
   const exp = data?.experienceYears || 1;
   const designation = data?.designation?.label || 'Salesforce Developer';
   const categories = Array.from(new Set(allItems.map(item => item.category))).filter(Boolean);
+  const releaseStudyActions = getCareerIntelligence().buildReleaseStudyActions
+    ? getCareerIntelligence().buildReleaseStudyActions(data || {})
+    : [];
 
   container.innerHTML = `
     <div class="premium-release-hero">
@@ -906,6 +997,7 @@ function renderReleaseCenterPage(data) {
         ${personalized.map(item => renderReleaseCard(item, true)).join('') || '<p class="premium-empty">Complete profile setup to personalize release focus.</p>'}
       </div>
     </div>
+    ${renderReleaseStudyActionSection(releaseStudyActions)}
     ${categories.map(category => `
       <section class="premium-release-category">
         <h3>${category}</h3>
@@ -914,6 +1006,29 @@ function renderReleaseCenterPage(data) {
         </div>
       </section>
     `).join('')}
+  `;
+}
+
+function renderReleaseStudyActionSection(actions) {
+  if (!actions || !actions.length) return '';
+  return `
+    <section class="release-study-actions premium-mini-panel">
+      <div class="premium-eyebrow">What To Study From This Release</div>
+      <div class="release-study-grid">
+        ${actions.map(action => `
+          <article class="release-study-card">
+            <div class="release-study-card-head">
+              <span>${componentEscapeHtml(action.category)}</span>
+              <strong>${componentEscapeHtml(action.count || 0)} update${Number(action.count || 0) === 1 ? '' : 's'}</strong>
+            </div>
+            <h4>${componentEscapeHtml(action.studyTopic || action.category)}</h4>
+            <ul>
+              ${(action.prompts || []).slice(0, 3).map(prompt => `<li>${componentEscapeHtml(prompt)}</li>`).join('')}
+            </ul>
+          </article>
+        `).join('')}
+      </div>
+    </section>
   `;
 }
 
@@ -1509,7 +1624,9 @@ function renderBoardListView(searchTerm, filter) {
   const pageSize = Math.max(1, Number(window.JOB_BOARD_PAGE_SIZE || 6)) * 2; // Double density for list
   
   const allFiltered = (window.pipelineJobs || [])
-    .filter(j => filter === 'all' || componentProbability(j.prob || j.probability, j.score) === filter)
+    .filter(j => typeof window.jobMatchesBoardFilter === 'function'
+      ? window.jobMatchesBoardFilter(j, filter)
+      : (filter === 'all' || componentProbability(j.prob || j.probability, j.score) === filter))
     .filter(j => {
       if (!searchTerm) return true;
       const haystack = [
@@ -1714,6 +1831,47 @@ function renderCockpitList(items, emptyText) {
   }).join('');
 }
 
+function getJobFreshnessMeta(job) {
+  const intelligence = getCareerIntelligence();
+  if (typeof intelligence.getJobFreshness === 'function') return intelligence.getJobFreshness(job);
+  const days = typeof jobRadarDaysOld === 'function' ? jobRadarDaysOld(job) : 999;
+  if (days === 0) return { label: 'New today', tone: 'new', daysOld: days };
+  if (days > 14) return { label: 'Stale', tone: 'stale', daysOld: days };
+  return { label: 'Active', tone: 'active', daysOld: days };
+}
+
+function renderJobFreshnessBadge(job) {
+  const fresh = getJobFreshnessMeta(job);
+  return `<span class="freshness-badge ${componentEscapeAttr(fresh.tone || 'active')}" title="${componentEscapeAttr(fresh.reason || '')}">${componentEscapeHtml(fresh.label)}</span>`;
+}
+
+function renderJobSourceHealthPanel() {
+  const intelligence = getCareerIntelligence();
+  if (typeof intelligence.buildJobSourceHealth !== 'function') return '';
+  const health = intelligence.buildJobSourceHealth(window.pipelineJobs || [], window.activityLog || []);
+  return `
+    <div class="job-source-health ${componentEscapeAttr(health.status || 'healthy')}">
+      <div class="job-source-health-item">
+        <span>Last scan</span>
+        <strong>${componentEscapeHtml(health.lastScanLabel || 'Not run yet')}</strong>
+      </div>
+      <div class="job-source-health-item">
+        <span>Added</span>
+        <strong>${componentEscapeHtml(health.jobsAdded || 0)}</strong>
+      </div>
+      <div class="job-source-health-item">
+        <span>Refreshed</span>
+        <strong>${componentEscapeHtml(health.jobsRefreshed || 0)}</strong>
+      </div>
+      <div class="job-source-health-item">
+        <span>Provider issues</span>
+        <strong>${componentEscapeHtml(health.failedProviderCount || 0)}</strong>
+      </div>
+      <div class="job-source-health-note">${componentEscapeHtml(health.nextScanExpectation || 'Daily scan is ready.')}</div>
+    </div>
+  `;
+}
+
 function renderJobRadarCockpit() {
   const mount = document.getElementById('jobRadarCockpit');
   if (!mount) return;
@@ -1760,6 +1918,7 @@ function renderJobRadarCockpit() {
       <div class="cockpit-metric review"><b>${data.needsReview.length}</b><span>Needs review</span></div>
       <div class="cockpit-metric quiet"><b>${data.suppressed}</b><span>Suppressed</span></div>
     </div>
+    ${renderJobSourceHealthPanel()}
     <div class="cockpit-profile-note">
       <span>Profile focus</span>
       <strong>${componentEscapeHtml(data.profileFocus.gap)}</strong>
@@ -1831,6 +1990,7 @@ function renderJobCard(job) {
       
       <div class="jcard-stage-row">
         <span class="prob-badge ${componentEscapeAttr(prob)}">${componentEscapeHtml(componentProbLabel(prob))}</span>
+        ${renderJobFreshnessBadge(job)}
         <span class="jcard-age">${componentEscapeHtml(timeAgo(job.last_seen_at || job.posted_at || job.updatedAt || job.updated_at || job.createdAt || job.dateAdded || job.created_at))}</span>
       </div>
 
@@ -2043,6 +2203,15 @@ function renderRevisionAlerts() {
 function renderLog() {
   const body = document.getElementById('logBody');
   if (!body) return;
+  if (typeof isJobRadarActive === 'function' && !isJobRadarActive()) {
+    const panel = document.getElementById('logPanel');
+    if (panel) {
+      panel.classList.remove('open');
+      panel.hidden = true;
+      panel.setAttribute('aria-hidden', 'true');
+    }
+    return;
+  }
   const log = window.activityLog || [];
   const pageSize = window.LOG_PAGE_SIZE || 10;
   const page = window.activityLogPage || 0;
@@ -2060,7 +2229,7 @@ function renderLog() {
         <span>${new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
         <span style="color:${item.type==='success'?'var(--green)':item.type==='ai'?'var(--blue)':'var(--muted)'}">${(item.type || 'info').toUpperCase()}</span>
       </div>
-      <div class="log-entry-text">${item.text}</div>
+      <div class="log-entry-text">${componentEscapeHtml(item.text || '')}</div>
     </div>
   `).join('') + renderPager(log.length, page, pageSize, 'setLogPage(-1)', 'setLogPage(1)');
 }

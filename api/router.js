@@ -26,6 +26,11 @@ import {
   readReleaseCenterPayload,
   selectPersonalizedReleaseItems
 } from '../src/releases/releaseCenter.js';
+import {
+  buildDashboardSummary,
+  buildReleaseStudyActions,
+  createMockInterviewSession
+} from '../src/services/dashboardSummary.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
 import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
 
@@ -1056,6 +1061,26 @@ export default async function(req, res) {
       return res.status(200).json({ success: true, ...intelligence });
     }
 
+    if (path === 'dashboard/summary' && req.method === 'GET') {
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'dashboard/summary');
+      const profile = loadedProfile || { userId };
+      const [tursoJobs, mongoJobs, studySessions, fallbackReleases] = await Promise.all([
+        safeTursoRead('dashboard/summary jobs', () => TursoDB.getJobs(userId, 160), []),
+        safeMongoRead('dashboard/summary jobs', () => JobRecord.find(mongoJobQuery(userId)).sort({ updatedAt: -1, createdAt: -1 }).limit(220).lean(), []),
+        safeMongoRead('dashboard/summary study', () => StudySession.find({ userId }).sort({ startTime: -1 }).limit(120).lean(), []),
+        Promise.resolve(readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] }))
+      ]);
+      const allReleases = await readReleaseCenterPayload(fallbackReleases);
+      const summary = buildDashboardSummary({
+        profile,
+        jobs: mergeDashboardJobs(tursoJobs, mongoJobs),
+        studySessions,
+        releases: allReleases,
+        activityLog: []
+      });
+      return res.status(200).json(summary);
+    }
+
     // ALIAS for releases/current used by UI
     if (path === 'releases/latest' || path === 'releases/current') {
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'releases/current');
@@ -1073,6 +1098,57 @@ export default async function(req, res) {
         experienceYears: intelligence.experienceYears,
         designation: intelligence.designation
       });
+    }
+
+    if (path === 'releases/study-actions' && req.method === 'GET') {
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'releases/study-actions');
+      const intelligence = buildPremiumRoadmap(loadedProfile || {});
+      const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
+      const allReleases = await readReleaseCenterPayload(fallbackReleases);
+      const payload = {
+        ...allReleases,
+        personalizedItems: selectPersonalizedReleaseItems(allReleases.items || [], intelligence)
+      };
+      const studyActions = buildReleaseStudyActions(payload);
+      await Promise.all([
+        safeMongoWrite('releases/study-actions', () => UserProfile.findOneAndUpdate(
+          { userId },
+          { userId, releaseStudyActions: studyActions, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('releases/study-actions', async () => {
+          const { profile } = await loadHybridProfile(userId, 'releases/study-actions-write');
+          return TursoDB.saveProfile(userId, { ...(profile || {}), userId, releaseStudyActions: studyActions, updatedAt: new Date() });
+        })
+      ]);
+      return res.status(200).json({ success: true, generatedAt: new Date().toISOString(), studyActions });
+    }
+
+    if (path === 'mock-interview/session' && req.method === 'GET') {
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'mock-interview/session');
+      const sessions = Array.isArray(loadedProfile?.mockInterviewSessions) ? loadedProfile.mockInterviewSessions : [];
+      return res.status(200).json({ success: true, sessions: sessions.slice(0, 50) });
+    }
+
+    if (path === 'mock-interview/session' && req.method === 'POST') {
+      const body = readBody(req);
+      const { profile: loadedProfile } = await loadHybridProfile(userId, 'mock-interview/session');
+      const profile = loadedProfile || {};
+      const session = createMockInterviewSession(body, userId);
+      const mockInterviewSessions = [session, ...(profile.mockInterviewSessions || [])].slice(0, 50);
+      const nextProfile = { ...profile, userId, mockInterviewSessions, updatedAt: new Date() };
+      const [mongoStored, tursoStored] = await Promise.all([
+        safeMongoWrite('mock-interview/session', () => UserProfile.findOneAndUpdate(
+          { userId },
+          { userId, mockInterviewSessions, updatedAt: new Date() },
+          { upsert: true, new: true }
+        )),
+        safeTursoWrite('mock-interview/session', () => TursoDB.saveProfile(userId, nextProfile))
+      ]);
+      if (!mongoStored && !tursoStored) {
+        return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
+      }
+      return res.status(200).json({ success: true, session, sessions: mockInterviewSessions, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'code-practice/evaluate' && req.method === 'POST') {
@@ -1120,7 +1196,11 @@ export default async function(req, res) {
 
     if (path === 'code-practice/attempt' && req.method === 'POST') {
       const body = readBody(req);
-      const challenge = getCodePracticeChallenge(body.challengeId);
+      const challenge = getCodePracticeChallenge(body.challengeId) || (body.custom ? {
+        id: String(body.challengeId || `custom_${Date.now()}`).slice(0, 80),
+        title: String(body.title || 'Custom single-file practice').slice(0, 120),
+        track: body.languageTrack || 'custom'
+      } : null);
       if (!challenge) return res.status(404).json({ success: false, error: 'Challenge not found' });
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'code-practice/attempt');
       const profile = loadedProfile || {};

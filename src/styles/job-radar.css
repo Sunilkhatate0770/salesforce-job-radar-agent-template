@@ -3819,3 +3819,33 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
 .radar-tr:last-child td {
   border-bottom: none;
 }
+
+/* Upgrade filters: the board now exposes more practical filters. Keep the
+   toolbar inside the available content width on desktop edge sizes. */
+#job_radar {
+  --jr-filter-h: 84px;
+}
+
+#job_radar .filter-bar {
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  row-gap: 8px !important;
+  overflow: visible !important;
+}
+
+#job_radar .filter-search {
+  margin-left: 0 !important;
+  flex: 1 1 220px !important;
+  max-width: 340px !important;
+}
+
+#job_radar .filter-actions {
+  margin-left: auto !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-end !important;
+}
+
+#job_radar .pipe-stats {
+  min-width: 0 !important;
+  flex-wrap: wrap !important;
+}
