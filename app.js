@@ -260,8 +260,13 @@ window.processGAuth = async function(response) {
     if (data.success) {
       currentUser = data.user;
       loadUserScopedClientState();
-      if (overlay) overlay.style.display = 'none';
+      // CRITICAL: set authenticated class FIRST so CSS selector hides overlay
       setAuthenticatedLayoutState(true);
+      // Belt-and-suspenders: also set inline style and aria-hidden
+      if (overlay) {
+        overlay.style.setProperty('display', 'none', 'important');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
       if (status) status.hidden = true;
       if (signInButton) signInButton.removeAttribute('aria-busy');
       const syncStatus = document.getElementById('syncStatus');
@@ -276,7 +281,10 @@ window.processGAuth = async function(response) {
       localStorage.removeItem('google_auth_token');
       GSI_TOKEN = null;
       setAuthenticatedLayoutState(false);
-      if (overlay) overlay.style.display = 'flex';
+      if (overlay) {
+        overlay.style.setProperty('display', 'flex', 'important');
+        overlay.removeAttribute('aria-hidden');
+      }
       if (status) {
         status.hidden = false;
         status.style.color = '#fca5a5';
@@ -289,7 +297,10 @@ window.processGAuth = async function(response) {
     localStorage.removeItem('google_auth_token');
     GSI_TOKEN = null;
     setAuthenticatedLayoutState(false);
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) {
+      overlay.style.setProperty('display', 'flex', 'important');
+      overlay.removeAttribute('aria-hidden');
+    }
     if (status) {
       status.hidden = false;
       status.style.color = '#fca5a5';
