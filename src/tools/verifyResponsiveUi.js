@@ -102,6 +102,63 @@ async function getOverflowReport(page) {
   });
 }
 
+async function verifyShellLayout(page, viewport) {
+  return page.evaluate(() => {
+    const rectFor = selector => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return {
+        left: Math.round(rect.left),
+        right: Math.round(rect.right),
+        top: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        display: style.display,
+        visibility: style.visibility,
+        opacity: Number(style.opacity || 1)
+      };
+    };
+    const isVisible = box => Boolean(
+      box
+      && box.width > 0
+      && box.height > 0
+      && box.display !== 'none'
+      && box.visibility !== 'hidden'
+      && box.opacity > 0.01
+    );
+
+    const sidebar = rectFor('#sidebar');
+    const main = rectFor('#main');
+    const header = rectFor('#mainHeader');
+    const mobileToggle = rectFor('#mobileToggle');
+    const desktopToggle = rectFor('#sidebarToggle, .desktop-sidebar-toggle');
+    const bodyPaddingLeft = Number.parseFloat(getComputedStyle(document.body).paddingLeft || '0') || 0;
+    const mobileMode = innerWidth <= 900;
+    const sidebarClosed = !document.getElementById('sidebar')?.classList.contains('mobile-open');
+    const sidebarRight = sidebar ? Math.round(sidebar.right) : 0;
+
+    return {
+      bodyPaddingLeft: Math.round(bodyPaddingLeft),
+      mainLeft: main?.left ?? null,
+      mainWidth: main?.width ?? null,
+      headerLeft: header?.left ?? null,
+      headerWidth: header?.width ?? null,
+      sidebarLeft: sidebar?.left ?? null,
+      sidebarRight,
+      sidebarWidth: sidebar?.width ?? null,
+      mobileToggleVisible: isVisible(mobileToggle),
+      desktopToggleVisible: isVisible(desktopToggle),
+      mobileDrawerClosedOffCanvas: mobileMode ? sidebarClosed && sidebarRight <= 2 : null,
+      contentAlignedToSidebar: !mobileMode && sidebar && main
+        ? Math.abs(main.left - sidebar.right) <= 2
+        : null,
+      headerAlignedToContent: main && header ? Math.abs(header.left - main.left) <= 2 : null
+    };
+  });
+}
+
 async function verifyTouchTargets(page, viewport) {
   if (viewport.width > 640) return { skipped: 'non-phone viewport' };
   return page.evaluate(() => {
@@ -344,12 +401,13 @@ async function run() {
       await hideLoginOverlay(page);
 
       const overflow = await getOverflowReport(page);
+      const shell = await verifyShellLayout(page, viewport);
       const sidebar = await verifySidebar(page, viewport);
       const radar = await verifyJobRadar(page, viewport);
       const touchTargets = await verifyTouchTargets(page, viewport);
       const postRadarOverflow = await getOverflowReport(page);
 
-      const result = { viewport, login, overflow, sidebar, radar, touchTargets, postRadarOverflow, consoleErrors };
+      const result = { viewport, login, overflow, shell, sidebar, radar, touchTargets, postRadarOverflow, consoleErrors };
       results.push(result);
 
       if (viewport.width <= 320 && (!login.exists || !login.fits)) {
@@ -357,6 +415,27 @@ async function run() {
       }
       if (overflow.hasHorizontalOverflow || postRadarOverflow.hasHorizontalOverflow) {
         failures.push(`${viewport.name}: horizontal overflow detected`);
+      }
+      if (viewport.width <= 900) {
+        if (!shell.mobileToggleVisible) {
+          failures.push(`${viewport.name}: mobile navigation toggle hidden`);
+        }
+        if (shell.bodyPaddingLeft > 1 || Math.abs(shell.mainLeft || 0) > 1 || Math.abs(shell.headerLeft || 0) > 1) {
+          failures.push(`${viewport.name}: content is pushed by the mobile drawer`);
+        }
+        if (!shell.mobileDrawerClosedOffCanvas) {
+          failures.push(`${viewport.name}: mobile drawer is visible before opening`);
+        }
+      } else {
+        if (shell.mobileToggleVisible) {
+          failures.push(`${viewport.name}: mobile toggle visible on desktop`);
+        }
+        if (!shell.desktopToggleVisible) {
+          failures.push(`${viewport.name}: desktop sidebar toggle hidden`);
+        }
+        if (!shell.contentAlignedToSidebar || !shell.headerAlignedToContent) {
+          failures.push(`${viewport.name}: sidebar, header, and content are misaligned`);
+        }
       }
       if (viewport.width <= 640) {
         if (!radar.hasMobileStageSelect || radar.optionCount < 5 || radar.visibleColumns.length !== 1 || radar.selectedStage !== 'applied') {

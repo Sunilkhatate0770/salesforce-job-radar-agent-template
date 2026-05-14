@@ -14,4 +14,6 @@ test('responsive verification tool is available and covers key breakpoints', () 
   assert.match(script, /job card detail flyout did not open/);
   assert.match(script, /touch targets below 44px/);
   assert.match(script, /horizontal overflow detected/);
+  assert.match(script, /mobile toggle visible on desktop/);
+  assert.match(script, /content is pushed by the mobile drawer/);
 });

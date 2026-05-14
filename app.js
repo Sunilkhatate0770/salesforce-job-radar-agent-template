@@ -5551,12 +5551,51 @@ function syncDesktopSidebarToggle(forceCollapsed) {
   button.setAttribute('title', label);
 }
 
+function syncSidebarViewportMode() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const toggle = document.getElementById('mobileToggle');
+  if (!sidebar) return;
+
+  const isMobile = window.innerWidth <= 900;
+  const isOpen = sidebar.classList.contains('mobile-open');
+
+  if (!isMobile) {
+    sidebar.classList.remove('mobile-open');
+    document.body.classList.remove('nav-open');
+    document.body.style.overflow = '';
+    sidebar.setAttribute('role', 'navigation');
+    sidebar.setAttribute('aria-modal', 'false');
+    sidebar.setAttribute('aria-hidden', 'false');
+    if (toggle) {
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open navigation');
+    }
+    if (overlay) {
+      overlay.style.opacity = '0';
+      overlay.style.display = 'none';
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    return;
+  }
+
+  sidebar.setAttribute('role', 'dialog');
+  sidebar.setAttribute('aria-modal', String(isOpen));
+  sidebar.setAttribute('aria-hidden', String(!isOpen));
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+  }
+  if (overlay) overlay.setAttribute('aria-hidden', String(!isOpen));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const storedRaw = getScopedItem('sidebar_collapsed', localStorage.getItem('job_radar_sidebar_collapsed') || 'false');
   const userToggledSidebar = localStorage.getItem('sfjr_sidebar_user_toggled') === 'true';
   const storedCollapsed = userToggledSidebar && window.innerWidth >= 1280 && storedRaw === 'true';
   setSidebarCollapsedState(storedCollapsed);
   syncSidebarRailFlyoutMode();
+  syncSidebarViewportMode();
 });
 
 document.addEventListener('click', event => {
@@ -5573,6 +5612,7 @@ document.addEventListener('keydown', event => {
 
 window.addEventListener('resize', () => {
   syncSidebarRailFlyoutMode();
+  syncSidebarViewportMode();
   closeCollapsedNavFlyout();
 });
 
@@ -5590,12 +5630,15 @@ function toggleMobileSidebar(forceOpen) {
   
   const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('mobile-open');
   const syncA11y = open => {
+    const isMobile = window.innerWidth <= 900;
+    sidebar.setAttribute('role', isMobile ? 'dialog' : 'navigation');
+    sidebar.setAttribute('aria-modal', String(isMobile && open));
+    sidebar.setAttribute('aria-hidden', String(isMobile && !open));
     if (toggle) {
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
     }
     if (overlay) overlay.setAttribute('aria-hidden', String(!open));
-    sidebar.setAttribute('aria-hidden', String(!open && window.innerWidth <= 900));
   };
 
   if (!shouldOpen) {
