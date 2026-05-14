@@ -22,9 +22,10 @@
   <link rel="apple-touch-icon" href="/assets/icons/icon-192.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=20260512-sidebar-flyout">
-<link rel="stylesheet" href="responsive.css?v=20260514-mobile-touch">
+<link rel="stylesheet" href="responsive.css?v=20260512-sidebar-flyout">
 <link rel="stylesheet" href="src/styles/navigation.css?v=20260512-sidebar-flyout">
   <script>
     window._sfjrClientConfigPromise = null;
@@ -39,13 +40,13 @@
       return window._sfjrClientConfigPromise;
     };
     window.handleCredentialResponse = function(response) {
+      document.getElementById('loginOverlay').style.display = 'none';
       window._pendingGAuth = response;
       if (typeof window.processGAuth === 'function') window.processGAuth(response);
     };
     window.initializeGoogleSignIn = async function() {
       var status = document.getElementById('googleSignInStatus');
       var target = document.getElementById('googleSignInButton');
-      if (target) target.classList.add('loading');
       if (!target && document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', window.initializeGoogleSignIn, { once: true });
         return;
@@ -63,9 +64,7 @@
           client_id: config.googleClientId,
           callback: window.handleCredentialResponse,
           ux_mode: 'popup',
-          auto_select: false,
-          cancel_on_tap_outside: true,
-          itp_support: true
+          cancel_on_tap_outside: true
         });
         if (target) {
           target.innerHTML = '';
@@ -75,26 +74,11 @@
             theme: 'filled_blue',
             text: 'signin_with',
             size: 'large',
-            logo_alignment: 'left',
-            width: 240
+            logo_alignment: 'left'
           });
-          var iframe = target.querySelector('iframe');
-          if (iframe) {
-            iframe.addEventListener('load', function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); }, { once: true });
-          } else {
-            var observer = new MutationObserver(function() {
-              var renderedFrame = target.querySelector('iframe');
-              if (!renderedFrame) return;
-              renderedFrame.addEventListener('load', function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); }, { once: true });
-              observer.disconnect();
-            });
-            observer.observe(target, { childList: true, subtree: true });
-            setTimeout(function() { target.classList.add('gsi-loaded'); target.classList.remove('loading'); observer.disconnect(); }, 2500);
-          }
         }
         if (status) status.hidden = true;
       } catch (err) {
-        if (target) target.classList.remove('loading');
         if (status) {
           status.hidden = false;
           status.textContent = 'Google Sign-In is not configured. Check GOOGLE_CLIENT_ID in the deployment environment.';
@@ -109,14 +93,14 @@
   <!-- app.js moved to bottom for performance and DOM stability -->
 </head>
 <body>
-<a id="skipToContent" href="#loginOverlay" class="skip-to-content" style="position:absolute;left:-9999px;top:0;z-index:999999;padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:0.85rem;border-radius:0 0 8px 0;transition:left 0.2s;" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to main content</a>
+<a href="#main" class="skip-to-content" style="position:absolute;left:-9999px;top:0;z-index:999999;padding:8px 16px;background:var(--blue);color:#fff;font-weight:700;font-size:0.85rem;border-radius:0 0 8px 0;transition:left 0.2s;" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Skip to main content</a>
 
 <!-- SIDEBAR OVERLAY -->
 <div id="sidebarOverlay" aria-hidden="true"></div>
 
 <!-- LOGIN OVERLAY -->
 <div id="loginOverlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background: radial-gradient(circle at 0% 0%, hsla(222, 100%, 15%, 1) 0%, hsla(222, 55%, 6%, 1) 50%, hsla(280, 100%, 10%, 1) 100%); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; backdrop-filter: blur(20px);">
-  <div class="login-card" style="background: hsla(222, 47%, 12%, 0.6); backdrop-filter: blur(30px); padding: 3rem 2rem; border-radius: 40px; border: 1px solid hsla(222, 100%, 50%, 0.15); text-align: center; max-width: 440px; width: 92%; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(59, 130, 246, 0.1); position: relative; overflow: hidden;">
+  <div style="background: hsla(222, 47%, 12%, 0.6); backdrop-filter: blur(30px); padding: 3rem 2rem; border-radius: 40px; border: 1px solid hsla(222, 100%, 50%, 0.15); text-align: center; max-width: 440px; width: 92%; box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8), 0 0 40px rgba(59, 130, 246, 0.1); position: relative; overflow: hidden;">
     <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: radial-gradient(circle, hsla(222, 100%, 50%, 0.1), transparent 70%); filter: blur(20px);"></div>
     <div style="width: 72px; height: 72px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 20px; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 30px rgba(59, 130, 246, 0.4); animation: float 6s ease-in-out infinite;">
       <svg viewBox="0 0 24 24" fill="white" style="width: 36px; height: 36px;"><path d="M13 10V3L4 14H11V21L20 10H13Z"/></svg>
@@ -127,7 +111,7 @@
     <div class="login-mode-panel">
       <div class="login-mode-heading">Choose Login Experience</div>
       <label class="login-mode-toggle" for="loginPremiumMode">
-        <input id="loginPremiumMode" type="checkbox" role="switch" aria-checked="true" aria-label="Enable Premium UI mode" checked onchange="setLoginUiModeFromCheckbox(this)">
+        <input id="loginPremiumMode" type="checkbox" checked onchange="setLoginUiModeFromCheckbox(this)">
         <span class="login-mode-switch"></span>
         <span class="login-mode-copy">
           <strong id="loginModeTitle">New Premium UI</strong>
@@ -139,8 +123,8 @@
       </div>
     </div>
 	    
-    <div class="google-signin-wrap" style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
-      <div id="googleSignInButton" class="loading" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+    <div style="display:flex; justify-content:center; margin: 1.5rem 0; min-height: 44px;">
+      <div id="googleSignInButton" aria-label="Google Sign-In" style="display: flex; align-items: center; justify-content: center; width: 100%;">
         <div class="loading-spinner sm"></div>
       </div>
     </div>
@@ -149,7 +133,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" style="width:14px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span style="font-size:0.6rem; color:rgba(255,255,255,0.2); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">Secure Cloud Sync Active</span>
     </div>
-    <div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:8px; border-top:none; align-items:center; justify-content:center; gap:8px;">
+    <div id="syncStatusPreLogin" style="display:flex; margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid rgba(255,255,255,0.06); align-items:center; justify-content:center; gap:8px;">
         <span style="font-size:0.6rem; color:rgba(255,255,255,0.5); font-weight:700; letter-spacing:1.5px; text-transform:uppercase;">🔒 Sign in to enable cloud sync</span>
     </div>
   </div>
@@ -157,7 +141,7 @@
 <!-- NO FLOATING PROFILE HERE (MOVED INSIDE MAIN) -->
 
 <!-- SIDEBAR -->
-<dialog id="sidebar" aria-modal="false" aria-label="Salesforce preparation navigation" inert>
+<aside id="sidebar" role="dialog" aria-modal="true" aria-label="Salesforce preparation navigation">
     <div class="sidebar-branding sidebar-header">
       <div id="brandingContainer" class="branding-container">
         <h1 id="appTitle">Job Radar AI</h1>
@@ -226,7 +210,7 @@
     <!-- REVISION ALERTS (v1342) -->
     <div id="revisionAlerts" style="margin-top:20px;"></div>
   </div>
-</dialog>
+</aside>
 
 <!-- FLOATING TIMER -->
 <div id="floatingTimer">
@@ -320,11 +304,10 @@
     </div>
 </div>
 
-<div id="main" inert>
+<div id="main">
   <!-- MASTER VIEWPORT HEADER (v1344) -->
   <header id="mainHeader">
     <div class="header-zone-left">
-      <button type="button" id="sidebarOpenBtn" aria-label="Open navigation" aria-controls="sidebar" aria-hidden="true" style="display:none;">☰</button>
       <button type="button" class="mobile-toggle" onclick="toggleSidebar()" id="mobileToggle" title="Toggle Navigation" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
         <span class="h-bar"></span>
         <span class="h-bar"></span>
@@ -341,7 +324,7 @@
         <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path></svg>
         <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3 6.7 6.7 0 0 0 21 12.8Z"></path></svg>
       </button>
-      <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-pressed="false" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
+      <button id="uiModeToggle" class="ui-mode-toggle" onclick="toggleUiMode()" aria-label="Toggle classic or modern UI" title="Classic / Modern UI">
         <span id="uiModeToggleLabel">Modern</span>
       </button>
       <div class="floating-profile" onclick="toggleFloatingDropdown(event)">
@@ -563,26 +546,22 @@
     <div class="page-title">Daily Study Schedule</div>
     <div class="page-sub">Follow this exact structure every single day &mdash; consistency is more powerful than intensity</div>
   </div>
-  <div class="summary-bar stats-grid">
-    <div class="sum-chip stat-item"><b>9.5 hrs</b>Study/day</div>
-    <div class="sum-chip stat-item"><b>1.5 hrs</b>Communication</div>
-    <div class="sum-chip stat-item"><b>30 min</b>Job applications</div>
-    <div class="sum-chip stat-item"><b>285 hrs</b>Total in 30 days</div>
+  <div class="summary-bar">
+    <div class="sum-chip"><b>9.5 hrs</b>Study/day</div>
+    <div class="sum-chip"><b>1.5 hrs</b>Communication</div>
+    <div class="sum-chip"><b>30 min</b>Job applications</div>
+    <div class="sum-chip"><b>285 hrs</b>Total in 30 days</div>
   </div>
-  <div id="progressBarWrapper">
-    <div id="progressBarTop">
+  <div style="margin-bottom:2rem;">
+    <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-bottom:0.4rem;font-family:'IBM Plex Mono',monospace;">
       <span>Daily Goal Progress</span>
       <span id="dailyProgressText">0%</span>
     </div>
-    <div id="dailyProgressBar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-      <div id="dailyProgressFill"></div>
+    <div style="width:100%;height:8px;background:var(--card);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+      <div id="dailyProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--blue),var(--green));transition:width 1s;"></div>
     </div>
   </div>
-  <div id="timetableContainer">
-    <div class="content-card empty-state">
-      <p>No timetable available. Complete your setup to generate your schedule.</p>
-    </div>
-  </div>
+  <div id="timetableContainer"></div>
 </div>
 
 <!-- APEX PAGE -->
@@ -972,10 +951,13 @@
 
 <!-- ULTRA-COMPACT PREMIUM FOOTER -->
 
-<footer id="appFooter" class="footer-status">
-  <span>Salesforce Career Intelligence</span>
-  <span aria-hidden="true" class="footer-sep">•</span>
-  <span>Private study workspace</span>
+<footer style="width: 100% !important; position: relative !important; margin-top: auto !important; height: 60px; display: flex; align-items: center; justify-content: center; gap: 8px; background: transparent; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid var(--border);">
+  <div style="font-size: 0.65rem; color: var(--muted); display: flex; align-items: center; gap: 6px; opacity: 0.6;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px; height:12px; opacity:0.3;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <span style="letter-spacing: 0.5px; font-weight: 600;">Salesforce Career Intelligence</span>
+    <span style="opacity: 0.2;">&bull;</span>
+    <span style="letter-spacing: 0.5px;">Private study workspace</span>
+  </div>
 </footer>
 
 <!-- ADD JOB MODAL -->

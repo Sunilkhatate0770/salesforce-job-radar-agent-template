@@ -235,20 +235,11 @@ window.handleCredentialResponse = function(response) {
 
 window.processGAuth = async function(response) {
   const token = response.credential;
-  const overlay = document.getElementById('loginOverlay');
-  const status = document.getElementById('googleSignInStatus');
-  const signInButton = document.getElementById('googleSignInButton');
   const loginMode = getLoginUiModeIntent() || currentUiMode || 'modern';
   sessionStorage.setItem('sf_login_ui_mode_intent', loginMode);
   applyUiMode(loginMode);
   localStorage.setItem('google_auth_token', token);
   GSI_TOKEN = token;
-  if (status) {
-    status.hidden = false;
-    status.textContent = 'Signing you in...';
-    status.style.color = '#bfdbfe';
-  }
-  if (signInButton) signInButton.setAttribute('aria-busy', 'true');
   
   try {
     const res = await fetch('/api/auth/google', {
@@ -256,19 +247,12 @@ window.processGAuth = async function(response) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
     });
-    const data = await res.json().catch(() => ({}));
+    const data = await res.json();
     if (data.success) {
       currentUser = data.user;
       loadUserScopedClientState();
-      // CRITICAL: set authenticated class FIRST so CSS selector hides overlay
-      setAuthenticatedLayoutState(true);
-      // Belt-and-suspenders: also set inline style and aria-hidden
-      if (overlay) {
-        overlay.style.setProperty('display', 'none', 'important');
-        overlay.setAttribute('aria-hidden', 'true');
-      }
-      if (status) status.hidden = true;
-      if (signInButton) signInButton.removeAttribute('aria-busy');
+      const overlay = document.getElementById('loginOverlay');
+      if (overlay) overlay.style.display = 'none';
       const syncStatus = document.getElementById('syncStatus');
       if (syncStatus) syncStatus.style.display = 'flex';
       const syncStatusPreLogin = document.getElementById('syncStatusPreLogin');
@@ -278,38 +262,12 @@ window.processGAuth = async function(response) {
       syncDashboard();
       showPage(loginMode === 'classic' ? 'schedule' : 'profile_match');
     } else {
-      localStorage.removeItem('google_auth_token');
-      GSI_TOKEN = null;
-      setAuthenticatedLayoutState(false);
-      if (overlay) {
-        overlay.style.setProperty('display', 'flex', 'important');
-        overlay.removeAttribute('aria-hidden');
-      }
-      if (status) {
-        status.hidden = false;
-        status.style.color = '#fca5a5';
-        status.textContent = 'Authentication failed. Please try again.';
-      }
       showToast('Authentication failed: ' + (data.error || 'Check Google Client ID'), true);
     }
   } catch (e) {
     if (e.message && e.message.includes('BLOCKED_BY_CLIENT')) return;
-    localStorage.removeItem('google_auth_token');
-    GSI_TOKEN = null;
-    setAuthenticatedLayoutState(false);
-    if (overlay) {
-      overlay.style.setProperty('display', 'flex', 'important');
-      overlay.removeAttribute('aria-hidden');
-    }
-    if (status) {
-      status.hidden = false;
-      status.style.color = '#fca5a5';
-      status.textContent = 'Login service unavailable. Please retry.';
-    }
     console.error('Auth Error:', e);
     showToast('Login Service Unavailable', true);
-  } finally {
-    if (signInButton) signInButton.removeAttribute('aria-busy');
   }
 };
 
@@ -454,10 +412,7 @@ function syncLoginUiModeControls(mode = currentUiMode) {
   const checkbox = document.getElementById('loginPremiumMode');
   const title = document.getElementById('loginModeTitle');
   const desc = document.getElementById('loginModeDescription');
-  if (checkbox) {
-    checkbox.checked = normalized !== 'classic';
-    checkbox.setAttribute('aria-checked', String(checkbox.checked));
-  }
+  if (checkbox) checkbox.checked = normalized !== 'classic';
   if (title) title.textContent = normalized === 'classic' ? '🔁 Legacy / Classic UI' : '✅ New Premium UI';
   if (desc) {
     desc.textContent = normalized === 'classic'
@@ -515,40 +470,6 @@ window.toggleUiMode = function() {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  setAuthenticatedLayoutState(false);
-  syncSidebarDisplayMode();
-  bindSidebarDialogControls();
-  const loginSwitch = document.getElementById('loginPremiumMode');
-  if (loginSwitch && !loginSwitch.dataset.ariaSwitchBound) {
-    loginSwitch.dataset.ariaSwitchBound = 'true';
-    loginSwitch.addEventListener('change', function() {
-      this.setAttribute('aria-checked', this.checked ? 'true' : 'false');
-    });
-  }
-  const uiModeBtn = document.getElementById('uiModeToggle');
-  if (uiModeBtn && !uiModeBtn.hasAttribute('aria-pressed')) {
-    uiModeBtn.setAttribute('aria-pressed', 'false');
-  }
-  const sidebarNavContent = document.getElementById('sidebarNavContent');
-  if (sidebarNavContent && !sidebarNavContent.dataset.activeClickBound) {
-    sidebarNavContent.dataset.activeClickBound = 'true';
-    sidebarNavContent.addEventListener('click', event => {
-      const btn = event.target instanceof Element ? event.target.closest('button') : null;
-      if (!btn || !sidebarNavContent.contains(btn)) return;
-      sidebarNavContent.querySelectorAll('button').forEach(item => item.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  }
-  try {
-    const saved = JSON.parse(localStorage.getItem('progress') || '{}');
-    const done = Object.values(saved).filter(Boolean).length;
-    updateProgress(done, getTotalTopicsCount());
-  } catch (e) {
-    updateProgress(0, getTotalTopicsCount());
-  }
-  if (document.getElementById('schedule')?.classList.contains('active')) {
-    renderTimetable().catch(err => console.warn('[SCHEDULE] Initial render failed:', err.message));
-  }
   const scanBtn = document.getElementById('btnScanJobs');
   if (scanBtn) {
     scanBtn.addEventListener('click', triggerJobScan);
@@ -604,109 +525,6 @@ function setSidebarCollapsedState(isCollapsed) {
     headerToggle.setAttribute('aria-expanded', String(!collapsed));
     headerToggle.setAttribute('aria-label', collapsed ? 'Expand navigation' : 'Collapse navigation');
     headerToggle.title = collapsed ? 'Expand navigation' : 'Collapse navigation';
-  }
-}
-
-function setAuthenticatedLayoutState(isAuthenticated) {
-  const sidebar = document.getElementById('sidebar');
-  const main = document.getElementById('main');
-  const skipLink = document.getElementById('skipToContent');
-  const sidebarOpenBtn = document.getElementById('sidebarOpenBtn');
-  document.body.classList.toggle('authenticated', Boolean(isAuthenticated));
-  document.body.classList.toggle('is-authenticated', Boolean(isAuthenticated));
-  document.body.classList.toggle('login-active', !isAuthenticated);
-  if (main) {
-    if (isAuthenticated) main.removeAttribute('inert');
-    else main.setAttribute('inert', '');
-  }
-  if (sidebarOpenBtn) {
-    sidebarOpenBtn.style.display = isAuthenticated && window.innerWidth < 768 ? 'flex' : 'none';
-    sidebarOpenBtn.disabled = !isAuthenticated;
-    sidebarOpenBtn.tabIndex = isAuthenticated ? 0 : -1;
-    if (isAuthenticated) sidebarOpenBtn.removeAttribute('aria-hidden');
-    else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
-  }
-  if (skipLink) {
-    skipLink.href = isAuthenticated ? '#main' : '#loginOverlay';
-    skipLink.style.display = isAuthenticated ? '' : 'none';
-  }
-  if (!sidebar) return;
-  if (isAuthenticated) {
-    sidebar.removeAttribute('inert');
-    sidebar.querySelectorAll('[data-prelogin-tabindex]').forEach(el => {
-      const original = el.getAttribute('data-prelogin-tabindex');
-      if (original === '') el.removeAttribute('tabindex');
-      else el.setAttribute('tabindex', original);
-      el.removeAttribute('data-prelogin-tabindex');
-    });
-    syncSidebarDisplayMode();
-    return;
-  }
-  sidebar.setAttribute('inert', '');
-  sidebar.querySelectorAll('a, button, input, select, textarea, [tabindex], [role="button"]').forEach(el => {
-    if (!el.hasAttribute('data-prelogin-tabindex')) {
-      el.setAttribute('data-prelogin-tabindex', el.getAttribute('tabindex') || '');
-    }
-    el.setAttribute('tabindex', '-1');
-  });
-}
-
-function bindSidebarDialogControls() {
-  const sidebar = document.getElementById('sidebar');
-  const openBtn = document.getElementById('sidebarOpenBtn');
-  const overlay = document.getElementById('sidebarOverlay');
-  if (openBtn && !openBtn.dataset.sidebarBound) {
-    openBtn.dataset.sidebarBound = 'true';
-    openBtn.addEventListener('click', () => toggleMobileSidebar(true));
-  }
-  if (sidebar && !sidebar.dataset.backdropBound) {
-    sidebar.dataset.backdropBound = 'true';
-    sidebar.addEventListener('click', event => {
-      if (window.innerWidth >= 768 || event.target !== sidebar) return;
-      toggleMobileSidebar(false);
-    });
-    sidebar.addEventListener('cancel', event => {
-      event.preventDefault();
-      toggleMobileSidebar(false);
-    });
-  }
-  if (overlay && !overlay.dataset.sidebarBound) {
-    overlay.dataset.sidebarBound = 'true';
-    overlay.addEventListener('click', () => toggleMobileSidebar(false));
-  }
-}
-
-function syncSidebarDisplayMode() {
-  const sidebar = document.getElementById('sidebar');
-  const sidebarOpenBtn = document.getElementById('sidebarOpenBtn');
-  if (sidebarOpenBtn) {
-    const authed = document.body.classList.contains('authenticated');
-    sidebarOpenBtn.style.display = authed && window.innerWidth < 768 ? 'flex' : 'none';
-    sidebarOpenBtn.disabled = !authed;
-    sidebarOpenBtn.tabIndex = authed ? 0 : -1;
-    if (authed) sidebarOpenBtn.removeAttribute('aria-hidden');
-    else sidebarOpenBtn.setAttribute('aria-hidden', 'true');
-  }
-  if (!sidebar || sidebar.hasAttribute('inert')) return;
-  const isMobile = window.innerWidth < 768;
-  sidebar.setAttribute('aria-modal', isMobile && sidebar.classList.contains('mobile-open') ? 'true' : 'false');
-  if (!isMobile) {
-    if (!sidebar.open && typeof sidebar.show === 'function') {
-      try { sidebar.show(); } catch (e) { sidebar.setAttribute('open', ''); }
-    } else {
-      sidebar.setAttribute('open', '');
-    }
-    sidebar.classList.remove('mobile-open');
-    document.body.classList.remove('nav-open');
-    document.body.style.overflow = '';
-    const overlay = document.getElementById('sidebarOverlay');
-    if (overlay) {
-      overlay.style.display = 'none';
-      overlay.style.opacity = '0';
-      overlay.setAttribute('aria-hidden', 'true');
-    }
-  } else if (!sidebar.classList.contains('mobile-open') && sidebar.open) {
-    sidebar.close();
   }
 }
 
@@ -1529,7 +1347,6 @@ function renderRecentTopicsPanel() {
   if (recentTopicsPage >= totalPages) recentTopicsPage = 0;
   if (recentTopicsPage < 0) recentTopicsPage = totalPages - 1;
   renderSidebarNavigation();
-  if (!currentUser) setAuthenticatedLayoutState(false);
 }
 
 function syncSidebarRailFlyoutMode() {
@@ -2395,12 +2212,7 @@ async function checkAuth() {
   const token = localStorage.getItem('google_auth_token');
   if (!token) {
     syncLoginUiModeControls(currentUiMode);
-    setAuthenticatedLayoutState(false);
-    const overlay = document.getElementById('loginOverlay');
-    if (overlay) {
-      overlay.style.setProperty('display', 'flex', 'important');
-      overlay.removeAttribute('aria-hidden');
-    }
+    document.getElementById('loginOverlay').style.display = 'flex';
     return false;
   }
   
@@ -2416,12 +2228,7 @@ async function checkAuth() {
       localStorage.removeItem('google_auth_token');
       GSI_TOKEN = null;
       syncLoginUiModeControls(currentUiMode);
-      setAuthenticatedLayoutState(false);
-      const expiredOverlay = document.getElementById('loginOverlay');
-      if (expiredOverlay) {
-        expiredOverlay.style.setProperty('display', 'flex', 'important');
-        expiredOverlay.removeAttribute('aria-hidden');
-      }
+      document.getElementById('loginOverlay').style.display = 'flex';
       return false;
     }
 
@@ -2432,25 +2239,15 @@ async function checkAuth() {
       currentUser = data.user;
       loadUserScopedClientState();
       renderUserProfile(currentUser);
-      // CRITICAL: set authenticated class FIRST so CSS hides overlay
-      setAuthenticatedLayoutState(true);
-      const authOverlay = document.getElementById('loginOverlay');
-      if (authOverlay) {
-        authOverlay.style.setProperty('display', 'none', 'important');
-        authOverlay.setAttribute('aria-hidden', 'true');
-      }
+      document.getElementById('loginOverlay').style.display = 'none';
       return true;
     }
   } catch (e) {
     console.warn('Auth check failed (network error):', e.message);
     // On network failure, show login overlay so user can re-authenticate
     syncLoginUiModeControls(currentUiMode);
-    setAuthenticatedLayoutState(false);
-    const errOverlay = document.getElementById('loginOverlay');
-    if (errOverlay) {
-      errOverlay.style.setProperty('display', 'flex', 'important');
-      errOverlay.removeAttribute('aria-hidden');
-    }
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
   
   return false;
@@ -2642,21 +2439,6 @@ async function toggleTask(index) {
     });
     if (res.ok) await renderTimetable();
   } catch(e) { console.error('[Cloud] Toggle Error:', e); }
-}
-
-function getTotalTopicsCount() {
-  if (Array.isArray(SCHEDULE_DATA) && SCHEDULE_DATA.length) return SCHEDULE_DATA.length;
-  return 0;
-}
-
-function updateProgress(done, total) {
-  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
-  const fill = document.getElementById('dailyProgressFill');
-  const text = document.getElementById('dailyProgressText');
-  const bar = document.getElementById('dailyProgressBar');
-  if (fill) fill.style.width = pct + '%';
-  if (text) text.textContent = pct + '%';
-  if (bar) bar.setAttribute('aria-valuenow', String(pct));
 }
 
 // =============================================
@@ -4467,16 +4249,16 @@ async function renderTimetable() {
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
+  const progressBar = document.getElementById('dailyProgressBar');
+  const progressText = document.getElementById('dailyProgressText');
+
   try {
-    if (!Array.isArray(SCHEDULE_DATA) || SCHEDULE_DATA.length === 0) {
-      container.innerHTML = '<div class="content-card empty-state"><p>No timetable available. Complete your setup to generate your schedule.</p></div>';
-      updateProgress(0, 0);
-      return;
-    }
     const data = await getStudyData();
     console.log(' [SCHEDULE] Data received:', data);
     const completedTasks = data.completedTasks || [];
-    updateProgress(completedTasks.length, SCHEDULE_DATA.length);
+    const progress = Math.round((completedTasks.length / Math.max(1, SCHEDULE_DATA.length)) * 100);
+    if (progressBar) progressBar.style.width = progress + '%';
+    if (progressText) progressText.textContent = progress + '%';
 
     const html = `
       <div class="timetable-container">
@@ -4874,7 +4656,6 @@ window.addEventListener('DOMContentLoaded', () => {
   ensureNavigationTopicConfig();
   refreshSearchIndex();
   renderRecentTopicsPanel();
-  if (!currentUser) setAuthenticatedLayoutState(false);
   syncSidebarStickyOffset();
   window.addEventListener('resize', syncSidebarStickyOffset);
   const overlay = document.getElementById('sidebarOverlay');
@@ -5793,7 +5574,6 @@ document.addEventListener('keydown', event => {
 window.addEventListener('resize', () => {
   syncSidebarRailFlyoutMode();
   closeCollapsedNavFlyout();
-  syncSidebarDisplayMode();
 });
 
 window.addEventListener('hashchange', () => {
@@ -5805,16 +5585,11 @@ function toggleMobileSidebar(forceOpen) {
   syncSidebarStickyOffset();
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
-  const toggle = document.getElementById('sidebarOpenBtn') || document.getElementById('mobileToggle');
+  const toggle = document.getElementById('mobileToggle');
   if (!sidebar) return;
   
   const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : !sidebar.classList.contains('mobile-open');
   const syncA11y = open => {
-    document.querySelectorAll('#sidebarOpenBtn, #mobileToggle').forEach(btn => {
-      if (!btn) return;
-      btn.setAttribute('aria-expanded', String(open));
-      btn.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
-    });
     if (toggle) {
       toggle.setAttribute('aria-expanded', String(open));
       toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
@@ -5825,9 +5600,6 @@ function toggleMobileSidebar(forceOpen) {
 
   if (!shouldOpen) {
     sidebar.classList.remove('mobile-open');
-    if (typeof sidebar.close === 'function' && sidebar.open && window.innerWidth < 768) {
-      sidebar.close();
-    }
     document.body.classList.remove('nav-open');
     syncA11y(false);
     if (overlay) {
@@ -5841,16 +5613,6 @@ function toggleMobileSidebar(forceOpen) {
     }
   } else {
     lastSidebarTrigger = document.activeElement;
-    if (window.innerWidth < 768 && typeof sidebar.showModal === 'function') {
-      try {
-        if (sidebar.open) sidebar.close();
-        sidebar.showModal();
-      } catch (e) {
-        sidebar.setAttribute('open', '');
-      }
-    } else if (!sidebar.open && typeof sidebar.show === 'function') {
-      try { sidebar.show(); } catch (e) { sidebar.setAttribute('open', ''); }
-    }
     sidebar.classList.add('mobile-open');
     document.body.classList.add('nav-open');
     syncA11y(true);
