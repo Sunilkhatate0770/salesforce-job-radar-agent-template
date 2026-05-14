@@ -2396,7 +2396,11 @@ async function checkAuth() {
   if (!token) {
     syncLoginUiModeControls(currentUiMode);
     setAuthenticatedLayoutState(false);
-    document.getElementById('loginOverlay').style.display = 'flex';
+    const overlay = document.getElementById('loginOverlay');
+    if (overlay) {
+      overlay.style.setProperty('display', 'flex', 'important');
+      overlay.removeAttribute('aria-hidden');
+    }
     return false;
   }
   
@@ -2413,7 +2417,11 @@ async function checkAuth() {
       GSI_TOKEN = null;
       syncLoginUiModeControls(currentUiMode);
       setAuthenticatedLayoutState(false);
-      document.getElementById('loginOverlay').style.display = 'flex';
+      const expiredOverlay = document.getElementById('loginOverlay');
+      if (expiredOverlay) {
+        expiredOverlay.style.setProperty('display', 'flex', 'important');
+        expiredOverlay.removeAttribute('aria-hidden');
+      }
       return false;
     }
 
@@ -2424,8 +2432,13 @@ async function checkAuth() {
       currentUser = data.user;
       loadUserScopedClientState();
       renderUserProfile(currentUser);
-      document.getElementById('loginOverlay').style.display = 'none';
+      // CRITICAL: set authenticated class FIRST so CSS hides overlay
       setAuthenticatedLayoutState(true);
+      const authOverlay = document.getElementById('loginOverlay');
+      if (authOverlay) {
+        authOverlay.style.setProperty('display', 'none', 'important');
+        authOverlay.setAttribute('aria-hidden', 'true');
+      }
       return true;
     }
   } catch (e) {
@@ -2433,8 +2446,11 @@ async function checkAuth() {
     // On network failure, show login overlay so user can re-authenticate
     syncLoginUiModeControls(currentUiMode);
     setAuthenticatedLayoutState(false);
-    const overlay = document.getElementById('loginOverlay');
-    if (overlay) overlay.style.display = 'flex';
+    const errOverlay = document.getElementById('loginOverlay');
+    if (errOverlay) {
+      errOverlay.style.setProperty('display', 'flex', 'important');
+      errOverlay.removeAttribute('aria-hidden');
+    }
   }
   
   return false;
