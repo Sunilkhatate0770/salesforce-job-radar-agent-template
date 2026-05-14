@@ -104,8 +104,10 @@ async function getOverflowReport(page) {
 
 async function verifyShellLayout(page, viewport) {
   return page.evaluate(() => {
-    const rectFor = selector => {
-      const el = document.querySelector(selector);
+    const rectFor = selectorOrElement => {
+      const el = typeof selectorOrElement === 'string'
+        ? document.querySelector(selectorOrElement)
+        : selectorOrElement;
       if (!el) return null;
       const rect = el.getBoundingClientRect();
       const style = getComputedStyle(el);
@@ -375,6 +377,89 @@ async function verifyJobRadar(page, viewport) {
   })).then(result => ({ ...result, interaction }));
 }
 
+async function verifyAgentDashboard(page, viewport) {
+  await page.evaluate(() => {
+    if (typeof window.showPage === 'function') window.showPage('profile_match');
+    const login = document.getElementById('loginOverlay');
+    if (login) login.style.display = 'none';
+    window.pipelineJobs = [
+      {
+        id: 'qa-agent-role-1',
+        company: 'Apex Cloud',
+        role: 'Salesforce Developer',
+        status: 'todo',
+        score: 90,
+        prob: 'high',
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: 'qa-agent-role-2',
+        company: 'FlowWorks',
+        role: 'Salesforce Admin Developer',
+        status: 'todo',
+        score: 78,
+        prob: 'high',
+        updatedAt: new Date().toISOString()
+      }
+    ];
+    window.jobRadarCloudState = { status: 'idle', message: 'Ready', detail: '' };
+    if (typeof window.renderProfileMatchPage === 'function') {
+      window.renderProfileMatchPage({
+        name: 'QA User',
+        currentDesignation: 'Salesforce Developer',
+        targetDesignation: 'Salesforce Developer',
+        experienceYears: 1,
+        skills: ['Apex', 'LWC', 'Flow', 'SOQL', 'Automation Engineering'],
+        missingSkills: [],
+        certifications: [],
+        platforms: {}
+      });
+    }
+    document.getElementById('premiumOnboardingPanel')?.style.setProperty('display', 'none');
+  });
+  await page.waitForSelector('#profile_match .career-os-grid', { timeout: 10000 });
+  await page.waitForSelector('#profile_match .action-queue', { timeout: 10000 });
+
+  return page.evaluate(() => {
+    const rectFor = selectorOrElement => {
+      const el = typeof selectorOrElement === 'string'
+        ? document.querySelector(selectorOrElement)
+        : selectorOrElement;
+      if (!el) return null;
+      const rect = el.getBoundingClientRect();
+      return {
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      };
+    };
+    const actionQueueEl = document.querySelector('#profile_match .action-queue');
+    const gridEl = actionQueueEl?.closest('.career-os-grid') || document.querySelector('#profile_match .career-os-grid');
+    const grid = gridEl ? rectFor(gridEl) : null;
+    const actionQueue = actionQueueEl ? rectFor(actionQueueEl) : null;
+    const actionItems = Array.from(document.querySelectorAll('#profile_match .career-os-action-item'))
+      .map(el => Math.round(el.getBoundingClientRect().width));
+    const visiblePanels = Array.from(document.querySelectorAll('#profile_match .career-os-grid > .career-os-panel'))
+      .filter(el => {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.display !== 'none';
+      }).length;
+    const actionList = document.querySelector('#profile_match .career-os-action-list');
+    return {
+      visiblePanels,
+      grid,
+      actionQueue,
+      actionListColumns: actionList ? getComputedStyle(actionList).gridTemplateColumns : '',
+      actionItems,
+      actionQueueFullWidth: grid && actionQueue
+        ? Math.abs(actionQueue.left - grid.left) <= 2 && actionQueue.width >= grid.width - 4
+        : false,
+      minActionItemWidth: actionItems.length ? Math.min(...actionItems) : 0
+    };
+  });
+}
+
 async function run() {
   const browser = await puppeteer.launch({
     executablePath: findChrome(),
@@ -406,8 +491,20 @@ async function run() {
       const radar = await verifyJobRadar(page, viewport);
       const touchTargets = await verifyTouchTargets(page, viewport);
       const postRadarOverflow = await getOverflowReport(page);
+      const agentDashboard = await verifyAgentDashboard(page, viewport);
 
-      const result = { viewport, login, overflow, shell, sidebar, radar, touchTargets, postRadarOverflow, consoleErrors };
+      const result = {
+        viewport,
+        login,
+        overflow,
+        shell,
+        sidebar,
+        radar,
+        agentDashboard,
+        touchTargets,
+        postRadarOverflow,
+        consoleErrors
+      };
       results.push(result);
 
       if (viewport.width <= 320 && (!login.exists || !login.fits)) {
@@ -450,6 +547,12 @@ async function run() {
       }
       if (!radar.interaction?.flyoutOpen) {
         failures.push(`${viewport.name}: job card detail flyout did not open`);
+      }
+      if (!agentDashboard.visiblePanels || !agentDashboard.actionQueueFullWidth) {
+        failures.push(`${viewport.name}: Agent Dashboard action queue is squeezed into a narrow column`);
+      }
+      if (viewport.width >= 1024 && agentDashboard.minActionItemWidth < 260) {
+        failures.push(`${viewport.name}: Agent Dashboard action cards are too narrow`);
       }
       if (!radar.interaction?.searchMatched || radar.interaction.searchCards < 1) {
         failures.push(`${viewport.name}: job board search did not return seeded role`);

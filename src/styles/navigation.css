@@ -1624,3 +1624,78 @@ body:not(.sidebar-collapsed) #sidebar .sidebar-branding {
     white-space: nowrap !important;
   }
 }
+
+/* Agent Dashboard repair: account for the fixed sidebar before choosing columns. */
+html body #profile_match .career-os-shell {
+  width: 100% !important;
+  max-width: 1180px !important;
+}
+
+html body #profile_match .career-os-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-items: start !important;
+}
+
+html body #profile_match .action-queue,
+html body #profile_match .roadmap-queue,
+html body #profile_match .study-plan-block {
+  grid-column: 1 / -1 !important;
+}
+
+html body #profile_match .career-os-metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)) !important;
+}
+
+html body #profile_match .career-os-action-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important;
+}
+
+html body #profile_match .career-os-action-item {
+  grid-template-columns: 22px minmax(0, 1fr) !important;
+  align-items: start !important;
+  min-width: 0 !important;
+}
+
+html body #profile_match .career-os-action-meta,
+html body #profile_match .career-os-action-copy,
+html body #profile_match .career-os-action-item .career-os-link-btn {
+  grid-column: 2 !important;
+}
+
+html body #profile_match .career-os-action-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+}
+
+html body #profile_match .career-os-action-copy h4,
+html body #profile_match .career-os-action-copy p {
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none !important;
+}
+
+html body #profile_match .career-os-action-item .career-os-link-btn {
+  justify-self: start !important;
+  width: fit-content !important;
+  min-width: 110px !important;
+  margin-top: 2px !important;
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  html body #profile_match .career-os-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 760px) {
+  html body #profile_match .career-os-grid,
+  html body #profile_match .career-os-action-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body #profile_match .career-os-action-item .career-os-link-btn {
+    width: 100% !important;
+  }
+}

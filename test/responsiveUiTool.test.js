@@ -16,4 +16,6 @@ test('responsive verification tool is available and covers key breakpoints', () 
   assert.match(script, /horizontal overflow detected/);
   assert.match(script, /mobile toggle visible on desktop/);
   assert.match(script, /content is pushed by the mobile drawer/);
+  assert.match(script, /verifyAgentDashboard/);
+  assert.match(script, /Agent Dashboard action queue is squeezed into a narrow column/);
 });
