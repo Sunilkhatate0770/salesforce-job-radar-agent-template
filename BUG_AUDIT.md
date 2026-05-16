@@ -10,6 +10,13 @@
 | Code-practice route duplication | Vercel and local API servers each owned their own challenge filtering, file normalization, deterministic scoring, AI review parsing, and attempt-progress shaping. | Added a shared `codePracticeService` and wired both route surfaces to it, reducing drift risk while keeping storage and HTTP response handling in each server. | `src/services/codePracticeService.js`, `api/router.js`, `src/webServer.js`, `test/codePracticeService.test.js` |
 | Practice file-name hardening | Sanitized practice filenames could still preserve leading `..` fragments after unsafe characters were stripped. | Shared normalization now strips leading dots before saving workspace files or building AI review prompt text. | `src/services/codePracticeService.js`, `test/codePracticeService.test.js` |
 
+## 2026-05-16 Job Radar Service Upgrade
+
+| Area | Finding | Fix Applied | Files |
+|---|---|---|---|
+| Job Radar route duplication | Vercel and local API servers duplicated status normalization, override lookup, dashboard response shaping, and analytics aggregation. | Added a shared `jobRadarService` and rewired both route surfaces to use the same status, jobs, analytics, and list payload builders. | `src/services/jobRadarService.js`, `api/router.js`, `src/webServer.js`, `test/jobRadarService.test.js` |
+| Local analytics drift | Local `/api/jobs/analytics` returned fixed Data Cloud/Agentforce and company counts instead of counts from the merged jobs. | Local analytics now uses the same actual merged-job aggregation as Vercel, including snake_case and camelCase aliases expected by the UI. | `src/webServer.js`, `src/services/jobRadarService.js` |
+
 ## 2026-05-16 Backend Stability Upgrade
 
 | Area | Finding | Fix Applied | Files |

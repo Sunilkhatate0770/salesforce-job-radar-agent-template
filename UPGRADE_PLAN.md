@@ -9,7 +9,15 @@
 - Rewired both `api/router.js` and `src/webServer.js` code-practice routes to the shared service so Vercel and local behavior no longer drift.
 - Tightened server-side practice file sanitization to strip leading dot-only path fragments before saving or sending file data into AI review prompts.
 - Added `test/codePracticeService.test.js` covering catalog filters, deterministic scoring, custom single-file attempts, AI review fallback parsing, and file prompt-size limits.
-- Next service split target: move remaining job radar route assembly into a shared jobs API service, then thin the Vercel/local route handlers around storage adapters.
+- Follow-up service split target completed in the Job Radar addendum below.
+
+## 2026-05-16 Job Radar Service Addendum
+
+- Added `src/services/jobRadarService.js` for shared Job Radar status normalization, override matching, dashboard payload shaping, analytics aggregation, and list response building.
+- Rewired Vercel and local Job Radar endpoints to the shared service while keeping Mongo, Turso, and Supabase reads/writes owned by each route layer.
+- Removed local hardcoded analytics counts so `/api/jobs/analytics` now reflects the actual merged jobs, missing skills, matched skills, and top companies.
+- Added `test/jobRadarService.test.js` covering status updates, encoded/raw status overrides, source counts, storage-capacity labels, analytics aliases, and list payloads.
+- Next backend split target: continue thinning release/profile/study route orchestration and move remaining browser monolith work behind focused tests.
 
 ## 2026-05-16 Backend Stability Addendum
 

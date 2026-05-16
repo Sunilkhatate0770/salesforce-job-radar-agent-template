@@ -5,19 +5,13 @@ import path from 'path';
 import { User, UserProfile, JobRecord, StudySession, TaskStatus } from '../src/models/models.js';
 import { TursoDB } from '../src/db/turso_driver.js';
 import {
-  filterDashboardFreshness,
-  getDashboardFreshnessDays,
-  mergeArrayValues,
   mergeDashboardJobs,
-  normalizeDashboardJob,
-  parseMaybeArray,
   readSupabaseJobAlertRows,
   readSupabaseTrackerJobs
 } from '../src/jobs/dashboardJobs.js';
 import {
   buildClientConfig,
   buildHealthPayload as buildRadarHealthPayload,
-  buildJobsDegradedPayload,
   getRadarStatusStateKey
 } from '../src/api/radarContract.js';
 import { isSupabaseEnabled, supabase } from '../src/db/supabase.js';
@@ -57,6 +51,13 @@ import {
   parseCodePracticeAiReview,
   runCodePracticeChecks
 } from '../src/services/codePracticeService.js';
+import {
+  applyJobStatusOverrides,
+  buildJobAnalyticsPayload,
+  buildJobListPayload,
+  buildJobRadarPayload,
+  buildJobStatusUpdate
+} from '../src/services/jobRadarService.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
 import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
 import { apiError, apiSuccess, unauthorizedResponse } from '../src/api/apiResponse.js';
@@ -206,31 +207,6 @@ function readBody(req) {
   return parseJsonBody(req.body);
 }
 
-function normalizeBoardStatus(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'new') return 'todo';
-  if (normalized === 'shortlisted' || normalized === 'follow_up') return 'todo';
-  if (normalized === 'ignored') return 'rejected';
-  if (['todo', 'applied', 'interview', 'offer', 'rejected'].includes(normalized)) return normalized;
-  return 'todo';
-}
-
-function encodeStatusKey(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  return Buffer.from(raw, 'utf8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function jobStatusCandidates(job = {}) {
-  return [job.job_hash, job.jobHash, job.id, job._id]
-    .map(value => value === undefined || value === null ? '' : String(value))
-    .filter(Boolean);
-}
-
 async function getJobStatusOverrides(userId) {
   if (!userId) return {};
   let supabaseStatuses = {};
@@ -322,30 +298,6 @@ async function saveJobStatusOverride(userId, statusKey, statusPayload) {
     wroteState,
     stored: wroteMongo || wroteState
   };
-}
-
-function findJobStatusOverride(overrides = {}, job = {}) {
-  for (const candidate of jobStatusCandidates(job)) {
-    const encoded = encodeStatusKey(candidate);
-    if (encoded && overrides[encoded]) return overrides[encoded];
-    if (overrides[candidate]) return overrides[candidate];
-  }
-  return null;
-}
-
-function applyJobStatusOverrides(jobs = [], overrides = {}) {
-  return jobs.map(job => {
-    const override = findJobStatusOverride(overrides, job);
-    if (!override) return job;
-    const status = normalizeBoardStatus(override.status);
-    return {
-      ...job,
-      status,
-      board_status: status,
-      statusUpdatedAt: override.updatedAt || override.statusUpdatedAt || job.statusUpdatedAt,
-      appliedAt: override.appliedAt || job.appliedAt
-    };
-  });
 }
 
 function readDataJson(fileName, fallback = {}) {
@@ -627,23 +579,10 @@ export default async function(req, res) {
     if (jobStatusRoute && req.method === 'PATCH') {
       const payload = readBody(req);
       const routeId = decodeURIComponent(jobStatusRoute[1] || '');
-      const rawKey = payload.job_hash || payload.jobHash || payload.jobId || routeId;
-      if (!rawKey) return res.status(400).json({ success: false, error: 'Missing job identifier' });
+      const update = buildJobStatusUpdate({ routeId, payload });
+      if (!update.ok) return res.status(400).json({ success: false, error: update.error });
 
-      const status = normalizeBoardStatus(payload.status);
-      const updatedAt = payload.updatedAt || new Date().toISOString();
-      const appliedAt = status === 'applied'
-        ? (payload.appliedAt || updatedAt)
-        : (payload.appliedAt || '');
-      const statusKey = encodeStatusKey(rawKey);
-
-      const storage = await saveJobStatusOverride(userId, statusKey, {
-        status,
-        updatedAt,
-        appliedAt,
-        rawKey: String(rawKey),
-        jobId: routeId
-      });
+      const storage = await saveJobStatusOverride(userId, update.statusKey, update.statusPayload);
       if (!storage.stored) {
         return res.status(503).json({
           success: false,
@@ -651,7 +590,14 @@ export default async function(req, res) {
         });
       }
 
-      return res.status(200).json({ success: true, status, updatedAt, appliedAt, key: statusKey, storage });
+      return res.status(200).json({
+        success: true,
+        status: update.status,
+        updatedAt: update.updatedAt,
+        appliedAt: update.appliedAt,
+        key: update.statusKey,
+        storage
+      });
     }
 
     // 2. PROFILE ENDPOINTS (Hybrid Search & Smart Merge)
@@ -1032,43 +978,24 @@ export default async function(req, res) {
         readSupabaseJobAlertRows(180)
       ]);
       const statusOverrides = await getJobStatusOverrides(userId);
-      const mergedJobs = mergeDashboardJobs(
-        mongoJobs.map(job => normalizeDashboardJob(job, 'Legacy (Mongo)')),
-        tursoJobs.map(job => normalizeDashboardJob(job, 'Primary (Turso)')),
-        trackerJobs,
-        alertJobs
-      );
-      const finalJobs = filterDashboardFreshness(
-        applyJobStatusOverrides(mergedJobs, statusOverrides)
-      ).slice(0, 180);
-
-      console.log(`[JOBS] Unified Fetch -> Supabase alerts: ${alertJobs.length}, Tracker: ${trackerJobs.length}, Turso: ${tursoJobs.length}, Mongo: ${mongoJobs.length}, Total: ${finalJobs.length}`);
-
-      checkAndArchiveOverflow(userId);
       const mongoCount = await safeMongoRead('jobs count', () => JobRecord.countDocuments({ userId }), 0);
-      const capacityUsed = Math.min(Math.round((mongoCount / 1500) * 100), 100);
-      const sourceCounts = {
-        supabaseAlerts: alertJobs.length,
-        applicationTracker: trackerJobs.length,
-        turso: tursoJobs.length,
-        mongo: mongoJobs.length
-      };
-      const degraded = buildJobsDegradedPayload({
+      const payload = buildJobRadarPayload({
+        mongoJobs,
+        tursoJobs,
+        trackerJobs,
+        alertJobs,
+        statusOverrides,
         env: process.env,
         mongoConnected: isMongoConnected(),
-        sourceCounts
+        mongoCount,
+        includeTurso: true,
+        storageMode: 'capacity'
       });
-      return res.status(200).json({
-        records: finalJobs,
-        dbStatus: isMongoConnected(),
-        count: finalJobs.length,
-        freshnessDays: getDashboardFreshnessDays(),
-        sourceCounts,
-        degraded,
-        storageCapacity: isMongoConnected()
-          ? `${100 - capacityUsed}% Free`
-          : (degraded.liveSources.length ? 'Archive Reads Active' : 'MongoDB Offline')
-      });
+
+      console.log(`[JOBS] Unified Fetch -> Supabase alerts: ${alertJobs.length}, Tracker: ${trackerJobs.length}, Turso: ${tursoJobs.length}, Mongo: ${mongoJobs.length}, Total: ${payload.count}`);
+
+      checkAndArchiveOverflow(userId);
+      return res.status(200).json(payload);
     }
 
     if (path === 'jobs/scan' && req.method === 'POST') {
@@ -1101,37 +1028,7 @@ export default async function(req, res) {
         await getJobStatusOverrides(userId)
       );
       console.log(`[ANALYTICS] Hybrid Merging ${combined.length} records for ${userId}`);
-
-      // Aggregate matched skills, missing skills, and top companies
-      const matchedMap = {};
-      const missingMap = {};
-      const companyMap = {};
-
-      combined.forEach(j => {
-        const matched = mergeArrayValues(j.skills, j.matched_skills);
-        const missing = parseMaybeArray(j.missing_skills);
-        const company = j.company || 'Unknown';
-        
-        matched.forEach(s => { if (s) matchedMap[s] = (matchedMap[s] || 0) + 1; });
-        missing.forEach(s => { if (s) missingMap[s] = (missingMap[s] || 0) + 1; });
-        if (company) companyMap[company] = (companyMap[company] || 0) + 1;
-      });
-
-      const sortEntries = (obj) => Object.entries(obj)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([k, v]) => ({ _id: k, count: v }));
-
-      return res.status(200).json({
-        totalJobs: combined.length,
-        topMatched: sortEntries(matchedMap),
-        topMissing: sortEntries(missingMap),
-        topCompanies: sortEntries(companyMap),
-        matched_skills: sortEntries(matchedMap),
-        missing_skills: sortEntries(missingMap),
-        top_companies: sortEntries(companyMap),
-        jobs: combined // UI EXPECTS THIS IN jobs/list
-      });
+      return res.status(200).json(buildJobAnalyticsPayload(combined));
     }
 
     if (path === 'jobs/list') {
@@ -1145,13 +1042,14 @@ export default async function(req, res) {
         readSupabaseTrackerJobs(),
         readSupabaseJobAlertRows(180)
       ]);
-      const jobs = filterDashboardFreshness(
-        applyJobStatusOverrides(
-          mergeDashboardJobs(mongoJobs, tursoJobs, trackerJobs, alertJobs),
-          await getJobStatusOverrides(userId)
-        )
-      );
-      return res.status(200).json({ success: true, jobs });
+      return res.status(200).json(buildJobListPayload({
+        mongoJobs,
+        tursoJobs,
+        trackerJobs,
+        alertJobs,
+        statusOverrides: await getJobStatusOverrides(userId),
+        includeTurso: true
+      }));
     }
 
     // 4. STUDY ENDPOINTS

@@ -8,18 +8,13 @@ import { StudySession, TaskStatus, User, JobRecord, UserProfile } from './models
 import { spawn } from 'child_process';
 import { attemptAutoApply } from './tools/autoApply.js';
 import {
-  filterDashboardFreshness,
-  getDashboardFreshnessDays,
   mergeDashboardJobs,
-  normalizeDashboardJob,
-  parseMaybeArray,
   readSupabaseJobAlertRows,
   readSupabaseTrackerJobs
 } from './jobs/dashboardJobs.js';
 import {
   buildClientConfig,
   buildHealthPayload as buildRadarHealthPayload,
-  buildJobsDegradedPayload,
   getRadarStatusStateKey,
   isPublicApiPath
 } from './api/radarContract.js';
@@ -58,6 +53,12 @@ import {
   parseCodePracticeAiReview,
   runCodePracticeChecks
 } from './services/codePracticeService.js';
+import {
+  applyJobStatusOverrides,
+  buildJobAnalyticsPayload,
+  buildJobRadarPayload,
+  buildJobStatusUpdate
+} from './services/jobRadarService.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
 import { apiError, apiSuccess, sendNodeJson, unauthorizedResponse } from './api/apiResponse.js';
 import { getAuthenticatedUserId, verifyGoogleCredential } from './auth/session.js';
@@ -88,31 +89,6 @@ function readDataJson(fileName, fallback = {}) {
   } catch (e) {
     return fallback;
   }
-}
-
-function normalizeBoardStatus(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  if (normalized === 'new') return 'todo';
-  if (normalized === 'shortlisted' || normalized === 'follow_up') return 'todo';
-  if (normalized === 'ignored') return 'rejected';
-  if (['todo', 'applied', 'interview', 'offer', 'rejected'].includes(normalized)) return normalized;
-  return 'todo';
-}
-
-function encodeStatusKey(value) {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  return Buffer.from(raw, 'utf8')
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-}
-
-function jobStatusCandidates(job = {}) {
-  return [job.job_hash, job.jobHash, job.id, job._id]
-    .map(value => value === undefined || value === null ? '' : String(value))
-    .filter(Boolean);
 }
 
 async function getJobStatusOverrides(userId) {
@@ -206,30 +182,6 @@ async function saveJobStatusOverride(userId, statusKey, statusPayload) {
     mongo: wroteMongo,
     supabase: wroteState
   };
-}
-
-function findJobStatusOverride(overrides = {}, job = {}) {
-  for (const candidate of jobStatusCandidates(job)) {
-    const encoded = encodeStatusKey(candidate);
-    if (encoded && overrides[encoded]) return overrides[encoded];
-    if (overrides[candidate]) return overrides[candidate];
-  }
-  return null;
-}
-
-function applyJobStatusOverrides(jobs = [], overrides = {}) {
-  return jobs.map(job => {
-    const override = findJobStatusOverride(overrides, job);
-    if (!override) return job;
-    const status = normalizeBoardStatus(override.status);
-    return {
-      ...job,
-      status,
-      board_status: status,
-      statusUpdatedAt: override.updatedAt || override.statusUpdatedAt || job.statusUpdatedAt,
-      appliedAt: override.appliedAt || job.appliedAt
-    };
-  });
 }
 
 function readBody(req) {
@@ -534,25 +486,14 @@ export default async function handler(req, res) {
         const payload = await readJsonRequest(req);
 
         const routeId = decodeURIComponent(url.split('/')[3] || '');
-        const rawKey = payload.job_hash || payload.jobHash || payload.jobId || routeId;
-        if (!rawKey) {
+        const update = buildJobStatusUpdate({ routeId, payload });
+        if (!update.ok) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Missing job identifier' }));
+          res.end(JSON.stringify({ success: false, error: update.error }));
           return;
         }
 
-        const status = normalizeBoardStatus(payload.status);
-        const updatedAt = payload.updatedAt || new Date().toISOString();
-        const appliedAt = status === 'applied' ? (payload.appliedAt || updatedAt) : (payload.appliedAt || '');
-        const statusKey = encodeStatusKey(rawKey);
-
-        const storage = await saveJobStatusOverride(userId, statusKey, {
-          status,
-          updatedAt,
-          appliedAt,
-          rawKey: String(rawKey),
-          jobId: routeId
-        });
+        const storage = await saveJobStatusOverride(userId, update.statusKey, update.statusPayload);
         if (!storage.stored) {
           res.writeHead(503, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
@@ -563,60 +504,41 @@ export default async function handler(req, res) {
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, status, updatedAt, appliedAt, key: statusKey, storage }));
+        res.end(JSON.stringify({
+          success: true,
+          status: update.status,
+          updatedAt: update.updatedAt,
+          appliedAt: update.appliedAt,
+          key: update.statusKey,
+          storage
+        }));
       }
       else if (url === '/api/jobs' && method === 'GET') {
-        const [trackerJobs, alertJobs] = await Promise.all([
+        const [trackerJobs, alertJobs, mongoJobs] = await Promise.all([
           readSupabaseTrackerJobs(),
-          readSupabaseJobAlertRows(180)
+          readSupabaseJobAlertRows(180),
+          isMongoConnected
+            ? JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean()
+            : []
         ]);
-        const sourceCounts = {
-          supabaseAlerts: alertJobs.length,
-          applicationTracker: trackerJobs.length,
-          mongo: 0
-        };
-        if (isMongoConnected) {
-          const mongoJobs = await JobRecord.find({ $or: [{ userId }, { userId: 'system' }] }).sort({ updatedAt: -1, createdAt: -1 }).limit(180).lean();
-          sourceCounts.mongo = mongoJobs.length;
-          const mergedJobs = mergeDashboardJobs(
-            mongoJobs.map(job => normalizeDashboardJob(job, 'Legacy (Mongo)')),
-            trackerJobs,
-            alertJobs
-          );
-          const records = filterDashboardFreshness(
-            applyJobStatusOverrides(mergedJobs, await getJobStatusOverrides(userId))
-          ).slice(0, 180);
-          console.log(
-            `[DB] Unified | Mongo: ${mongoJobs.length} | Supabase alerts: ${alertJobs.length} | Tracker: ${trackerJobs.length} | Total: ${records.length}`
-          );
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            records,
-            dbStatus: true,
-            source: 'mongodb',
-            count: records.length,
-            freshnessDays: getDashboardFreshnessDays(),
-            storageCapacity: 'Hot + Archive Reads Active',
-            sourceCounts,
-            degraded: buildJobsDegradedPayload({ env: process.env, mongoConnected: true, sourceCounts })
-          }));
-        } else {
-          const records = filterDashboardFreshness(
-            applyJobStatusOverrides(mergeDashboardJobs(trackerJobs, alertJobs), await getJobStatusOverrides(userId))
-          ).slice(0, 180);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            records,
-            dbStatus: false,
-            source: records.length ? 'supabase' : 'cache',
-            count: records.length,
-            freshnessDays: getDashboardFreshnessDays(),
-            storageCapacity: records.length ? 'Archive Reads Active' : 'Cloud sources unavailable',
-            sourceCounts,
-            degraded: buildJobsDegradedPayload({ env: process.env, mongoConnected: false, sourceCounts }),
-            error: records.length ? undefined : (process.env.MONGODB_URI ? 'mongodb_connection_failed' : 'missing_mongodb_uri')
-          }));
-        }
+        const payload = buildJobRadarPayload({
+          mongoJobs,
+          trackerJobs,
+          alertJobs,
+          statusOverrides: await getJobStatusOverrides(userId),
+          env: process.env,
+          mongoConnected: isMongoConnected,
+          mongoCount: mongoJobs.length,
+          includeTurso: false,
+          storageMode: 'local',
+          source: isMongoConnected ? 'mongodb' : (trackerJobs.length || alertJobs.length ? 'supabase' : 'cache'),
+          includeOfflineError: true
+        });
+        console.log(
+          `[DB] Unified | Mongo: ${mongoJobs.length} | Supabase alerts: ${alertJobs.length} | Tracker: ${trackerJobs.length} | Total: ${payload.count}`
+        );
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(payload));
       }
       else if (url === '/api/jobs/analytics' && method === 'GET') {
         const [mongoJobs, trackerJobs, alertJobs] = await Promise.all([
@@ -628,37 +550,8 @@ export default async function handler(req, res) {
           mergeDashboardJobs(mongoJobs, trackerJobs, alertJobs),
           await getJobStatusOverrides(userId)
         );
-        const hasSkill = (record, skill) => {
-          const skills = [
-            ...parseMaybeArray(record.skills),
-            ...parseMaybeArray(record.matched_skills)
-          ].map(item => item.toLowerCase());
-          return skills.some(item => item.includes(skill.toLowerCase()));
-        };
-        
-        const matchedSkills = [
-          { _id: 'Apex', count: records.filter(r => hasSkill(r, 'Apex')).length },
-          { _id: 'LWC', count: records.filter(r => hasSkill(r, 'LWC')).length },
-          { _id: 'Integration', count: records.filter(r => hasSkill(r, 'REST')).length }
-        ];
-        const missingSkills = [
-          { _id: 'Data Cloud', count: 5 },
-          { _id: 'Agentforce', count: 3 }
-        ];
-        const topCompanies = [
-          { _id: 'Salesforce', count: records.filter(r => r.company === 'Salesforce').length },
-          { _id: 'Deloitte', count: records.filter(r => r.company === 'Deloitte').length }
-        ];
-
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          matched_skills: matchedSkills,
-          missing_skills: missingSkills,
-          top_companies: topCompanies,
-          matchedSkills,
-          missingSkills,
-          topCompanies
-        }));
+        res.end(JSON.stringify(buildJobAnalyticsPayload(records)));
       }
       else if (url.includes('summary/all')) {
         const [sessions, jobs] = isMongoConnected
