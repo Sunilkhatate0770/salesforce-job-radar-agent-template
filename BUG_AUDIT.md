@@ -3,6 +3,15 @@
 **Audit date:** 2026-05-08  
 **Scope:** local vanilla HTML/CSS/JS app, Vercel API router, local web server, data/content files, tests, and deployment support files.
 
+## 2026-05-16 Backend Stability Upgrade
+
+| Area | Finding | Fix Applied | Files |
+|---|---|---|---|
+| Auth/session duplication | Vercel and local API servers each created their own Google OAuth client and manually parsed bearer tokens, increasing drift risk. | Added `src/auth/session.js` with shared bearer extraction, Google token verification, normalized user shape, and authenticated user-id resolution. | `src/auth/session.js`, `api/router.js`, `src/webServer.js` |
+| API response shape | Unauthorized/auth failure responses were inconsistent between local and serverless paths. | Added `src/api/apiResponse.js` and wired auth/private-route failures through a consistent safe `{ success:false, error, code }` envelope. | `src/api/apiResponse.js`, `api/router.js`, `src/webServer.js` |
+| Legacy local fallback routes | `src/webServer.js` still contained dead post-handler fallback blocks, including an unscoped `StudySession.find()` summary path. | Removed the unreachable legacy blocks and added a regression test to prevent unscoped private-data reads from returning. | `src/webServer.js`, `test/localServerSafety.test.js` |
+| Auth regression coverage | Token parsing and server-owned identity resolution were not directly tested. | Added tests proving `userId` comes from the verified Google token, invalid tokens fail closed, and response envelopes stay stable. | `test/authSession.test.js` |
+
 ## 2026-05-14 Upgrade Pass
 
 | Area | Finding | Fix Applied | Files |

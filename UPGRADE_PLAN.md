@@ -3,6 +3,16 @@
 **Generated:** 2026-05-06  
 **Codebase Version:** v1412 → v1413 (post-audit + big upgrade)
 
+## 2026-05-16 Backend Stability Addendum
+
+- Added `src/auth/session.js` as the single Google Sign-In session resolver for both Vercel and the local server.
+- Added `src/api/apiResponse.js` for consistent success/error envelopes and local Node JSON responses.
+- Refactored `api/router.js` and `src/webServer.js` to derive private route identity through the shared verified-token helper instead of duplicated OAuth logic.
+- Preserved existing login compatibility by returning both `id` and `googleId` where useful.
+- Removed dead local-server fallback routes after the main `/api/*` handler, including the old unscoped summary path.
+- Added `test/authSession.test.js` and `test/localServerSafety.test.js` to lock down auth parsing, verified user identity, invalid-token failure, response shape, and absence of unscoped local fallback reads.
+- Next backend split target: move profile, study, job radar, release, and code-practice route handlers into small service modules while keeping `api/router.js` and `src/webServer.js` thin.
+
 ## 2026-05-14 Career Intelligence Upgrade Addendum
 
 - Added `src/data/careerIntelligence.js` for browser-side job freshness, source health, Today Command Center, study-roadmap, release-study, content-search, and mock-interview helpers.

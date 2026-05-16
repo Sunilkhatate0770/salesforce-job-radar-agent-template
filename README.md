@@ -39,6 +39,8 @@ Authenticated app data is private per Google user. Browser persistence uses name
 
 Public/system job feeds may be shared as opportunity recommendations, but user actions on those jobs such as status, notes, saved state, and analytics must remain scoped to the authenticated user. Server routes should derive identity from the Google token and not trust a client-provided `userId`.
 
+Google ID token verification is centralized in `src/auth/session.js` and shared by the Vercel router and local development server. Private API failures use a consistent `{ success: false, error, code }` response envelope.
+
 The current private profile model also supports `codingPractice`, `questionAttempts`, `mockInterviewSessions`, `releaseStudyActions`, `dailyStudyPlan`, `userSettings`, and `notes`. Local-only fallbacks follow the same `sfjr:${userId}:featureName` pattern.
 
 ## Demo Mode vs Real User Mode

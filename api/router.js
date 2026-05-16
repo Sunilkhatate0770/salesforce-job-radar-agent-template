@@ -1,4 +1,3 @@
-import { OAuth2Client } from 'google-auth-library';
 import fetch from 'node-fetch';
 import mongoose from 'mongoose';
 import fs from 'fs';
@@ -33,6 +32,8 @@ import {
 } from '../src/services/dashboardSummary.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
 import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
+import { apiError, apiSuccess, unauthorizedResponse } from '../src/api/apiResponse.js';
+import { getAuthenticatedUserId, verifyGoogleCredential } from '../src/auth/session.js';
 
 /**
  * 🔒 ARCHITECTURAL GUARDIAN: HYBRID HOT-COLD STORAGE PATTERN
@@ -45,7 +46,6 @@ import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
  * the 512MB MongoDB limit. READS must merge both tiers.
  */
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const DATA_DIR = path.join(process.cwd(), 'data');
 const dataCache = new Map();
 
@@ -116,25 +116,6 @@ async function buildConnectivityDetails() {
   }
 
   return details;
-}
-
-async function getUserId(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
-  if (!token || token === 'null' || token === 'undefined') return null;
-  
-  try {
-    const ticket = await client.verifyIdToken({ 
-      idToken: token, 
-      audience: process.env.GOOGLE_CLIENT_ID 
-    });
-    const payload = ticket.getPayload();
-    return payload['sub'];
-  } catch (e) { 
-    console.error('Auth verification failed:', e.message);
-    return null; 
-  }
 }
 
 async function safeTursoRead(label, operation, fallback) {
@@ -843,9 +824,8 @@ export default async function(req, res) {
     if (path === 'auth/google' && req.method === 'POST') {
       try {
         const { token } = readBody(req);
-        const ticket = await client.verifyIdToken({ idToken: token, audience: process.env.GOOGLE_CLIENT_ID });
-        const payload = ticket.getPayload();
-        const userData = { id: payload['sub'], email: payload['email'], name: payload['name'], picture: payload['picture'] };
+        const { user } = await verifyGoogleCredential(token);
+        const userData = { id: user.id, googleId: user.googleId, email: user.email, name: user.name, picture: user.picture };
 
         try {
           if (mongoose.connection.readyState !== 1) throw new Error('MongoDB not connected');
@@ -872,10 +852,13 @@ export default async function(req, res) {
           console.error('[AUTH] Turso sync failed but continuing:', dbErr.message);
         }
         
-        return res.status(200).json({ success: true, user: userData });
+        return res.status(200).json(apiSuccess({ user: userData }));
       } catch (authErr) {
         console.error('[AUTH] Google Verify Failed:', authErr.message);
-        return res.status(401).json({ success: false, error: 'Authentication failed. Check GOOGLE_CLIENT_ID.' });
+        return res.status(401).json(apiError('Authentication failed. Check GOOGLE_CLIENT_ID.', {
+          status: 401,
+          code: 'auth_failed'
+        }));
       }
     }
 
@@ -896,8 +879,8 @@ export default async function(req, res) {
     }
 
     // --- REQUIRE AUTH FOR DATA ROUTES ---
-    const userId = await getUserId(req);
-    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = await getAuthenticatedUserId(req);
+    if (!userId) return res.status(401).json(unauthorizedResponse());
 
     const jobStatusRoute = path.match(/^jobs\/([^/]+)\/status$/);
     if (jobStatusRoute && req.method === 'PATCH') {

@@ -6,7 +6,6 @@ import { generateDailySummary } from './summaryService.js';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import { StudySession, TaskStatus, User, JobRecord, UserProfile } from './models/models.js';
-import { OAuth2Client } from 'google-auth-library';
 import { spawn } from 'child_process';
 import { attemptAutoApply } from './tools/autoApply.js';
 import {
@@ -36,6 +35,8 @@ import {
   createMockInterviewSession
 } from './services/dashboardSummary.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
+import { apiError, apiSuccess, sendNodeJson, unauthorizedResponse } from './api/apiResponse.js';
+import { getAuthenticatedUserId, verifyGoogleCredential } from './auth/session.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,8 +46,6 @@ const CACHE_DIR = path.join(process.cwd(), '.cache');
 const WEB_DIR = process.cwd();
 const DATA_DIR = path.join(process.cwd(), 'data');
 const dataCache = new Map();
-
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 function buildHealthPayload(isMongoConnected = false) {
   return buildRadarHealthPayload({
@@ -489,22 +488,6 @@ function extractProfileImportFields(text) {
   return { rawText, skills, experienceYears: yearsMatch ? clampExperienceYears(yearsMatch[1]) : undefined, currentDesignation: roleMatch ? roleMatch[0].trim() : undefined, certifications: Array.from(new Set(certMatches.map(v => v.trim()))) };
 }
 
-async function getUserId(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    return payload['sub']; 
-  } catch (e) {
-    return null;
-  }
-}
-
 // MongoDB Connection
 let cachedDb = null;
 async function connectDB() {
@@ -577,24 +560,21 @@ export default async function handler(req, res) {
 
   // API ENDPOINTS (Scoped by User)
   if (url.startsWith('/api/')) {
-    const userId = await getUserId(req);
+    const userId = await getAuthenticatedUserId(req, { log: false });
     
     // Auth Endpoint - Does NOT require userId
     if (url === '/api/auth/google' && method === 'POST') {
       try {
         const { token } = await readJsonRequest(req);
-        
-        const ticket = await client.verifyIdToken({
-          idToken: token, audience: process.env.GOOGLE_CLIENT_ID
-        });
-        const payload = ticket.getPayload();
-        const googleId = payload['sub'];
+        const { user: authUser } = await verifyGoogleCredential(token);
+        const googleId = authUser.id;
         
         let user = {
+          id: googleId,
           googleId,
-          email: payload['email'],
-          name: payload['name'],
-          picture: payload['picture'],
+          email: authUser.email,
+          name: authUser.name,
+          picture: authUser.picture,
           lastLogin: new Date()
         };
 
@@ -606,12 +586,13 @@ export default async function handler(req, res) {
           );
         }
         
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, user }));
+        sendNodeJson(res, 200, apiSuccess({ user }));
       } catch (e) {
         console.error('Google Auth Error:', e);
-        res.writeHead(401);
-        res.end(JSON.stringify({ error: 'Invalid token or DB error' }));
+        sendNodeJson(res, 401, apiError('Invalid token or DB error', {
+          status: 401,
+          code: 'auth_failed'
+        }));
       }
       return;
     }
@@ -620,8 +601,7 @@ export default async function handler(req, res) {
     const isPublicApi = isPublicApiPath(url, method);
     
     if (!userId && !isPublicFile && !isPublicApi) {
-      res.writeHead(401);
-      res.end(JSON.stringify({ error: 'Unauthorized' }));
+      sendNodeJson(res, 401, unauthorizedResponse());
       return;
     }
 
@@ -1337,108 +1317,6 @@ export default async function handler(req, res) {
     } catch (e) {
       res.writeHead(500);
       res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
-
-  if (url.includes('summary/all') && method === 'GET') {
-    try {
-      let sessions = null;
-      if (isMongoConnected) {
-        sessions = await StudySession.find().sort({ startTime: -1 }).limit(1000).lean();
-      }
-      const summaries = generateDailySummary(sessions);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(summaries));
-    } catch (e) {
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: 'Failed to fetch history' }));
-    }
-    return;
-  }
-
-  if (url.includes('ai/interview') && method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const { prompt, topic, difficulty } = parseJsonBody(body);
-        
-        // Construct a specialized system prompt for the interview
-        const systemPrompt = `You are a Senior Salesforce Technical Interviewer. 
-        Topic: ${topic}. Difficulty: ${difficulty}.
-        Conduct a realistic interview. Ask one technical question at a time. 
-        When the user answers, provide brief feedback (Score 1-10) and then ask the next follow-up question.
-        Be professional and challenging. 
-        User Input: ${prompt}`;
-
-        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
-          method: 'POST',
-          body: JSON.stringify({
-            model: 'gemma:2b', // or gemma:7b based on user's setup
-            prompt: systemPrompt,
-            stream: false
-          })
-        });
-
-        if (!ollamaRes.ok) throw new Error('Ollama not responding');
-        const aiData = await ollamaRes.json();
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ response: aiData.response }));
-      } catch (e) {
-        res.writeHead(500);
-        res.end(JSON.stringify({ error: 'AI engine unavailable. Make sure Ollama is running with Gemma.' }));
-      }
-    });
-    return;
-  }
-
-  if (url === '/api/profile/sync' && method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const { platform } = parseJsonBody(body);
-        const { exec } = await import('child_process');
-        
-        exec(`node src/tools/syncProfile.js ${platform || 'LinkedIn'}`, (error, stdout, stderr) => {
-           if (error) {
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ error: error.message }));
-           } else {
-              let studyPlan = 'No plan generated.';
-              try {
-                const planPath = path.resolve(process.cwd(), 'TAILORED_STUDY_PLAN.md');
-                if (fs.existsSync(planPath)) {
-                   studyPlan = fs.readFileSync(planPath, 'utf8');
-                }
-              } catch (e) {
-                console.error("Error reading study plan", e);
-              }
-              res.writeHead(200, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ success: true, studyPlan, logs: stdout }));
-           }
-        });
-      } catch (e) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: e.message }));
-      }
-    });
-    return;
-  }
-
-  if (url === '/api/study/reset' && method === 'POST') {
-    try {
-      const emptyTracker = { sessions: [], completedTasks: [], topics: {} };
-      fs.writeFileSync(path.join(CACHE_DIR, 'study-tracker.json'), JSON.stringify(emptyTracker, null, 2));
-      fs.writeFileSync(path.join(CACHE_DIR, 'daily-summaries.json'), JSON.stringify({}, null, 2));
-      
-      res.writeHead(200);
-      res.end(JSON.stringify({ success: true }));
-    } catch (e) {
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: 'Failed to reset' }));
     }
     return;
   }
