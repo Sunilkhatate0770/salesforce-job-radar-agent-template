@@ -3,6 +3,14 @@
 **Generated:** 2026-05-06  
 **Codebase Version:** v1412 → v1413 (post-audit + big upgrade)
 
+## 2026-05-16 Code Practice Service Addendum
+
+- Added `src/services/codePracticeService.js` as the shared deterministic code-practice service for challenge filtering, file-name sanitization, file prompt caps, static/test scoring, AI review parsing, evaluation response shaping, and attempt progress updates.
+- Rewired both `api/router.js` and `src/webServer.js` code-practice routes to the shared service so Vercel and local behavior no longer drift.
+- Tightened server-side practice file sanitization to strip leading dot-only path fragments before saving or sending file data into AI review prompts.
+- Added `test/codePracticeService.test.js` covering catalog filters, deterministic scoring, custom single-file attempts, AI review fallback parsing, and file prompt-size limits.
+- Next service split target: move remaining job radar route assembly into a shared jobs API service, then thin the Vercel/local route handlers around storage adapters.
+
 ## 2026-05-16 Backend Stability Addendum
 
 - Added `src/auth/session.js` as the single Google Sign-In session resolver for both Vercel and the local server.

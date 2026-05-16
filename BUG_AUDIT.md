@@ -3,6 +3,13 @@
 **Audit date:** 2026-05-08  
 **Scope:** local vanilla HTML/CSS/JS app, Vercel API router, local web server, data/content files, tests, and deployment support files.
 
+## 2026-05-16 Code Practice Service Upgrade
+
+| Area | Finding | Fix Applied | Files |
+|---|---|---|---|
+| Code-practice route duplication | Vercel and local API servers each owned their own challenge filtering, file normalization, deterministic scoring, AI review parsing, and attempt-progress shaping. | Added a shared `codePracticeService` and wired both route surfaces to it, reducing drift risk while keeping storage and HTTP response handling in each server. | `src/services/codePracticeService.js`, `api/router.js`, `src/webServer.js`, `test/codePracticeService.test.js` |
+| Practice file-name hardening | Sanitized practice filenames could still preserve leading `..` fragments after unsafe characters were stripped. | Shared normalization now strips leading dots before saving workspace files or building AI review prompt text. | `src/services/codePracticeService.js`, `test/codePracticeService.test.js` |
+
 ## 2026-05-16 Backend Stability Upgrade
 
 | Area | Finding | Fix Applied | Files |

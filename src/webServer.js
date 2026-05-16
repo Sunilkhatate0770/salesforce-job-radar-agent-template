@@ -47,6 +47,17 @@ import {
   normalizeProfileSavePayload,
   topicConfigName
 } from './services/profileService.js';
+import {
+  buildCodePracticeAttempt,
+  buildCodePracticeEvaluationResponse,
+  buildCodePracticeFilesText,
+  createCustomCodePracticeChallenge,
+  filterCodePracticeChallenges,
+  getCodePracticeChallenge,
+  getDefaultCodePracticeProgress,
+  parseCodePracticeAiReview,
+  runCodePracticeChecks
+} from './services/codePracticeService.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
 import { apiError, apiSuccess, sendNodeJson, unauthorizedResponse } from './api/apiResponse.js';
 import { getAuthenticatedUserId, verifyGoogleCredential } from './auth/session.js';
@@ -232,124 +243,8 @@ async function readJsonRequest(req) {
   return parseJsonBody(body);
 }
 
-function safePracticeFileName(value) {
-  return String(value || '')
-    .replace(/[^a-zA-Z0-9_.-]/g, '')
-    .slice(0, 80);
-}
-
 function getCodePracticeCatalog() {
   return readDataJson('code-practice-challenges.json', { version: 'local-fallback', challenges: [] });
-}
-
-function filterCodePracticeChallenges(searchParams = new URLSearchParams()) {
-  const catalog = getCodePracticeCatalog();
-  const requestedTrack = String(searchParams.get('track') || 'all').toLowerCase();
-  const requestedYears = Number(searchParams.get('experienceYears') || 0);
-  const requestedDesignation = String(searchParams.get('designation') || '').toLowerCase();
-  const challenges = (catalog.challenges || []).filter(challenge => {
-    const challengeTrack = String(challenge.track || '').toLowerCase();
-    const trackMatch = requestedTrack === 'all' || !requestedTrack || challengeTrack === requestedTrack;
-    const yearMatch = !requestedYears || (challenge.experienceLevels || []).includes(requestedYears);
-    const designationMatch = !requestedDesignation || (challenge.designations || []).some(item => String(item).toLowerCase() === requestedDesignation);
-    return trackMatch && yearMatch && designationMatch;
-  });
-  return { version: catalog.version, challenges };
-}
-
-function getCodePracticeChallenge(challengeId) {
-  return (getCodePracticeCatalog().challenges || []).find(challenge => challenge.id === challengeId) || null;
-}
-
-function normalizeCodePracticeFiles(files = []) {
-  if (Array.isArray(files)) {
-    return Object.fromEntries(files.map(file => [
-      safePracticeFileName(file.name),
-      String(file.content || '').slice(0, 60000)
-    ]).filter(([name]) => name));
-  }
-  return Object.fromEntries(Object.entries(files || {}).map(([name, content]) => [
-    safePracticeFileName(name),
-    String(content || '').slice(0, 60000)
-  ]).filter(([name]) => name));
-}
-
-function runCodePracticeChecks(challenge, files, runResult = {}) {
-  const fileMap = normalizeCodePracticeFiles(files);
-  const passedChecks = [];
-  const failedChecks = [];
-  let passedWeight = 0;
-  let totalWeight = 0;
-
-  for (const check of challenge.staticChecks || []) {
-    const weight = Number(check.weight || 10);
-    totalWeight += weight;
-    const source = check.file === '*' ? Object.values(fileMap).join('\n\n') : String(fileMap[check.file] || '');
-    let passed = false;
-    try {
-      if (check.regex) passed = new RegExp(check.regex, 'i').test(source);
-      if (check.negativeRegex) passed = !new RegExp(check.negativeRegex, 'i').test(source);
-    } catch (err) {
-      passed = false;
-    }
-    const item = { id: check.id, label: check.label, weight };
-    if (passed) {
-      passedWeight += weight;
-      passedChecks.push(item);
-    } else {
-      failedChecks.push(item);
-    }
-  }
-
-  const testWeights = new Map((challenge.tests || []).map(test => [test.id, Number(test.weight || 10)]));
-  for (const test of runResult.tests || []) {
-    const weight = testWeights.get(test.id) || Number(test.weight || 10);
-    totalWeight += weight;
-    const item = { id: test.id, label: test.label || test.id, weight };
-    if (test.pass) {
-      passedWeight += weight;
-      passedChecks.push(item);
-    } else {
-      failedChecks.push({ ...item, message: test.message });
-    }
-  }
-
-  const score = totalWeight ? Math.round((passedWeight / totalWeight) * 100) : 0;
-  return {
-    score,
-    correctnessPercent: score,
-    passedChecks,
-    failedChecks,
-    improvements: failedChecks.slice(0, 6).map(check => `Improve: ${check.label}`),
-    interviewFeedback: score >= 80
-      ? 'Strong attempt. Explain the design tradeoffs, testing strategy, and Salesforce limits in an interview.'
-      : 'Good start. Tighten the failed checks, then explain how you would test and bulk-proof the solution.',
-    nextPracticeTopics: challenge.track === 'salesforce'
-      ? ['Bulkification', 'Test coverage', 'Security review']
-      : ['DOM events', 'Pure functions', 'Accessible UI']
-  };
-}
-
-function parseCodePracticeAiReview(rawText, fallback) {
-  try {
-    const jsonText = String(rawText || '')
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/```$/i, '')
-      .trim();
-    const parsed = JSON.parse(jsonText);
-    return {
-      score: Number.isFinite(Number(parsed.score)) ? Number(parsed.score) : fallback.score,
-      correctnessPercent: Number.isFinite(Number(parsed.correctnessPercent)) ? Number(parsed.correctnessPercent) : fallback.correctnessPercent,
-      passedChecks: Array.isArray(parsed.passedChecks) ? parsed.passedChecks : fallback.passedChecks,
-      failedChecks: Array.isArray(parsed.failedChecks) ? parsed.failedChecks : fallback.failedChecks,
-      improvements: Array.isArray(parsed.improvements) ? parsed.improvements : fallback.improvements,
-      interviewFeedback: parsed.interviewFeedback || fallback.interviewFeedback,
-      nextPracticeTopics: Array.isArray(parsed.nextPracticeTopics) ? parsed.nextPracticeTopics : fallback.nextPracticeTopics
-    };
-  } catch (err) {
-    return fallback;
-  }
 }
 
 async function generateLocalCodePracticeReview(payload, fallback) {
@@ -381,10 +276,6 @@ async function generateLocalCodePracticeReview(payload, fallback) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-function getDefaultCodePracticeProgress() {
-  return { attempts: [], bestScores: {}, lastWorkspace: null, completedChallengeIds: [] };
 }
 
 function readLocalCodePracticeProgress(userId) {
@@ -572,7 +463,10 @@ export default async function handler(req, res) {
       else if (url === '/api/code-practice/challenges' && method === 'GET') {
         const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, ...filterCodePracticeChallenges(requestUrl.searchParams) }));
+        res.end(JSON.stringify({
+          success: true,
+          ...filterCodePracticeChallenges(getCodePracticeCatalog(), requestUrl.searchParams)
+        }));
       }
       else if (url === '/api/study/history' && method === 'GET') {
         const sessions = mergeStudyHistory([], await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean(), 100);
@@ -1029,18 +923,14 @@ export default async function handler(req, res) {
       }
       else if (url === '/api/code-practice/evaluate' && method === 'POST') {
         const body = await readJsonRequest(req);
-        const challenge = getCodePracticeChallenge(body.challengeId);
+        const challenge = getCodePracticeChallenge(getCodePracticeCatalog(), body.challengeId);
         if (!challenge) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Challenge not found' }));
           return;
         }
         const deterministic = runCodePracticeChecks(challenge, body.files || {}, body.runResult || {});
-        const filesMap = normalizeCodePracticeFiles(body.files || {});
-        const filesText = Object.entries(filesMap)
-          .map(([name, content]) => `--- ${name} ---\n${String(content).slice(0, 5000)}`)
-          .join('\n\n')
-          .slice(0, 14000);
+        const filesText = buildCodePracticeFilesText(body.files || {});
         const aiReview = await generateLocalCodePracticeReview({
           ...deterministic,
           challengeTitle: challenge.title,
@@ -1048,23 +938,8 @@ export default async function handler(req, res) {
           aiRubric: challenge.aiRubric,
           filesText
         }, deterministic);
-        const finalScore = Math.round((deterministic.score * 0.8) + (aiReview.score * 0.2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          success: true,
-          challengeId: challenge.id,
-          languageTrack: body.languageTrack || challenge.track,
-          score: finalScore,
-          correctnessPercent: finalScore,
-          deterministicScore: deterministic.score,
-          aiScore: aiReview.score,
-          passedChecks: deterministic.passedChecks,
-          failedChecks: deterministic.failedChecks,
-          improvements: aiReview.improvements,
-          interviewFeedback: aiReview.interviewFeedback,
-          nextPracticeTopics: aiReview.nextPracticeTopics,
-          evaluatedAt: new Date().toISOString()
-        }));
+        res.end(JSON.stringify(buildCodePracticeEvaluationResponse({ challenge, body, deterministic, aiReview })));
       }
       else if (url === '/api/code-practice/progress' && method === 'GET') {
         const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
@@ -1074,11 +949,8 @@ export default async function handler(req, res) {
       }
       else if (url === '/api/code-practice/attempt' && method === 'POST') {
         const body = await readJsonRequest(req);
-        const challenge = getCodePracticeChallenge(body.challengeId) || (body.custom ? {
-          id: String(body.challengeId || `custom_${Date.now()}`).slice(0, 80),
-          title: String(body.title || 'Custom single-file practice').slice(0, 120),
-          track: body.languageTrack || 'custom'
-        } : null);
+        const challenge = getCodePracticeChallenge(getCodePracticeCatalog(), body.challengeId) ||
+          createCustomCodePracticeChallenge(body);
         if (!challenge) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'Challenge not found' }));
@@ -1086,33 +958,7 @@ export default async function handler(req, res) {
         }
         const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
         const current = profile?.codingPractice || readLocalCodePracticeProgress(userId);
-        const score = Math.max(0, Math.min(100, Math.round(Number(body.score || body.correctnessPercent || 0))));
-        const attempt = {
-          challengeId: challenge.id,
-          title: challenge.title,
-          track: body.languageTrack || challenge.track,
-          score,
-          correctnessPercent: Math.max(0, Math.min(100, Math.round(Number(body.correctnessPercent || score)))),
-          passedChecks: Array.isArray(body.passedChecks) ? body.passedChecks : [],
-          failedChecks: Array.isArray(body.failedChecks) ? body.failedChecks : [],
-          improvements: Array.isArray(body.improvements) ? body.improvements : [],
-          createdAt: new Date()
-        };
-        const bestScores = { ...(current.bestScores || {}) };
-        bestScores[challenge.id] = Math.max(Number(bestScores[challenge.id] || 0), score);
-        const completed = new Set(current.completedChallengeIds || []);
-        if (score >= 80) completed.add(challenge.id);
-        const codingPractice = {
-          attempts: [attempt, ...(current.attempts || [])].slice(0, 50),
-          bestScores,
-          completedChallengeIds: Array.from(completed),
-          lastWorkspace: {
-            challengeId: challenge.id,
-            languageTrack: body.languageTrack || challenge.track,
-            files: normalizeCodePracticeFiles(body.files || {}),
-            updatedAt: new Date()
-          }
-        };
+        const { codingPractice } = buildCodePracticeAttempt({ body, challenge, current });
         if (isMongoConnected) {
           await UserProfile.findOneAndUpdate(
             { userId },
