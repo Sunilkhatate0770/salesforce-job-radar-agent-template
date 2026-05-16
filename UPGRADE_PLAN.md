@@ -13,7 +13,11 @@
 - Added `test/authSession.test.js` and `test/localServerSafety.test.js` to lock down auth parsing, verified user identity, invalid-token failure, response shape, and absence of unscoped local fallback reads.
 - Added `src/services/studyService.js` for shared study-retention, history merge, task merge, stats, and daily summary logic.
 - Rewired Vercel/local study routes to the shared study service and added `test/studyService.test.js`.
-- Next backend split target: move profile, study, job radar, release, and code-practice route handlers into small service modules while keeping `api/router.js` and `src/webServer.js` thin.
+- Added `src/services/profileService.js` for shared profile import parsing, credential-safe text sanitization, profile-save normalization, hybrid Mongo/Turso merge, and premium roadmap generation.
+- Rewired Vercel/local profile, roadmap, release personalization, and retention routes to the shared profile service.
+- Local dev profile fallback now uses a user-keyed `.cache/profile-cache.json` store and only migrates the legacy `.cache/profile-sync.json` fallback for the current user.
+- Added `test/profileService.test.js` to cover user scoping, client `userId` override protection, import sanitization, hybrid merge, and roadmap/release focus behavior.
+- Next backend split target: move job radar, release, and code-practice route handlers into small service modules while keeping `api/router.js` and `src/webServer.js` thin.
 
 ## 2026-05-14 Career Intelligence Upgrade Addendum
 

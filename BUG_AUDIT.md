@@ -12,6 +12,8 @@
 | Legacy local fallback routes | `src/webServer.js` still contained dead post-handler fallback blocks, including an unscoped `StudySession.find()` summary path. | Removed the unreachable legacy blocks and added a regression test to prevent unscoped private-data reads from returning. | `src/webServer.js`, `test/localServerSafety.test.js` |
 | Auth regression coverage | Token parsing and server-owned identity resolution were not directly tested. | Added tests proving `userId` comes from the verified Google token, invalid tokens fail closed, and response envelopes stay stable. | `test/authSession.test.js` |
 | Study route duplication | Study stats/history/task/summary calculations were repeated in Vercel and local routes, and local `/api/summary/all` still called the legacy summary generator with a `userId` string. | Added `src/services/studyService.js`, wired shared retention/history/task/summary helpers into both route surfaces, and added focused service tests. | `src/services/studyService.js`, `api/router.js`, `src/webServer.js`, `test/studyService.test.js` |
+| Profile/roadmap duplication | Profile import, save normalization, hybrid Mongo/Turso merge, skill parsing, and roadmap generation were implemented separately in Vercel and local routes. | Added `src/services/profileService.js`, moved shared profile normalization/import/roadmap/hybrid-merge helpers into it, and wired both route surfaces to the shared implementation. | `src/services/profileService.js`, `api/router.js`, `src/webServer.js`, `test/profileService.test.js` |
+| Local profile fallback privacy | Local dev fallback read/write used `.cache/profile-sync.json` as a global profile when Mongo was unavailable. | Added a user-keyed `.cache/profile-cache.json` path, migrated legacy cache only when safe for the current user, and scoped retention/release/profile reads to the active `userId`. | `src/webServer.js`, `src/services/profileService.js` |
 
 ## 2026-05-14 Upgrade Pass
 
@@ -88,8 +90,8 @@ The app still has several legacy monoliths. Safe splits completed so far include
 
 ## Verification Steps
 
-- `npm run check:syntax` — passed for 102 JavaScript files.
-- `npm test` — passed 70/70 tests.
+- `npm run check:syntax` — passed for 113 JavaScript files.
+- `npm test` — passed 90/90 tests.
 - `npm run responsive:verify` — passed mobile 320/390/430, tablet 768/1024, and desktop 1365/1440 checks with no horizontal document overflow, no console errors, valid 320px login fit, valid mobile drawer open/Escape close, 44px mobile touch targets, Job Radar flyout/search/filter/pagination checks, valid mobile Job Radar status selector, and 80px desktop collapsed sidebar.
 - `npm run api:verify` — verifies `GET /api/health`, `GET /api/code-practice/challenges`, `GET /api/client-config`, and unauthenticated 401 protection for sampled private job, profile, study, scan, save, and status routes.
 - Vercel header tests — verify the global Content Security Policy includes required Google/auth/font/profile-image allowances and blocks object embeds.

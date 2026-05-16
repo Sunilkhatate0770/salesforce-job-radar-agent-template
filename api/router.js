@@ -39,6 +39,13 @@ import {
   normalizeStudyTaskIndex,
   upsertRetentionTopic
 } from '../src/services/studyService.js';
+import {
+  buildHybridProfile,
+  buildImportedProfile,
+  buildPremiumRoadmap,
+  normalizeProfileSavePayload,
+  topicConfigName
+} from '../src/services/profileService.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
 import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
 import { apiError, apiSuccess, unauthorizedResponse } from '../src/api/apiResponse.js';
@@ -170,46 +177,14 @@ async function safeTursoWrite(label, operation) {
   }
 }
 
-function mergeUnique(arr1 = [], arr2 = [], key) {
-  const map = new Map();
-  [...(arr2 || []), ...(arr1 || [])].forEach(item => {
-    if (!item) return;
-    const id = key ? (typeof item === 'object' ? item[key] : item) : item;
-    if (id !== undefined && id !== null) map.set(String(id), item);
-  });
-  return Array.from(map.values());
-}
-
 async function loadHybridProfile(userId, label = 'profile') {
   const [tursoProfile, mongoProfile] = await Promise.all([
     safeTursoRead(`${label} turso profile`, () => TursoDB.getProfile(userId), null),
     safeMongoRead(`${label} mongo profile`, () => UserProfile.findOne({ userId }).lean(), null)
   ]);
 
-  if (tursoProfile && mongoProfile) {
-    return {
-      profile: {
-        ...mongoProfile,
-        ...tursoProfile,
-        skills: mergeUnique(tursoProfile.skills, mongoProfile.skills),
-        certifications: mergeUnique(tursoProfile.certifications, mongoProfile.certifications),
-        missingSkills: mergeUnique(tursoProfile.missingSkills, mongoProfile.missingSkills),
-        bookmarks: mergeUnique(tursoProfile.bookmarks, mongoProfile.bookmarks, 'q'),
-        completedTasks: mergeUnique(tursoProfile.completedTasks, mongoProfile.completedTasks),
-        studyPlanTopics: mergeUnique(tursoProfile.studyPlanTopics, mongoProfile.studyPlanTopics, 'topicId')
-      },
-      tursoProfile,
-      mongoProfile,
-      source: 'Unified Hybrid (Turso + Mongo)'
-    };
-  }
-
-  return {
-    profile: tursoProfile || mongoProfile || null,
-    tursoProfile,
-    mongoProfile,
-    source: tursoProfile ? 'Turso (Primary)' : (mongoProfile ? 'MongoDB (Legacy)' : 'None')
-  };
+  const hybrid = buildHybridProfile({ tursoProfile, mongoProfile });
+  return { ...hybrid, tursoProfile, mongoProfile };
 }
 
 function mongoJobQuery(userId) {
@@ -375,142 +350,6 @@ function readDataJson(fileName, fallback = {}) {
   }
 }
 
-function clampExperienceYears(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 1;
-  return Math.max(1, Math.min(10, Math.round(n)));
-}
-
-function normalizeList(value) {
-  if (Array.isArray(value)) return value.map(v => String(v || '').trim()).filter(Boolean);
-  if (typeof value === 'string') {
-    return value.split(/[,;\n]/).map(v => v.trim()).filter(Boolean);
-  }
-  return [];
-}
-
-function sanitizeImportText(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\b(password|passwd|pwd|otp|one[-\s]?time password)\b\s*[:=]\s*\S+/gi, '$1: [removed]')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 12000);
-}
-
-function scoreDesignationLabel(normalized, label) {
-  const normalizedLabel = String(label || '').toLowerCase().trim();
-  if (!normalizedLabel) return 0;
-  if (normalized === normalizedLabel) return 10000 + normalizedLabel.length;
-  if (normalized.includes(normalizedLabel)) return 1000 + normalizedLabel.length;
-  if (normalizedLabel.includes(normalized)) return 500 + normalized.length;
-  return 0;
-}
-
-function inferDesignation(rawDesignation, designationsData) {
-  const value = String(rawDesignation || '').trim();
-  if (!value) return designationsData.designations?.[0] || null;
-  const normalized = value.toLowerCase();
-  const ranked = (designationsData.designations || []).map(item => {
-    const labels = [item.label, ...(item.aliases || [])].map(v => String(v || '').toLowerCase());
-    return { item, score: Math.max(...labels.map(label => scoreDesignationLabel(normalized, label))) };
-  }).filter(match => match.score > 0).sort((a, b) => b.score - a.score);
-  return ranked[0]?.item || {
-    id: normalized.replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'custom_designation',
-    label: value,
-    track: 'Custom',
-    primaryTopicIds: []
-  };
-}
-
-function buildPremiumRoadmap(profile = {}) {
-  const roadmaps = readDataJson('career-roadmaps.json', { years: {} });
-  const designations = readDataJson('designation-map.json', { designations: [] });
-  const releases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
-  const trailhead = readDataJson('trailhead-resources.json', { resources: [] });
-
-  const experienceYears = clampExperienceYears(profile.experienceYears || profile.yearsOfExperience || 1);
-  const designation = inferDesignation(
-    profile.targetDesignation || profile.targetRole || profile.currentDesignation || profile.currentRole,
-    designations
-  );
-  const baseRoadmap = roadmaps.years?.[String(experienceYears)] || roadmaps.years?.['1'] || {};
-  const designationTopicIds = new Set(designation?.primaryTopicIds || []);
-  const roadmapTopicIds = new Set(baseRoadmap.topicIds || []);
-  const mergedTopics = [...(baseRoadmap.topics || [])];
-
-  for (const topicId of designationTopicIds) {
-    if (!roadmapTopicIds.has(topicId)) {
-      mergedTopics.push({
-        topicId,
-        topic: topicConfigName(topicId),
-        category: designation?.track || 'Designation',
-        priority: 'medium',
-        estimatedHours: 6,
-        reason: `Added because it is important for ${designation?.label || 'the selected designation'}.`
-      });
-      roadmapTopicIds.add(topicId);
-    }
-  }
-
-  const releaseCategories = new Set(baseRoadmap.releaseFocus || []);
-  const releaseItems = (releases.items || []).filter(item => {
-    const levelMatch = (item.experienceLevels || []).includes(experienceYears);
-    const categoryMatch = releaseCategories.has(item.category);
-    const designationMatch = (item.designations || []).some(d =>
-      String(d).toLowerCase() === String(designation?.label || '').toLowerCase()
-    );
-    return levelMatch && (categoryMatch || designationMatch);
-  });
-
-  const topicSet = new Set(mergedTopics.map(t => t.topicId));
-  const resources = (trailhead.resources || []).filter(resource => {
-    const yearMatch = (resource.recommendedYears || []).includes(experienceYears);
-    const topicMatch = (resource.topicIds || []).some(topicId => topicSet.has(topicId));
-    return yearMatch && topicMatch;
-  });
-
-  return {
-    experienceYears,
-    designation,
-    roadmap: {
-      ...baseRoadmap,
-      topics: mergedTopics,
-      topicIds: Array.from(roadmapTopicIds)
-    },
-    releaseFocus: {
-      activeRelease: releases.activeRelease || {},
-      items: releaseItems.length ? releaseItems : (releases.items || []).filter(item =>
-        (item.experienceLevels || []).includes(experienceYears)
-      ).slice(0, 6)
-    },
-    trailheadResources: resources.slice(0, 8),
-    generatedAt: new Date().toISOString()
-  };
-}
-
-function extractProfileImportFields(text) {
-  const cleanText = sanitizeImportText(text);
-  const skillBank = [
-    'Salesforce', 'Apex', 'SOQL', 'SOSL', 'LWC', 'Aura', 'Flow', 'REST API',
-    'SOAP API', 'Integration', 'Batch Apex', 'Queueable Apex', 'Platform Events',
-    'Change Data Capture', 'Sales Cloud', 'Service Cloud', 'Experience Cloud',
-    'Data Cloud', 'Agentforce', 'CPQ', 'Git', 'Copado', 'DevOps', 'Reports',
-    'Dashboards', 'Security', 'Sharing Rules'
-  ];
-  const skills = skillBank.filter(skill => new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(cleanText));
-  const yearsMatch = cleanText.match(/(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)\b/i);
-  const certMatches = cleanText.match(/Salesforce Certified [A-Za-z0-9 &-]+/gi) || [];
-  const roleMatch = cleanText.match(/\b(?:Senior |Lead |Junior |Associate )?Salesforce [A-Za-z ]{3,40}\b/i);
-  return {
-    rawText: cleanText,
-    skills,
-    experienceYears: yearsMatch ? clampExperienceYears(yearsMatch[1]) : undefined,
-    currentDesignation: roleMatch ? roleMatch[0].trim() : undefined,
-    certifications: Array.from(new Set(certMatches.map(v => v.trim())))
-  };
-}
-
 function normalizeJobForPrompt(job = {}) {
   return {
     title: job.title || job.role || 'Salesforce role',
@@ -520,12 +359,6 @@ function normalizeJobForPrompt(job = {}) {
     missingSkills: Array.isArray(job.missing_skills) ? job.missing_skills : [],
     url: job.apply_link || job.url || ''
   };
-}
-
-function topicConfigName(topicId) {
-  return String(topicId || '')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, char => char.toUpperCase());
 }
 
 function getCodePracticeCatalog() {
@@ -960,24 +793,14 @@ export default async function(req, res) {
 
     if (path === 'profile/save' && req.method === 'POST') {
       console.log(`[PROFILE] Saving data to Primary Mongo for ${userId}`);
-      const { _id, __v, createdAt, ...body } = readBody(req);
-      const normalizedProfile = {
-        ...body,
+      const body = readBody(req);
+      const { profile: existingProfile } = await loadHybridProfile(userId, 'profile/save-existing');
+      const { profile: normalizedProfile } = normalizeProfileSavePayload({
+        body,
+        existingProfile,
         userId,
-        experienceYears: body.experienceYears ? clampExperienceYears(body.experienceYears) : body.experienceYears,
-        skills: normalizeList(body.skills),
-        certifications: normalizeList(body.certifications),
-        clouds: normalizeList(body.clouds),
-        tools: normalizeList(body.tools),
-        domains: normalizeList(body.domains),
-        uiMode: body.uiMode === 'classic' ? 'classic' : 'modern',
-        updatedAt: new Date()
-      };
-      const intelligence = buildPremiumRoadmap(normalizedProfile);
-      normalizedProfile.roadmapSnapshot = intelligence.roadmap;
-      normalizedProfile.releaseFocus = intelligence.releaseFocus;
-      if (!normalizedProfile.targetRole && normalizedProfile.targetDesignation) normalizedProfile.targetRole = normalizedProfile.targetDesignation;
-      if (!normalizedProfile.currentRole && normalizedProfile.currentDesignation) normalizedProfile.currentRole = normalizedProfile.currentDesignation;
+        readDataJson
+      });
       const [mongoStored, tursoStored] = await Promise.all([
         safeMongoWrite('profile/save', () => UserProfile.findOneAndUpdate(
           { userId },
@@ -989,40 +812,22 @@ export default async function(req, res) {
       if (!mongoStored && !tursoStored) {
         return res.status(503).json({ success: false, error: 'No profile storage backend is currently writable.' });
       }
-      return res.status(200).json({ success: true, storage: { mongo: mongoStored, turso: tursoStored } });
+      return res.status(200).json({ success: true, profile: normalizedProfile, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
     if (path === 'profile/import' && req.method === 'POST') {
       const body = readBody(req);
-      const source = String(body.source || 'manual').toLowerCase().slice(0, 40);
-      const extracted = extractProfileImportFields(body.text || body.profileText || '');
-      if (!extracted.rawText) {
-        return res.status(400).json({ success: false, error: 'Profile text is required' });
-      }
-
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'profile/import');
-      const profile = loadedProfile || {};
-      const { _id, __v, createdAt, ...profileBase } = profile;
-      const nextProfile = {
-        ...profileBase,
+      const imported = buildImportedProfile({
+        body,
+        existingProfile: loadedProfile,
         userId,
-        skills: mergeUnique(extracted.skills, profile.skills),
-        certifications: mergeUnique(extracted.certifications, profile.certifications),
-        experienceYears: extracted.experienceYears || profile.experienceYears || clampExperienceYears(body.experienceYears || 1),
-        currentDesignation: extracted.currentDesignation || profile.currentDesignation || profile.currentRole,
-        targetDesignation: body.targetDesignation || profile.targetDesignation || profile.targetRole || extracted.currentDesignation,
-        currentRole: extracted.currentDesignation || profile.currentRole || profile.currentDesignation,
-        targetRole: body.targetDesignation || profile.targetRole || profile.targetDesignation || extracted.currentDesignation,
-        uiMode: profile.uiMode || 'modern',
-        profileImports: [
-          ...(profile.profileImports || []).slice(-4),
-          { source, text: extracted.rawText, importedAt: new Date() }
-        ],
-        updatedAt: new Date()
-      };
-      const intelligence = buildPremiumRoadmap(nextProfile);
-      nextProfile.roadmapSnapshot = intelligence.roadmap;
-      nextProfile.releaseFocus = intelligence.releaseFocus;
+        readDataJson
+      });
+      if (imported.error) {
+        return res.status(400).json({ success: false, error: imported.error });
+      }
+      const { profile: nextProfile, extracted, intelligence } = imported;
 
       const [mongoStored, tursoStored] = await Promise.all([
         safeMongoWrite('profile/import', () => UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true })),
@@ -1037,7 +842,7 @@ export default async function(req, res) {
     if (path === 'roadmap') {
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'roadmap');
       const profile = loadedProfile || {};
-      const intelligence = buildPremiumRoadmap(profile);
+      const intelligence = buildPremiumRoadmap(profile, readDataJson);
       return res.status(200).json({ success: true, ...intelligence });
     }
 
@@ -1065,7 +870,7 @@ export default async function(req, res) {
     if (path === 'releases/latest' || path === 'releases/current') {
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'releases/current');
       const profile = loadedProfile || {};
-      const intelligence = buildPremiumRoadmap(profile);
+      const intelligence = buildPremiumRoadmap(profile, readDataJson);
       const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
       const allReleases = await readReleaseCenterPayload(fallbackReleases);
       return res.status(200).json({
@@ -1082,7 +887,7 @@ export default async function(req, res) {
 
     if (path === 'releases/study-actions' && req.method === 'GET') {
       const { profile: loadedProfile } = await loadHybridProfile(userId, 'releases/study-actions');
-      const intelligence = buildPremiumRoadmap(loadedProfile || {});
+      const intelligence = buildPremiumRoadmap(loadedProfile || {}, readDataJson);
       const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
       const allReleases = await readReleaseCenterPayload(fallbackReleases);
       const payload = {

@@ -44,6 +44,7 @@ Google ID token verification is centralized in `src/auth/session.js` and shared 
 The current private profile model also supports `codingPractice`, `questionAttempts`, `mockInterviewSessions`, `releaseStudyActions`, `dailyStudyPlan`, `userSettings`, and `notes`. Local-only fallbacks follow the same `sfjr:${userId}:featureName` pattern.
 
 Study history, task completion, retention updates, and daily summaries share tested logic in `src/services/studyService.js` so local and Vercel routes stay aligned.
+Profile import, save normalization, hybrid Mongo/Turso profile merge, and roadmap generation share tested logic in `src/services/profileService.js`. When Mongo is unavailable in local dev, profile fallback data is stored by user in `.cache/profile-cache.json`; the old `.cache/profile-sync.json` path is treated only as a legacy migration source.
 
 ## Demo Mode vs Real User Mode
 
@@ -136,10 +137,11 @@ See `.env.example` for the complete list. Critical variables:
 │   ├── jobs/            # Job processing and dashboard logic
 │   ├── api/             # API contracts and health checks
 │   ├── data/            # Navigation, Salesforce content, and study analytics modules
+│   ├── services/        # Shared auth-safe business logic for dashboard, study, and profile routes
 │   └── tools/           # CLI tools (doctor, tracker, etc.)
 ├── data/                # Static JSON data (roadmaps, releases, topics)
 ├── pages/               # HTML page templates
-├── test/                # Node.js test suite (70 tests)
+├── test/                # Node.js test suite (90 tests)
 └── vercel.json          # Vercel deployment config
 ```
 

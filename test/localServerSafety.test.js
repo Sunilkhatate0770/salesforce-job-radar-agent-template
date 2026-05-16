@@ -9,4 +9,6 @@ test('local server does not keep legacy unscoped private-data fallbacks', () => 
   assert.doesNotMatch(source, /JobRecord\.find\(\)\.sort/);
   assert.doesNotMatch(source, /url\.includes\('ai\/interview'\)/);
   assert.doesNotMatch(source, /generateDailySummary\(userId\)/);
+  assert.match(source, /profile-cache\.json/);
+  assert.doesNotMatch(source, /fs\.writeFileSync\(path\.join\(CACHE_DIR, 'profile-sync\.json'/);
 });

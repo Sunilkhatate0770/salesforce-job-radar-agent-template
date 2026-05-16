@@ -41,6 +41,12 @@ import {
   normalizeStudyTaskIndex,
   upsertRetentionTopic
 } from './services/studyService.js';
+import {
+  buildImportedProfile,
+  buildPremiumRoadmap,
+  normalizeProfileSavePayload,
+  topicConfigName
+} from './services/profileService.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
 import { apiError, apiSuccess, sendNodeJson, unauthorizedResponse } from './api/apiResponse.js';
 import { getAuthenticatedUserId, verifyGoogleCredential } from './auth/session.js';
@@ -213,51 +219,6 @@ function applyJobStatusOverrides(jobs = [], overrides = {}) {
       appliedAt: override.appliedAt || job.appliedAt
     };
   });
-}
-
-function clampExperienceYears(value) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return 1;
-  return Math.max(1, Math.min(10, Math.round(n)));
-}
-
-function normalizeList(value) {
-  if (Array.isArray(value)) return value.map(v => String(v || '').trim()).filter(Boolean);
-  if (typeof value === 'string') return value.split(/[,;\n]/).map(v => v.trim()).filter(Boolean);
-  return [];
-}
-
-function sanitizeImportText(value) {
-  return String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\b(password|passwd|pwd|otp|one[-\s]?time password)\b\s*[:=]\s*\S+/gi, '$1: [removed]')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 12000);
-}
-
-function scoreDesignationLabel(normalized, label) {
-  const normalizedLabel = String(label || '').toLowerCase().trim();
-  if (!normalizedLabel) return 0;
-  if (normalized === normalizedLabel) return 10000 + normalizedLabel.length;
-  if (normalized.includes(normalizedLabel)) return 1000 + normalizedLabel.length;
-  if (normalizedLabel.includes(normalized)) return 500 + normalized.length;
-  return 0;
-}
-
-function inferDesignation(rawDesignation, designationsData) {
-  const value = String(rawDesignation || '').trim();
-  if (!value) return designationsData.designations?.[0] || null;
-  const normalized = value.toLowerCase();
-  const ranked = (designationsData.designations || []).map(item => {
-    const labels = [item.label, ...(item.aliases || [])].map(v => String(v || '').toLowerCase());
-    return { item, score: Math.max(...labels.map(label => scoreDesignationLabel(normalized, label))) };
-  }).filter(match => match.score > 0).sort((a, b) => b.score - a.score);
-  return ranked[0]?.item || { id: normalized.replace(/[^a-z0-9]+/g, '_'), label: value, track: 'Custom', primaryTopicIds: [] };
-}
-
-function topicConfigName(topicId) {
-  return String(topicId || '').replace(/[_-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function readBody(req) {
@@ -450,49 +411,36 @@ function writeLocalCodePracticeProgress(userId, codingPractice) {
   fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
 }
 
-function buildPremiumRoadmap(profile = {}) {
-  const roadmaps = readDataJson('career-roadmaps.json', { years: {} });
-  const designations = readDataJson('designation-map.json', { designations: [] });
-  const releases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
-  const trailhead = readDataJson('trailhead-resources.json', { resources: [] });
-  const experienceYears = clampExperienceYears(profile.experienceYears || 1);
-  const designation = inferDesignation(profile.targetDesignation || profile.targetRole || profile.currentDesignation || profile.currentRole, designations);
-  const baseRoadmap = roadmaps.years?.[String(experienceYears)] || roadmaps.years?.['1'] || {};
-  const roadmapTopicIds = new Set(baseRoadmap.topicIds || []);
-  const topics = [...(baseRoadmap.topics || [])];
-  for (const topicId of designation?.primaryTopicIds || []) {
-    if (!roadmapTopicIds.has(topicId)) {
-      topics.push({ topicId, topic: topicConfigName(topicId), category: designation.track || 'Designation', priority: 'medium', estimatedHours: 6, reason: `Added for ${designation.label}.` });
-      roadmapTopicIds.add(topicId);
-    }
+function readJsonFileSafe(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) {
+    return fallback;
   }
-  const releaseCategories = new Set(baseRoadmap.releaseFocus || []);
-  const releaseItems = (releases.items || []).filter(item => {
-    const levelMatch = (item.experienceLevels || []).includes(experienceYears);
-    const categoryMatch = releaseCategories.has(item.category);
-    const designationMatch = (item.designations || []).some(d => String(d).toLowerCase() === String(designation?.label || '').toLowerCase());
-    return levelMatch && (categoryMatch || designationMatch);
-  });
-  const topicSet = new Set(topics.map(t => t.topicId));
-  const resources = (trailhead.resources || []).filter(r => (r.recommendedYears || []).includes(experienceYears) && (r.topicIds || []).some(id => topicSet.has(id))).slice(0, 8);
-  return {
-    experienceYears,
-    designation,
-    roadmap: { ...baseRoadmap, topics, topicIds: Array.from(roadmapTopicIds) },
-    releaseFocus: { activeRelease: releases.activeRelease || {}, items: releaseItems.length ? releaseItems : (releases.items || []).filter(item => (item.experienceLevels || []).includes(experienceYears)).slice(0, 6) },
-    trailheadResources: resources,
-    generatedAt: new Date().toISOString()
-  };
 }
 
-function extractProfileImportFields(text) {
-  const rawText = sanitizeImportText(text);
-  const skillBank = ['Salesforce', 'Apex', 'SOQL', 'LWC', 'Aura', 'Flow', 'REST API', 'SOAP API', 'Integration', 'Batch Apex', 'Queueable Apex', 'Platform Events', 'Sales Cloud', 'Service Cloud', 'Experience Cloud', 'Data Cloud', 'Agentforce', 'CPQ', 'Git', 'Copado', 'DevOps', 'Reports', 'Dashboards', 'Security'];
-  const skills = skillBank.filter(skill => new RegExp(`\\b${skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(rawText));
-  const yearsMatch = rawText.match(/(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)\b/i);
-  const certMatches = rawText.match(/Salesforce Certified [A-Za-z0-9 &-]+/gi) || [];
-  const roleMatch = rawText.match(/\b(?:Senior |Lead |Junior |Associate )?Salesforce [A-Za-z ]{3,40}\b/i);
-  return { rawText, skills, experienceYears: yearsMatch ? clampExperienceYears(yearsMatch[1]) : undefined, currentDesignation: roleMatch ? roleMatch[0].trim() : undefined, certifications: Array.from(new Set(certMatches.map(v => v.trim()))) };
+function readLocalProfile(userId) {
+  const cachePath = path.join(CACHE_DIR, 'profile-cache.json');
+  const cache = readJsonFileSafe(cachePath, {});
+  if (cache[userId]) return cache[userId];
+
+  const legacyPath = path.join(CACHE_DIR, 'profile-sync.json');
+  const legacy = readJsonFileSafe(legacyPath, null);
+  if (!legacy) return null;
+  if (legacy.userId && legacy.userId !== userId) return null;
+
+  const migrated = { ...legacy, userId, migratedFromLegacyProfileSyncAt: new Date().toISOString() };
+  writeLocalProfile(userId, migrated);
+  return migrated;
+}
+
+function writeLocalProfile(userId, profile) {
+  const cachePath = path.join(CACHE_DIR, 'profile-cache.json');
+  fs.mkdirSync(CACHE_DIR, { recursive: true });
+  const cache = readJsonFileSafe(cachePath, {});
+  cache[userId] = { ...(profile || {}), userId };
+  fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
 }
 
 // MongoDB Connection
@@ -952,65 +900,29 @@ export default async function handler(req, res) {
           res.end(JSON.stringify({ success: false, error: 'topicId and stats are required' }));
           return;
         }
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
+        const { topics } = upsertRetentionTopic(profile?.studyPlanTopics, topicId, stats, topicConfigName);
         if (isMongoConnected) {
-          const profile = await UserProfile.findOne({ userId }).lean();
-          const { topics } = upsertRetentionTopic(profile?.studyPlanTopics, topicId, stats);
           await UserProfile.findOneAndUpdate({ userId }, { userId, studyPlanTopics: topics, updatedAt: new Date() }, { upsert: true });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, studyPlanTopics: topics }));
         } else {
+          writeLocalProfile(userId, { ...(profile || {}), userId, studyPlanTopics: topics, updatedAt: new Date() });
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, studyPlanTopics: [] }));
+          res.end(JSON.stringify({ success: true, studyPlanTopics: topics }));
         }
       }
       else if (url.includes('profile/save') && method === 'POST') {
-        const { _id, __v, createdAt, ...profileData } = await readJsonRequest(req);
-
-        // Fetch existing for merging
-        let existing = null;
-        if (isMongoConnected) {
-          existing = await UserProfile.findOne({ userId }).lean();
-        }
-
-        let mergedSkills = existing ? [...new Set([...(existing.skills || []), ...normalizeList(profileData.skills)])] : normalizeList(profileData.skills);
-        let mergedCerts = existing ? [...new Set([...(existing.certifications || []), ...normalizeList(profileData.certifications)])] : normalizeList(profileData.certifications);
-        let mergedMissing = existing ? [...new Set([...(existing.missingSkills || []), ...normalizeList(profileData.missingSkills)])] : normalizeList(profileData.missingSkills);
-
-        let platforms = existing?.platforms || {};
-        if (profileData.platform === 'LinkedIn') platforms.linkedin = { synced: true, lastSync: new Date() };
-        if (profileData.platform === 'Naukri') platforms.naukri = { synced: true, lastSync: new Date() };
-
-        let rawExtraction = existing?.rawExtraction || {};
-        if (profileData.platform === 'LinkedIn') { rawExtraction.linkedinSkills = profileData.skills; rawExtraction.linkedinCerts = profileData.certifications; }
-        if (profileData.platform === 'Naukri') { rawExtraction.naukriSkills = profileData.skills; rawExtraction.naukriCerts = profileData.certifications; }
+        const profileData = await readJsonRequest(req);
+        const existing = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
+        const { profile: normalizedProfile } = normalizeProfileSavePayload({
+          body: profileData,
+          existingProfile: existing,
+          userId,
+          readDataJson
+        });
 
         if (isMongoConnected) {
-          const normalizedProfile = {
-            ...profileData,
-            userId,
-            platforms,
-            skills: mergedSkills,
-            experienceYears: clampExperienceYears(profileData.experienceYears || existing?.experienceYears || 1),
-            currentDesignation: profileData.currentDesignation || existing?.currentDesignation,
-            targetDesignation: profileData.targetDesignation || existing?.targetDesignation,
-            currentRole: profileData.currentRole || profileData.currentDesignation || existing?.currentRole,
-            targetRole: profileData.targetRole || profileData.targetDesignation || existing?.targetRole,
-            uiMode: profileData.uiMode === 'classic' ? 'classic' : 'modern',
-            certifications: mergedCerts,
-            clouds: normalizeList(profileData.clouds || existing?.clouds),
-            tools: normalizeList(profileData.tools || existing?.tools),
-            domains: normalizeList(profileData.domains || existing?.domains),
-            jobPreferences: profileData.jobPreferences || existing?.jobPreferences,
-            profileImports: profileData.profileImports || existing?.profileImports || [],
-            missingSkills: mergedMissing,
-            studyPlan: profileData.studyPlan || existing?.studyPlan,
-            studyPlanTopics: (profileData.studyPlanTopics && profileData.studyPlanTopics.length > 0) ? profileData.studyPlanTopics : (existing?.studyPlanTopics || []),
-            rawExtraction,
-            updatedAt: new Date()
-          };
-          const intelligence = buildPremiumRoadmap(normalizedProfile);
-          normalizedProfile.roadmapSnapshot = intelligence.roadmap;
-          normalizedProfile.releaseFocus = intelligence.releaseFocus;
           const profile = await UserProfile.findOneAndUpdate(
             { userId },
             normalizedProfile,
@@ -1019,62 +931,41 @@ export default async function handler(req, res) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, profile }));
         } else {
-          // Fallback: save to local cache
-          const intelligence = buildPremiumRoadmap(profileData);
-          const cachePath = path.join(CACHE_DIR, 'profile-sync.json');
-          fs.mkdirSync(CACHE_DIR, { recursive: true });
-          fs.writeFileSync(cachePath, JSON.stringify({ ...profileData, skills: mergedSkills, certifications: mergedCerts, missingSkills: mergedMissing, platforms, rawExtraction, roadmapSnapshot: intelligence.roadmap, releaseFocus: intelligence.releaseFocus }, null, 2));
+          writeLocalProfile(userId, normalizedProfile);
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, profile: profileData }));
+          res.end(JSON.stringify({ success: true, profile: normalizedProfile }));
         }
       }
       else if (url === '/api/profile/import' && method === 'POST') {
         const payload = await readJsonRequest(req);
-        const extracted = extractProfileImportFields(payload.text || payload.profileText || '');
-        if (!extracted.rawText) {
+        const existing = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
+        const imported = buildImportedProfile({
+          body: payload,
+          existingProfile: existing,
+          userId,
+          readDataJson
+        });
+        if (imported.error) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'Profile text is required' }));
+          res.end(JSON.stringify({ success: false, error: imported.error }));
           return;
         }
-        const existing = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
-        const { _id, __v, createdAt, ...existingBase } = existing || {};
-        const nextProfile = {
-          ...existingBase,
-          userId,
-          skills: [...new Set([...(existing?.skills || []), ...extracted.skills])],
-          certifications: [...new Set([...(existing?.certifications || []), ...extracted.certifications])],
-          experienceYears: extracted.experienceYears || existing?.experienceYears || 1,
-          currentDesignation: extracted.currentDesignation || existing?.currentDesignation || existing?.currentRole,
-          targetDesignation: payload.targetDesignation || existing?.targetDesignation || existing?.targetRole || extracted.currentDesignation,
-          currentRole: extracted.currentDesignation || existing?.currentRole || existing?.currentDesignation,
-          targetRole: payload.targetDesignation || existing?.targetRole || existing?.targetDesignation || extracted.currentDesignation,
-          uiMode: existing?.uiMode || 'modern',
-          profileImports: [...(existing?.profileImports || []).slice(-4), { source: String(payload.source || 'manual').slice(0, 40), text: extracted.rawText, importedAt: new Date() }],
-          updatedAt: new Date()
-        };
-        const intelligence = buildPremiumRoadmap(nextProfile);
-        nextProfile.roadmapSnapshot = intelligence.roadmap;
-        nextProfile.releaseFocus = intelligence.releaseFocus;
+        const { profile: nextProfile, extracted, intelligence } = imported;
         if (isMongoConnected) await UserProfile.findOneAndUpdate({ userId }, nextProfile, { upsert: true, new: true });
-        else {
-          fs.mkdirSync(CACHE_DIR, { recursive: true });
-          fs.writeFileSync(path.join(CACHE_DIR, 'profile-sync.json'), JSON.stringify(nextProfile, null, 2));
-        }
+        else writeLocalProfile(userId, nextProfile);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, extractedData: extracted, intelligence }));
       }
       else if (url === '/api/roadmap' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
-        const fallbackPath = path.join(CACHE_DIR, 'profile-sync.json');
-        const fallbackProfile = !profile && fs.existsSync(fallbackPath) ? JSON.parse(fs.readFileSync(fallbackPath, 'utf8')) : {};
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, ...buildPremiumRoadmap(profile || fallbackProfile) }));
+        res.end(JSON.stringify({ success: true, ...buildPremiumRoadmap(profile || {}, readDataJson) }));
       }
       else if (url === '/api/releases/current' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
         const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
         const allReleases = await readReleaseCenterPayload(fallbackReleases);
-        const intelligence = buildPremiumRoadmap(profile || {});
+        const intelligence = buildPremiumRoadmap(profile || {}, readDataJson);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: true,
@@ -1088,10 +979,10 @@ export default async function handler(req, res) {
         }));
       }
       else if (url === '/api/releases/study-actions' && method === 'GET') {
-        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : null;
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
         const fallbackReleases = readDataJson('salesforce-releases.json', { activeRelease: {}, items: [] });
         const allReleases = await readReleaseCenterPayload(fallbackReleases);
-        const intelligence = buildPremiumRoadmap(profile || {});
+        const intelligence = buildPremiumRoadmap(profile || {}, readDataJson);
         const studyActions = buildReleaseStudyActions({
           ...allReleases,
           personalizedItems: selectPersonalizedReleaseItems(allReleases.items || [], intelligence)
@@ -1102,6 +993,8 @@ export default async function handler(req, res) {
             { userId, releaseStudyActions: studyActions, updatedAt: new Date() },
             { upsert: true, new: true }
           );
+        } else {
+          writeLocalProfile(userId, { ...(profile || {}), userId, releaseStudyActions: studyActions, updatedAt: new Date() });
         }
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, generatedAt: new Date().toISOString(), studyActions }));
@@ -1233,31 +1126,12 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, codingPractice }));
       }
       else if (url.includes('profile/data') && method === 'GET') {
-        if (isMongoConnected) {
-          const profile = await UserProfile.findOne({ userId }).lean();
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ exists: !!profile, profile }));
-        } else {
-          // Fallback: read from local cache
-          const cachePath = path.join(CACHE_DIR, 'profile-sync.json');
-          if (fs.existsSync(cachePath)) {
-            const data = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ exists: true, profile: data }));
-          } else {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ exists: false, profile: null }));
-          }
-        }
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ exists: !!profile, profile }));
       }
       else if (url.includes('profile/match') && method === 'GET') {
-        let profile = null;
-        if (isMongoConnected) {
-          profile = await UserProfile.findOne({ userId }).lean();
-        } else {
-          const cachePath = path.join(CACHE_DIR, 'profile-sync.json');
-          if (fs.existsSync(cachePath)) profile = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-        }
+        const profile = isMongoConnected ? await UserProfile.findOne({ userId }).lean() : readLocalProfile(userId);
         if (!profile) {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ hasProfile: false, match: null }));
