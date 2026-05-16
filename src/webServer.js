@@ -2,7 +2,6 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateDailySummary } from './summaryService.js';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import { StudySession, TaskStatus, User, JobRecord, UserProfile } from './models/models.js';
@@ -34,6 +33,14 @@ import {
   buildReleaseStudyActions,
   createMockInterviewSession
 } from './services/dashboardSummary.js';
+import {
+  buildStudySummaryHistory,
+  getDailySummary,
+  mergeCompletedTasks,
+  mergeStudyHistory,
+  normalizeStudyTaskIndex,
+  upsertRetentionTopic
+} from './services/studyService.js';
 import { parseJsonBody } from './api/requestSanitizer.js';
 import { apiError, apiSuccess, sendNodeJson, unauthorizedResponse } from './api/apiResponse.js';
 import { getAuthenticatedUserId, verifyGoogleCredential } from './auth/session.js';
@@ -620,7 +627,7 @@ export default async function handler(req, res) {
         res.end(JSON.stringify({ success: true, ...filterCodePracticeChallenges(requestUrl.searchParams) }));
       }
       else if (url === '/api/study/history' && method === 'GET') {
-        const sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean();
+        const sessions = mergeStudyHistory([], await StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean(), 100);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(sessions));
       } 
@@ -639,12 +646,12 @@ export default async function handler(req, res) {
         }
         const tasks = await TaskStatus.find({ userId, completed: true }).lean();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ completedTasks: tasks.map(t => t.index) }));
+        res.end(JSON.stringify({ completedTasks: mergeCompletedTasks({ mongoTasks: tasks }) }));
       }
       else if (url === '/api/study/toggle-task' && method === 'POST') {
         const payload = await readJsonRequest(req);
-        const taskIndex = Number(payload.index ?? payload.taskId);
-        if (!Number.isFinite(taskIndex)) {
+        const taskIndex = normalizeStudyTaskIndex(payload);
+        if (taskIndex === null) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: false, error: 'index or taskId is required' }));
           return;
@@ -657,7 +664,7 @@ export default async function handler(req, res) {
             { userId, index: taskIndex, completed: nextCompleted, updatedAt: new Date() },
             { upsert: true, new: true }
           );
-          const completedTasks = (await TaskStatus.find({ userId, completed: true }).lean()).map(t => t.index);
+          const completedTasks = mergeCompletedTasks({ mongoTasks: await TaskStatus.find({ userId, completed: true }).lean() });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, completedTasks }));
         } else {
@@ -812,23 +819,31 @@ export default async function handler(req, res) {
         }));
       }
       else if (url.includes('summary/all')) {
-        if (!isMongoConnected) {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({}));
-          return;
-        }
-        const result = await generateDailySummary(userId);
+        const [sessions, jobs] = isMongoConnected
+          ? await Promise.all([
+              StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean(),
+              JobRecord.find({ userId }).sort({ createdAt: -1 }).limit(1000).lean()
+            ])
+          : [[], []];
+        const result = buildStudySummaryHistory(
+          mergeStudyHistory([], sessions, 1000),
+          jobs
+        );
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(result));
       }
       else if (url.includes('summary/daily')) {
-        let sessions = null;
+        let sessions = [];
+        let jobs = [];
         if (isMongoConnected) {
-          sessions = await StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean();
+          [sessions, jobs] = await Promise.all([
+            StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean(),
+            JobRecord.find({ userId }).sort({ createdAt: -1 }).limit(1000).lean()
+          ]);
         }
-        const summaries = generateDailySummary(sessions);
+        const summaries = buildStudySummaryHistory(mergeStudyHistory([], sessions, 1000), jobs);
         const todayStr = new Date().toISOString().split('T')[0];
-        const summary = summaries[todayStr] || { date: todayStr, study: { totalSeconds: 0, topTopic: 'None', sessionsCount: 0, allTopics: [], topicBreakdown: {} }, jobs: { newCount: 0, topMatches: [] } };
+        const summary = getDailySummary(summaries, todayStr);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(summary));
       }
@@ -939,19 +954,7 @@ export default async function handler(req, res) {
         }
         if (isMongoConnected) {
           const profile = await UserProfile.findOne({ userId }).lean();
-          const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
-          const index = topics.findIndex(t => t.topicId === topicId);
-          const retentionTopic = {
-            ...(index >= 0 ? topics[index] : {}),
-            topicId,
-            topic: String(topicId).replace(/[_-]+/g, ' '),
-            confidence: Number(stats.confidence || 0),
-            nextReview: stats.nextReview ? new Date(stats.nextReview) : undefined,
-            interval: Number(stats.interval || 0),
-            easeFactor: Number(stats.easeFactor || 2.5)
-          };
-          if (index >= 0) topics[index] = retentionTopic;
-          else topics.push(retentionTopic);
+          const { topics } = upsertRetentionTopic(profile?.studyPlanTopics, topicId, stats);
           await UserProfile.findOneAndUpdate({ userId }, { userId, studyPlanTopics: topics, updatedAt: new Date() }, { upsert: true });
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ success: true, studyPlanTopics: topics }));

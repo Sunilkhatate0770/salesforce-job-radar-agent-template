@@ -11,6 +11,7 @@
 | API response shape | Unauthorized/auth failure responses were inconsistent between local and serverless paths. | Added `src/api/apiResponse.js` and wired auth/private-route failures through a consistent safe `{ success:false, error, code }` envelope. | `src/api/apiResponse.js`, `api/router.js`, `src/webServer.js` |
 | Legacy local fallback routes | `src/webServer.js` still contained dead post-handler fallback blocks, including an unscoped `StudySession.find()` summary path. | Removed the unreachable legacy blocks and added a regression test to prevent unscoped private-data reads from returning. | `src/webServer.js`, `test/localServerSafety.test.js` |
 | Auth regression coverage | Token parsing and server-owned identity resolution were not directly tested. | Added tests proving `userId` comes from the verified Google token, invalid tokens fail closed, and response envelopes stay stable. | `test/authSession.test.js` |
+| Study route duplication | Study stats/history/task/summary calculations were repeated in Vercel and local routes, and local `/api/summary/all` still called the legacy summary generator with a `userId` string. | Added `src/services/studyService.js`, wired shared retention/history/task/summary helpers into both route surfaces, and added focused service tests. | `src/services/studyService.js`, `api/router.js`, `src/webServer.js`, `test/studyService.test.js` |
 
 ## 2026-05-14 Upgrade Pass
 

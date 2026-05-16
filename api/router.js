@@ -30,6 +30,15 @@ import {
   buildReleaseStudyActions,
   createMockInterviewSession
 } from '../src/services/dashboardSummary.js';
+import {
+  buildStudyStats,
+  buildStudySummaryHistory,
+  getDailySummary,
+  mergeCompletedTasks,
+  mergeStudyHistory,
+  normalizeStudyTaskIndex,
+  upsertRetentionTopic
+} from '../src/services/studyService.js';
 import { applyRateLimit } from '../src/api/rateLimit.js';
 import { parseJsonBody, sanitizeApiBody } from '../src/api/requestSanitizer.js';
 import { apiError, apiSuccess, unauthorizedResponse } from '../src/api/apiResponse.js';
@@ -932,19 +941,7 @@ export default async function(req, res) {
       }
 
       const { profile } = await loadHybridProfile(userId, 'profile/save-retention');
-      const topics = Array.isArray(profile?.studyPlanTopics) ? [...profile.studyPlanTopics] : [];
-      const index = topics.findIndex(t => t.topicId === topicId);
-      const retentionTopic = {
-        ...(index >= 0 ? topics[index] : {}),
-        topicId,
-        topic: topicConfigName(topicId),
-        confidence: Number(stats.confidence || 0),
-        nextReview: stats.nextReview ? new Date(stats.nextReview) : undefined,
-        interval: Number(stats.interval || 0),
-        easeFactor: Number(stats.easeFactor || 2.5)
-      };
-      if (index >= 0) topics[index] = retentionTopic;
-      else topics.push(retentionTopic);
+      const { topics } = upsertRetentionTopic(profile?.studyPlanTopics, topicId, stats, topicConfigName);
 
       const nextProfile = { ...(profile || {}), userId, studyPlanTopics: topics, updatedAt: new Date() };
       const [mongoStored, tursoStored] = await Promise.all([
@@ -1510,7 +1507,7 @@ export default async function(req, res) {
         () => StudySession.find({ userId }).sort({ startTime: -1 }).limit(100).lean(),
         []
       );
-      const combined = [...tursoSessions, ...mongoSessions].sort((a,b) => new Date(b.startTime) - new Date(a.startTime));
+      const combined = mergeStudyHistory(tursoSessions, mongoSessions, 100);
       console.log(`[STUDY] History Fetch -> Turso: ${tursoSessions.length}, Mongo: ${mongoSessions.length}`);
       return res.status(200).json(combined);
     }
@@ -1536,35 +1533,21 @@ export default async function(req, res) {
         safeTursoRead('study/stats turso', () => TursoDB.getFullHistory(userId), []),
         safeMongoRead('study/stats mongo', () => StudySession.find({ userId }).lean(), [])
       ]);
-      const sessions = [...tursoSessions, ...mongoSessions];
-      const totalSeconds = sessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-      const topicCounts = {};
-      sessions.forEach(s => {
-        const topicId = s.topicId || s.topic;
-        if (topicId) topicCounts[topicId] = (topicCounts[topicId] || 0) + (s.duration || 0);
-      });
-      return res.status(200).json({
-        totalSeconds,
-        sessionsCount: sessions.length,
-        breakdown: topicCounts
-      });
+      return res.status(200).json(buildStudyStats([...tursoSessions, ...mongoSessions]));
     }
 
     if (path === 'study/tasks') {
       const tursoProfile = await safeTursoRead('study/tasks profile', () => TursoDB.getProfile(userId), null);
       const mongoTasks = await safeMongoRead('study/tasks mongo', () => TaskStatus.find({ userId, completed: true }).lean(), []);
-      const combinedTasks = Array.from(new Set([
-        ...(tursoProfile?.completedTasks || []),
-        ...mongoTasks.map(t => t.index)
-      ].map(Number).filter(Number.isFinite)));
+      const combinedTasks = mergeCompletedTasks({ tursoProfile, mongoTasks });
       console.log(`[TASKS] Hybrid Loading: ${combinedTasks.length} total completed tasks`);
       return res.status(200).json({ completedTasks: combinedTasks });
     }
 
     if (path === 'study/toggle-task' && req.method === 'POST') {
       const body = readBody(req);
-      const taskIndex = Number(body.index ?? body.taskId);
-      if (!Number.isFinite(taskIndex)) {
+      const taskIndex = normalizeStudyTaskIndex(body);
+      if (taskIndex === null) {
         return res.status(400).json({ success: false, error: 'index or taskId is required' });
       }
 
@@ -1586,10 +1569,7 @@ export default async function(req, res) {
 
       const tursoProfile = await safeTursoRead('study/toggle-task profile', () => TursoDB.getProfile(userId), null);
       const mongoTasks = await safeMongoRead('study/toggle-task tasks', () => TaskStatus.find({ userId, completed: true }).lean(), []);
-      const completedTasks = Array.from(new Set([
-        ...(tursoProfile?.completedTasks || []),
-        ...mongoTasks.map(t => t.index)
-      ].map(Number).filter(Number.isFinite)));
+      const completedTasks = mergeCompletedTasks({ tursoProfile, mongoTasks });
       return res.status(200).json({ success: true, completedTasks, storage: { mongo: mongoStored, turso: tursoStored } });
     }
 
@@ -1638,7 +1618,7 @@ export default async function(req, res) {
         () => StudySession.find({ userId }).sort({ startTime: -1 }).limit(1000).lean(),
         []
       );
-      const allSessions = [...tursoSessions, ...mongoSessions];
+      const allSessions = mergeStudyHistory(tursoSessions, mongoSessions, 1000);
       
       const [mongoJobs, tursoJobs, trackerJobs, alertJobs] = await Promise.all([
         safeMongoRead(
@@ -1654,58 +1634,9 @@ export default async function(req, res) {
       
       console.log(`[SUMMARY] Hybrid Analyzing ${allSessions.length} sessions and ${allJobs.length} jobs`);
       
-      const historyObj = {};
-      
-      // Aggregate Study Sessions
-      allSessions.forEach(s => {
-        const d = s.date || new Date(s.startTime).toISOString().split('T')[0];
-        if (!historyObj[d]) {
-          historyObj[d] = { 
-            date: d, 
-            study: { totalSeconds: 0, topicList: [], breakdown: {}, sessionsCount: 0 }, 
-            jobs: { newCount: 0, topMatches: [] } 
-          };
-        }
-        const day = historyObj[d];
-        const duration = s.duration || 0;
-        day.study.totalSeconds += duration;
-        day.study.sessionsCount++;
-        
-        // Topic Breakdown
-        const tid = s.topic;
-        if (tid) {
-          if (!day.study.breakdown[tid]) {
-            day.study.breakdown[tid] = { id: tid, name: s.topicName || tid, totalSeconds: 0 };
-          }
-          day.study.breakdown[tid].totalSeconds += duration;
-        }
-      });
-      
-      // Aggregate Jobs
-      allJobs.forEach(j => {
-        const d = j.date_added || new Date(j.createdAt).toISOString().split('T')[0];
-        if (!historyObj[d]) {
-          historyObj[d] = { 
-            date: d, 
-            study: { totalSeconds: 0, topicList: [], breakdown: {}, sessionsCount: 0 }, 
-            jobs: { newCount: 0, topMatches: [] } 
-          };
-        }
-        const day = historyObj[d];
-        day.jobs.newCount++;
-        if (j.match_score >= 80 && day.jobs.topMatches.length < 5) {
-          day.jobs.topMatches.push({ title: j.title, company: j.company, score: j.match_score });
-        }
-      });
-
-      // Convert breakdowns to lists for frontend compatibility
-      Object.keys(historyObj).forEach(date => {
-        const h = historyObj[date];
-        h.study.topicList = Object.values(h.study.breakdown);
-      });
-      
+      const historyObj = buildStudySummaryHistory(allSessions, allJobs);
       const todayStr = new Date().toISOString().split('T')[0];
-      if (path === 'summary/daily') return res.status(200).json(historyObj[todayStr] || { date: todayStr, study: { totalSeconds: 0 }, jobs: { newCount: 0 } });
+      if (path === 'summary/daily') return res.status(200).json(getDailySummary(historyObj, todayStr));
       return res.status(200).json(historyObj);
     }
 

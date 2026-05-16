@@ -43,6 +43,8 @@ Google ID token verification is centralized in `src/auth/session.js` and shared 
 
 The current private profile model also supports `codingPractice`, `questionAttempts`, `mockInterviewSessions`, `releaseStudyActions`, `dailyStudyPlan`, `userSettings`, and `notes`. Local-only fallbacks follow the same `sfjr:${userId}:featureName` pattern.
 
+Study history, task completion, retention updates, and daily summaries share tested logic in `src/services/studyService.js` so local and Vercel routes stay aligned.
+
 ## Demo Mode vs Real User Mode
 
 The app can show deterministic fallback content when optional AI or cloud providers are missing. Real private persistence requires a valid Google token and at least one configured storage backend. The app must not collect LinkedIn, Naukri, or third-party job-board passwords; profile import should stay text/upload based.

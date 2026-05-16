@@ -11,6 +11,8 @@
 - Preserved existing login compatibility by returning both `id` and `googleId` where useful.
 - Removed dead local-server fallback routes after the main `/api/*` handler, including the old unscoped summary path.
 - Added `test/authSession.test.js` and `test/localServerSafety.test.js` to lock down auth parsing, verified user identity, invalid-token failure, response shape, and absence of unscoped local fallback reads.
+- Added `src/services/studyService.js` for shared study-retention, history merge, task merge, stats, and daily summary logic.
+- Rewired Vercel/local study routes to the shared study service and added `test/studyService.test.js`.
 - Next backend split target: move profile, study, job radar, release, and code-practice route handlers into small service modules while keeping `api/router.js` and `src/webServer.js` thin.
 
 ## 2026-05-14 Career Intelligence Upgrade Addendum
