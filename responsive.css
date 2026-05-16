@@ -2529,6 +2529,87 @@ textarea:focus-visible,
 
 }
 
+/* Career OS summary resilience: keep the profile dashboard readable from
+   narrow phones through desktop without summary pills or action rows spilling. */
+.career-os-shell,
+.career-os-panel,
+.career-os-grid,
+.career-os-job-intel,
+.career-os-metric,
+.career-os-action-item,
+.career-command-card,
+.career-day-card,
+.career-track-card {
+  min-width: 0;
+}
+
+.career-os-panel {
+  overflow-wrap: anywhere;
+}
+
+.career-os-panel-actions,
+.career-os-prep-footer,
+.career-seven-day-title,
+.career-upgrade-head {
+  flex-wrap: wrap;
+}
+
+.career-os-scan-state,
+.career-os-status-pill {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+}
+
+@media (max-width: 640px) {
+  .career-os-panel {
+    padding: 16px !important;
+  }
+
+  .career-os-section-head,
+  .career-upgrade-head,
+  .career-seven-day-title {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    align-items: stretch !important;
+  }
+
+  .career-os-scan-state,
+  .career-os-status-pill {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .career-os-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .career-os-job-intel .premium-badge {
+    display: inline-flex;
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 380px) {
+  .career-os-metric-grid,
+  .career-os-focus-strip,
+  .career-os-summary-chips {
+    grid-template-columns: 1fr !important;
+  }
+
+  .career-os-hero h2 {
+    font-size: 1.18rem !important;
+  }
+
+  .career-os-panel,
+  .career-os-identity {
+    padding: 14px !important;
+  }
+}
+
 /* Minimum touch target sizing */
 button,
 .nav-item,

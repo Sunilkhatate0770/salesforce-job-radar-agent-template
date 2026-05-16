@@ -1544,6 +1544,17 @@ function renderBoard() {
   const searchTerm = (document.getElementById("boardSearch")?.value || '').toLowerCase();
   const filter = window.currentBoardFilter || 'all';
   const pageSize = Math.max(1, Number(window.JOB_BOARD_PAGE_SIZE || 6));
+  const loadingAge = window.jobRadarLoadingStartedAt
+    ? Date.now() - Number(window.jobRadarLoadingStartedAt || 0)
+    : 0;
+
+  if (window.jobRadarLoading && loadingAge > 22000) {
+    window.jobRadarLoading = false;
+    window.jobRadarEmptyMessage = window.jobRadarEmptyMessage || 'Cloud sync is taking longer than expected. Showing cached roles while it recovers.';
+    if (window.RadarCloud?.setNotice) {
+      window.RadarCloud.setNotice('degraded', 'Showing cached Job Radar data', window.jobRadarEmptyMessage);
+    }
+  }
 
   cols.forEach(col => {
     const list = document.getElementById(`list-${col}`);

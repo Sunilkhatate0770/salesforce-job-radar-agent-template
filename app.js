@@ -34,7 +34,7 @@ let premiumPreviewBound = false;
 let premiumPreviewTimer = null;
 let currentUiMode = localStorage.getItem('sf_premium_ui_mode') || 'modern';
 let lastSidebarTrigger = null;
-const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260509-responsive-verify';
+const JOB_RADAR_CSS = 'src/styles/job-radar.css?v=20260516-loading-responsive';
 
 const featureStylesheetPromises = new Map();
 
@@ -348,8 +348,9 @@ function signOut() {
 }
 
 async function apiFetch(url, options = {}) {
+  const { timeout, ...fetchOptions } = options || {};
   const token = localStorage.getItem('google_auth_token');
-  const method = String(options.method || 'GET').toUpperCase();
+  const method = String(fetchOptions.method || 'GET').toUpperCase();
   const path = (() => {
     try {
       return new URL(url, window.location.origin).pathname;
@@ -368,13 +369,32 @@ async function apiFetch(url, options = {}) {
     });
   }
   const headers = {
-    ...options.headers,
+    ...fetchOptions.headers,
     'Authorization': `Bearer ${token}`
   };
-  if (method !== 'GET' && options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+  if (method !== 'GET' && fetchOptions.body && !(fetchOptions.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
-  return fetch(url, { ...options, headers });
+
+  let timeoutId = null;
+  let controller = null;
+  const timeoutMs = Number(timeout || 0);
+  if (timeoutMs > 0 && !fetchOptions.signal) {
+    controller = new AbortController();
+    fetchOptions.signal = controller.signal;
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  }
+
+  try {
+    return await fetch(url, { ...fetchOptions, headers });
+  } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 function normalizeCsvInput(value) {
@@ -2038,7 +2058,7 @@ function readAllLocalJobRadarJobs() {
 }
 
 async function loadJobRadarMarketIntelligence() {
-  const response = await apiFetch('/api/jobs');
+  const response = await apiFetch('/api/jobs', { timeout: 12000 });
   const data = await getApiErrorPayload(response);
   if (!response.ok) throw new Error(data.error || 'Job Radar jobs unavailable');
   const records = Array.isArray(data.records)
@@ -2057,30 +2077,51 @@ async function loadJobRadarMarketIntelligence() {
   return buildJobMarketIntelligenceFromJobs(window.pipelineJobs || records, 'job-radar');
 }
 
+function setJobIntelPanelState(section, state, label) {
+  if (!section) return;
+  section.classList.remove('loading', 'error', 'locked');
+  if (state) section.classList.add(state);
+  const status = section.querySelector('.career-os-scan-state');
+  if (status && label) status.textContent = label;
+}
+
 async function loadJobIntelligence() {
   const section = document.getElementById('careerOsJobRadarSummary') || document.getElementById('jobIntelligenceSection');
   const content = document.getElementById('careerOsJobIntelContent') || document.getElementById('jobIntelligenceContent');
   if (!section || !content) return;
 
+  const requestId = (window.__jobIntelRequestId || 0) + 1;
+  window.__jobIntelRequestId = requestId;
+  const isCurrentRequest = () => window.__jobIntelRequestId === requestId;
+
   section.style.display = '';
-  section.classList.remove('error');
-  section.classList.add('loading');
+  setJobIntelPanelState(section, 'loading', 'Loading');
   content.innerHTML = `
     <div class="career-os-skeleton" aria-busy="true" aria-label="Loading job market intelligence">
       <span></span><span></span><span></span>
     </div>`;
 
+  const fallbackTimer = setTimeout(() => {
+    if (!isCurrentRequest() || !section.classList.contains('loading')) return;
+    content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache'));
+    setJobIntelPanelState(section, 'error', 'Cached');
+    if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
+  }, 14000);
+
   try {
-    const res = await apiFetch('/api/profile/match?cb=' + Date.now());
+    const res = await apiFetch('/api/profile/match?cb=' + Date.now(), { timeout: 9000 });
+    if (!isCurrentRequest()) return;
     if (!res.ok) {
       console.log('[JOB-INTEL] API responded with:', res.status);
       const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
+      if (!isCurrentRequest()) return;
       content.innerHTML = renderJobIntelligence(radarIntel);
-      section.classList.remove('loading');
+      setJobIntelPanelState(section, radarIntel.source === 'local-cache' ? 'error' : '', radarIntel.source === 'local-cache' ? 'Cached' : 'Ready');
       if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
       return;
     }
     const data = await res.json();
+    if (!isCurrentRequest()) return;
     console.log('[JOB-INTEL] Job Market Intelligence:', data);
 
     const matchedSkills = data.matched_skills || [];
@@ -2088,8 +2129,9 @@ async function loadJobIntelligence() {
 
     if (matchedSkills.length === 0 && missingSkills.length === 0) {
       const radarIntel = await loadJobRadarMarketIntelligence().catch(() => buildLocalJobMarketIntelligence('local-cache'));
+      if (!isCurrentRequest()) return;
       content.innerHTML = renderJobIntelligence(radarIntel);
-      section.classList.remove('loading');
+      setJobIntelPanelState(section, radarIntel.source === 'local-cache' ? 'error' : '', radarIntel.source === 'local-cache' ? 'Cached' : 'Ready');
       if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
       return;
     }
@@ -2098,16 +2140,18 @@ async function loadJobIntelligence() {
       ...data,
       source: 'cloud'
     });
-    section.classList.remove('loading');
+    setJobIntelPanelState(section, '', 'Ready');
     if (typeof animateCountUpMetrics === 'function') animateCountUpMetrics(document.getElementById('profileMatchContent') || document);
   } catch (e) {
+    if (!isCurrentRequest()) return;
     console.warn('[JOB-INTEL] Failed to load job intelligence:', e.message);
     content.innerHTML = renderJobIntelligence(buildLocalJobMarketIntelligence('local-cache')) +
       (typeof renderInlineErrorState === 'function'
         ? renderInlineErrorState('Job intelligence is using local data right now.', 'loadJobIntelligence()')
         : '<div class="inline-error-state">Job intelligence is using local data right now.</div>');
-    section.classList.remove('loading');
-    if (section) section.classList.add('error');
+    setJobIntelPanelState(section, 'error', 'Cached');
+  } finally {
+    clearTimeout(fallbackTimer);
   }
 }
 
@@ -3369,6 +3413,35 @@ function setJobRadarNotice(status, message, detail) {
   }
 }
 
+function setJobRadarLoadingState(active, options = {}) {
+  if (window.__jobRadarLoadingTimer) {
+    clearTimeout(window.__jobRadarLoadingTimer);
+    window.__jobRadarLoadingTimer = null;
+  }
+
+  window.jobRadarLoading = Boolean(active);
+  if (!active) {
+    window.jobRadarLoadingStartedAt = 0;
+    window.__jobRadarLoadingToken = '';
+    return '';
+  }
+
+  const token = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const timeoutMs = Math.max(6000, Number(options.timeoutMs || 18000));
+  window.jobRadarLoadingStartedAt = Date.now();
+  window.__jobRadarLoadingToken = token;
+  window.__jobRadarLoadingTimer = setTimeout(() => {
+    if (window.__jobRadarLoadingToken !== token || !window.jobRadarLoading) return;
+    window.jobRadarLoading = false;
+    window.jobRadarEmptyMessage = options.timeoutMessage || 'Cloud sync is taking longer than expected. Showing cached roles while it recovers.';
+    setJobRadarNotice('degraded', 'Showing cached Job Radar data', window.jobRadarEmptyMessage);
+    setJobRadarBadge('Cached Data', 'warn', window.jobRadarEmptyMessage);
+    if (typeof renderBoard === 'function') renderBoard();
+    updateJobRadarSummary();
+  }, timeoutMs);
+  return token;
+}
+
 function updateCareerOsScanStatus(label, active = false) {
   const node = document.querySelector('.career-os-scan-state');
   if (!node) return;
@@ -3673,6 +3746,7 @@ async function fetchJobsList() {
   console.log('[RADAR] Fetching jobs from database...');
   const isSignedIn = window.RadarCloud ? window.RadarCloud.hasAuth() : Boolean(localStorage.getItem('google_auth_token'));
   if (!isSignedIn) {
+    setJobRadarLoadingState(false);
     window.allJobRecords = [];
     window.jobRadarEmptyMessage = 'Sign in with Google to sync private job data.';
     setJobRadarNotice('locked', 'Sign in to sync Job Radar', 'Your job pipeline and status changes stay private behind Google sign-in.');
@@ -3688,11 +3762,14 @@ async function fetchJobsList() {
   window.jobRadarEmptyMessage = 'Syncing cloud job sources...';
   setJobRadarNotice('loading', 'Syncing Job Radar', 'Reading private pipeline data from the configured cloud stores.');
   setJobRadarBadge('Syncing', 'neutral', 'Job Radar is loading.');
-  window.jobRadarLoading = true;
+  setJobRadarLoadingState(true, {
+    timeoutMs: 18000,
+    timeoutMessage: 'Cloud sync is taking longer than expected. Showing cached roles while it recovers.'
+  });
   if (typeof renderBoard === 'function') renderBoard();
 
   try {
-    const response = await apiFetch('/api/jobs');
+    const response = await apiFetch('/api/jobs', { timeout: 15000 });
     const data = await getApiErrorPayload(response);
     const classification = window.RadarCloud?.classifyApiResponse(response, data);
     if (classification && classification.status !== 'ready' && classification.status !== 'degraded') {
@@ -3700,7 +3777,7 @@ async function fetchJobsList() {
       setJobRadarNotice(classification.status, classification.message, classification.detail);
       setJobRadarBadge(classification.status === 'locked' ? 'Sign-in Required' : 'Sync Failed', classification.status === 'locked' ? 'locked' : 'error', classification.detail);
       clampBoardPages();
-      window.jobRadarLoading = false;
+      setJobRadarLoadingState(false);
       renderBoard();
       updateJobRadarSummary();
       return data;
@@ -3761,7 +3838,7 @@ async function fetchJobsList() {
 
     clampBoardPages();
     savePipeline();
-    window.jobRadarLoading = false;
+    setJobRadarLoadingState(false);
     renderBoard();
     updateJobRadarSummary();
     fetchJobAnalytics();
@@ -3780,7 +3857,7 @@ async function fetchJobsList() {
     window.jobRadarEmptyMessage = 'Could not reach the Job Radar API. Existing local cards are still available.';
     setJobRadarNotice('error', 'Job Radar sync failed', e.message || 'Could not reach the cloud API.');
     setJobRadarBadge('Sync Failed', 'error', e.message || 'Job Radar sync failed.');
-    window.jobRadarLoading = false;
+    setJobRadarLoadingState(false);
     if (typeof renderBoard === 'function') renderBoard();
     showToast('Job Radar sync failed. Existing local cards are still available.');
     return { success: false, error: e.message };
@@ -4037,7 +4114,7 @@ async function triggerJobScan() {
   showToast('Scan started. Fetching the latest Salesforce roles.');
 
   try {
-    const res = await apiFetch('/api/jobs/scan', { method: 'POST' });
+    const res = await apiFetch('/api/jobs/scan', { method: 'POST', timeout: 20000 });
     const data = await getApiErrorPayload(res);
     if (!res.ok) throw new Error(data.error || 'Scan request failed');
     

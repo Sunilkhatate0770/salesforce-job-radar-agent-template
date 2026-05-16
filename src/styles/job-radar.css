@@ -3849,3 +3849,195 @@ body:has(#job_radar.active) .activity-log-panel .log-entry {
   min-width: 0 !important;
   flex-wrap: wrap !important;
 }
+
+/* Final responsive hardening for the live Vercel surface. These rules keep the
+   Job Radar controls, cards, and mobile stage selector within the viewport
+   after the module stylesheet overrides the global responsive layer. */
+#job_radar,
+#job_radar * {
+  min-width: 0;
+}
+
+#job_radar .radar-brand,
+#job_radar .pinfo,
+#job_radar .jcard-company-copy,
+#job_radar .jcard-role,
+#job_radar .jcard-why,
+#job_radar .jcard-resume,
+#job_radar .cockpit-primary-action,
+#job_radar .cockpit-job-row span {
+  overflow-wrap: anywhere;
+}
+
+#job_radar .radar-header-actions,
+#job_radar .filter-actions,
+#job_radar .jcard-actions,
+#job_radar .cockpit-lanes,
+#job_radar .cockpit-metrics {
+  min-width: 0 !important;
+}
+
+#job_radar .filter-bar .fb,
+#job_radar .radar-inline-btn,
+#job_radar .radar-quiet-btn,
+#job_radar .jcard-btn {
+  min-width: 0 !important;
+}
+
+@media (min-width: 1101px) {
+  #job_radar .kanban-board-v3 {
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #job_radar {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: clip !important;
+    padding-bottom: max(88px, calc(72px + env(safe-area-inset-bottom, 0px))) !important;
+  }
+
+  #job_radar.page.active,
+  #job_radar.active {
+    overflow-x: clip !important;
+  }
+
+  #job_radar .radar-v3-header,
+  #job_radar .analytics-bar-v3,
+  #job_radar .radar-kpis,
+  #job_radar .radar-tabs,
+  #job_radar .filter-bar,
+  #job_radar .radar-cockpit {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #job_radar .radar-v3-header,
+  #job_radar .analytics-bar-v3,
+  #job_radar .filter-bar {
+    padding-inline: 12px !important;
+  }
+
+  #job_radar .radar-v3-header {
+    gap: 10px !important;
+  }
+
+  #job_radar .radar-brand-title {
+    font-size: clamp(1rem, 5vw, 1.35rem) !important;
+    line-height: 1.15 !important;
+  }
+
+  #job_radar .radar-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+  }
+
+  #job_radar .analytics-bar-v3 {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  #job_radar .analytics-bar-v3 .radar-divider {
+    display: none !important;
+  }
+
+  #job_radar .goal-wrap,
+  #job_radar .radar-status-stack {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  #job_radar .radar-kpis {
+    grid-template-columns: 1fr !important;
+    padding-inline: 12px !important;
+  }
+
+  #job_radar .radar-cockpit {
+    padding-inline: 12px !important;
+  }
+
+  #job_radar .cockpit-head,
+  #job_radar .cockpit-lanes {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+
+  #job_radar .cockpit-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #job_radar .filter-label {
+    width: 100% !important;
+  }
+
+  #job_radar .filter-bar .fb {
+    flex: 1 1 calc(50% - 6px) !important;
+    white-space: normal !important;
+  }
+
+  #job_radar .filter-search {
+    max-width: 100% !important;
+    flex-basis: 100% !important;
+  }
+
+  #job_radar .filter-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+
+  #job_radar .filter-actions .view-toggles {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  #job_radar .filter-actions .view-toggles .radar-inline-btn {
+    flex: 1 1 0 !important;
+    justify-content: center !important;
+  }
+
+  #job_radar .radar-inline-btn,
+  #job_radar .radar-quiet-btn {
+    width: 100% !important;
+    white-space: normal !important;
+  }
+}
+
+@media (max-width: 420px) {
+  #job_radar .pipe-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #job_radar .pstat {
+    width: 100% !important;
+  }
+
+  #job_radar .analytics-bar-v3,
+  #job_radar .cockpit-metrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  #job_radar .filter-bar .fb,
+  #job_radar .filter-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  #job_radar .filter-bar .fb {
+    flex-basis: 100% !important;
+  }
+
+  #job_radar .jcard-v3 {
+    padding: 12px !important;
+  }
+
+  #job_radar .jcard-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+  }
+}
