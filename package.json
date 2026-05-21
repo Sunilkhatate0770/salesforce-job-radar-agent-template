@@ -8,7 +8,7 @@
     "start": "node src/run.js",
     "web": "node src/webServer.js",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-static.js",
     "preview": "vite preview",
     "doctor": "node src/tools/doctor.js",
     "doctor:cloud": "node src/tools/cloudDoctor.js",
