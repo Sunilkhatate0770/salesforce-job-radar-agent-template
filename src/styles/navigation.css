@@ -73,6 +73,7 @@
 #sidebar #searchInput {
   min-height: 38px;
   border-radius: 10px !important;
+  padding-left: 32px !important;
 }
 
 #sidebar .nav-recent-panel {
