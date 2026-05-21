@@ -32,7 +32,12 @@
       ]
     }
   ],
+  "functions": {
+    "api/router.js": {
+      "includeFiles": "data/**"
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/router.js" }
+    { "source": "/api/(.*)", "destination": "/api/router.js?slug=$1" }
   ]
 }

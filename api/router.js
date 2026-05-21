@@ -498,8 +498,12 @@ export default async function(req, res) {
   try {
     let { slug } = req.query;
     let path = '';
-    if (slug && Array.isArray(slug)) { path = slug.join('/'); } 
-    else { path = (req.url || '').replace('/api/', '').split('?')[0]; }
+    if (slug) {
+      path = Array.isArray(slug) ? slug.join('/') : slug;
+    } else {
+      path = (req.url || '').replace('/api/', '').split('?')[0];
+    }
+    path = path.replace(/^\/+/, '').replace(/\/+$/, '');
 
     if (!await applyRateLimit(req, res, path)) return;
 
