@@ -62,8 +62,66 @@ export function checkRateLimit({ req, path = '', method = 'GET', now = Date.now(
   };
 }
 
-export function applyRateLimit(req, res, path) {
-  const result = checkRateLimit({ req, path, method: req?.method });
+export async function applyRateLimit(req, res, path) {
+  let result;
+  const kvUrl = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim();
+  const kvToken = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
+
+  if (kvUrl && kvToken) {
+    try {
+      const policy = getPolicy(path, req?.method);
+      const ip = getClientIp(req);
+      const key = `rate_limit:${ip}:${String(req?.method || 'GET').toUpperCase()}:${String(path || '')}`;
+      const windowSeconds = Math.ceil(policy.windowMs / 1000);
+
+      const luaScript = `
+        local key = KEYS[1]
+        local limit = tonumber(ARGV[1])
+        local window = tonumber(ARGV[2])
+        local count = redis.call("INCR", key)
+        if count == 1 then
+          redis.call("EXPIRE", key, window)
+        end
+        local ttl = redis.call("TTL", key)
+        return {count, ttl}
+      `;
+
+      const response = await fetch(kvUrl.replace(/\/$/, ''), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${kvToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(["EVAL", luaScript, "1", key, String(policy.max), String(windowSeconds)]),
+        signal: AbortSignal.timeout(3000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const [count, ttl] = data.result || [];
+
+      if (typeof count === 'number' && typeof ttl === 'number') {
+        const remaining = Math.max(0, policy.max - count);
+        result = {
+          allowed: count <= policy.max,
+          limit: policy.max,
+          remaining,
+          resetSeconds: Math.max(1, ttl)
+        };
+      } else {
+        throw new Error('Invalid Redis response payload');
+      }
+    } catch (err) {
+      console.warn('[RateLimit] Distributed rate limiter fallback triggered due to error:', err.message);
+      result = checkRateLimit({ req, path, method: req?.method });
+    }
+  } else {
+    result = checkRateLimit({ req, path, method: req?.method });
+  }
+
   res.setHeader('X-RateLimit-Limit', String(result.limit));
   res.setHeader('X-RateLimit-Remaining', String(result.remaining));
   res.setHeader('X-RateLimit-Reset', String(result.resetSeconds));

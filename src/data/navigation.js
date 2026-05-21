@@ -1,4 +1,5 @@
-(() => {
+// ES Module
+
   /**
    * @typedef {Object} NavItem
    * @property {string} id
@@ -245,5 +246,6 @@
     }
   ];
 
-  window.SFJR_NAVIGATION = Object.freeze(groups);
-})();
+export const SFJR_NAVIGATION = Object.freeze(groups);
+if (typeof window !== 'undefined') window.SFJR_NAVIGATION = SFJR_NAVIGATION;
+if (typeof globalThis !== 'undefined') globalThis.SFJR_NAVIGATION = SFJR_NAVIGATION;

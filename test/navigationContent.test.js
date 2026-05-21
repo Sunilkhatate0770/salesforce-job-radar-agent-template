@@ -6,7 +6,9 @@ import vm from 'node:vm';
 function loadBrowserData(file) {
   const context = { window: {} };
   vm.createContext(context);
-  vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+  let code = fs.readFileSync(file, 'utf8');
+  code = code.replace(/\bexport\s+/g, '');
+  vm.runInContext(code, context, { filename: file });
   return context.window;
 }
 
@@ -62,8 +64,10 @@ test('navigation items are grouped by core/scenario and resolve to content', () 
   const { SFJR_NAVIGATION, SFJR_SALESFORCE_CONTENT } = (() => {
     const context = { window: {} };
     vm.createContext(context);
-    vm.runInContext(fs.readFileSync('src/data/navigation.js', 'utf8'), context, { filename: 'src/data/navigation.js' });
-    vm.runInContext(fs.readFileSync('src/data/salesforceContent.js', 'utf8'), context, { filename: 'src/data/salesforceContent.js' });
+    const navCode = fs.readFileSync('src/data/navigation.js', 'utf8').replace(/\bexport\s+/g, '');
+    const contentCode = fs.readFileSync('src/data/salesforceContent.js', 'utf8').replace(/\bexport\s+/g, '');
+    vm.runInContext(navCode, context, { filename: 'src/data/navigation.js' });
+    vm.runInContext(contentCode, context, { filename: 'src/data/salesforceContent.js' });
     return context.window;
   })();
 

@@ -91,8 +91,9 @@
     };
   </script>
   <script src="https://accounts.google.com/gsi/client" async defer onload="initializeGoogleSignIn()"></script>
-<script src="src/radar-cloud.js?v=20260503-radar-scroll"></script>
-<script src="src/components.js?v=20260512-career-os"></script>
+<script src="/src/radar-cloud.js?v=20260503-radar-scroll" type="module"></script>
+<script src="/src/components.js?v=20260512-career-os" type="module"></script>
+
   <!-- app.js moved to bottom for performance and DOM stability -->
 </head>
 <body>
@@ -1144,14 +1145,8 @@
 
 </div><!-- end #main -->
 
+<script type="module" src="/src/main.js"></script>
 
-<script src="src/data/navigation.js?v=20260512-career-os"></script>
-<script src="src/data/salesforceContent.js?v=20260506-nav-fallback"></script>
-<script src="src/data/studyAnalytics.js?v=20260512-study-analytics"></script>
-<script src="src/data/careerIntelligence.js?v=20260514-career-upgrade"></script>
-<script src="app.js?v=20260514-shell-repair"></script>
-<script src="src/ui-shell.js?v=20260503-radar-scroll"></script>
-<script src="code-practice.js?v=20260506-builder-fix"></script>
 <script>
   (function(){
     const btn = document.querySelector('[data-theme-toggle]');

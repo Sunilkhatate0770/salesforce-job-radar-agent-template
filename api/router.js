@@ -77,27 +77,30 @@ import { getAuthenticatedUserId, verifyGoogleCredential } from '../src/auth/sess
 const DATA_DIR = path.join(process.cwd(), 'data');
 const dataCache = new Map();
 
-let cachedDb = null;
+let cachedDbPromise = null;
 let dbConnectionAttempted = false;
 async function connectDB() {
-  if (cachedDb) return cachedDb;
+  if (cachedDbPromise) return cachedDbPromise;
   if (!process.env.MONGODB_URI) {
     if (!dbConnectionAttempted) console.warn('[DB] MONGODB_URI missing; MongoDB routes will use fallback data only.');
     dbConnectionAttempted = true;
     return null;
   }
-  try {
-    dbConnectionAttempted = true;
-    const db = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000 // 5 second timeout
-    });
-    cachedDb = db;
-    console.log('[DB] MongoDB Connected');
-    return db;
-  } catch (err) {
-    console.error('[DB] MongoDB Connection Failed (Skipping):', err.message);
-    return null; 
-  }
+  cachedDbPromise = (async () => {
+    try {
+      dbConnectionAttempted = true;
+      const db = await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000 // 5 second timeout
+      });
+      console.log('[DB] MongoDB Connected');
+      return db;
+    } catch (err) {
+      console.error('[DB] MongoDB Connection Failed (Skipping):', err.message);
+      cachedDbPromise = null; // Clear on failure to allow retry
+      return null;
+    }
+  })();
+  return cachedDbPromise;
 }
 
 function isMongoConnected() {
@@ -498,7 +501,7 @@ export default async function(req, res) {
     if (slug && Array.isArray(slug)) { path = slug.join('/'); } 
     else { path = (req.url || '').replace('/api/', '').split('?')[0]; }
 
-    if (!applyRateLimit(req, res, path)) return;
+    if (!await applyRateLimit(req, res, path)) return;
 
     // Soft Connect to Legacy DB
     await connectDB();

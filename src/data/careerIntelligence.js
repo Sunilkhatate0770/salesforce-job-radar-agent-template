@@ -1,5 +1,5 @@
-(function attachCareerIntelligence(root) {
-  'use strict';
+// ES Module
+
 
   const DAY_MS = 24 * 60 * 60 * 1000;
   const SAFE_JOB_STATUSES = ['todo', 'applied', 'interview', 'offer', 'rejected'];
@@ -435,6 +435,6 @@
     searchCareerContent
   };
 
-  root.SFJR_CAREER_INTELLIGENCE = Object.freeze(api);
-  if (root.window && root.window !== root) root.window.SFJR_CAREER_INTELLIGENCE = root.SFJR_CAREER_INTELLIGENCE;
-})(typeof window !== 'undefined' ? window : globalThis);
+export const SFJR_CAREER_INTELLIGENCE = Object.freeze(api);
+if (typeof window !== 'undefined') window.SFJR_CAREER_INTELLIGENCE = SFJR_CAREER_INTELLIGENCE;
+if (typeof globalThis !== 'undefined') globalThis.SFJR_CAREER_INTELLIGENCE = SFJR_CAREER_INTELLIGENCE;

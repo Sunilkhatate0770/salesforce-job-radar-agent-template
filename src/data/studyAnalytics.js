@@ -1,5 +1,5 @@
-(function(root) {
-  'use strict';
+// ES Module
+
 
   const GROUP_GRADIENTS = {
     Technical: 'linear-gradient(90deg,#4f8ef7,#22d3ee)',
@@ -310,13 +310,14 @@
     return { topicStats, topicDetails, sortedTopics, totalTime, cards };
   }
 
-  root.SFJR_STUDY_ANALYTICS = {
-    calculateCourseTargets,
-    calculateStudyTotals,
-    getTopicStatus,
-    buildSuggestionModels,
-    buildTopicChartRows,
-    buildTrackerRows,
-    buildHistoryTopicAnalytics
-  };
-})(typeof window !== 'undefined' ? window : globalThis);
+export const SFJR_STUDY_ANALYTICS = {
+  calculateCourseTargets,
+  calculateStudyTotals,
+  getTopicStatus,
+  buildSuggestionModels,
+  buildTopicChartRows,
+  buildTrackerRows,
+  buildHistoryTopicAnalytics
+};
+if (typeof window !== 'undefined') window.SFJR_STUDY_ANALYTICS = SFJR_STUDY_ANALYTICS;
+if (typeof globalThis !== 'undefined') globalThis.SFJR_STUDY_ANALYTICS = SFJR_STUDY_ANALYTICS;

@@ -1,4 +1,5 @@
-(() => {
+// ES Module
+
   const sectionSeeds = [
     ['apex', 'Apex Fundamentals', 25, ['Apex', 'transactions', 'governor limits'], 'intermediate'],
     ['soql', 'SOQL & SOSL', 20, ['SOQL', 'SOSL', 'LDV', 'query plan'], 'intermediate'],
@@ -419,15 +420,16 @@
     };
   }
 
-  window.SFJR_SALESFORCE_CONTENT = Object.freeze({
-    sections: Object.values(byId),
-    byId,
-    asKnowledgeTopic,
-    getSection(id) {
-      return byId[id] || null;
-    },
-    getAllQuestions() {
-      return Object.values(byId).flatMap(section => section.questions.map(question => ({ ...question, sectionTitle: section.title })));
-    }
-  });
-})();
+export const SFJR_SALESFORCE_CONTENT = Object.freeze({
+  sections: Object.values(byId),
+  byId,
+  asKnowledgeTopic,
+  getSection(id) {
+    return byId[id] || null;
+  },
+  getAllQuestions() {
+    return Object.values(byId).flatMap(section => section.questions.map(question => ({ ...question, sectionTitle: section.title })));
+  }
+});
+if (typeof window !== 'undefined') window.SFJR_SALESFORCE_CONTENT = SFJR_SALESFORCE_CONTENT;
+if (typeof globalThis !== 'undefined') globalThis.SFJR_SALESFORCE_CONTENT = SFJR_SALESFORCE_CONTENT;

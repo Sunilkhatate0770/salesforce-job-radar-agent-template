@@ -14,7 +14,9 @@ import {
 function loadBrowserCareerIntelligence() {
   const context = { window: {}, console };
   vm.createContext(context);
-  vm.runInContext(fs.readFileSync('src/data/careerIntelligence.js', 'utf8'), context, { filename: 'src/data/careerIntelligence.js' });
+  let code = fs.readFileSync('src/data/careerIntelligence.js', 'utf8');
+  code = code.replace(/\bexport\s+/g, '');
+  vm.runInContext(code, context, { filename: 'src/data/careerIntelligence.js' });
   return context.window.SFJR_CAREER_INTELLIGENCE;
 }
 
